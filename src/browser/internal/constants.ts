@@ -1,0 +1,7 @@
+// src/browser/internal/constants.ts
+// default configuration constants for module loading
+
+export const DEFAULT_MAX_MODULE_LOAD_DEPTH = 100;
+export const DEFAULT_MAX_CONCURRENT_FETCHES = 8;
+export const DEFAULT_SHIM_LOAD_MAX_RETRIES = 2;
+export const DEFAULT_SHIM_LOAD_RETRY_DELAY_MS = 150;
