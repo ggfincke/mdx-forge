@@ -3,12 +3,11 @@
 // use shared LRUCache w/ isProtected for preloaded module protection
 
 import { LRUCache } from '../internal/lru-cache';
+import {
+  DEFAULT_MAX_MODULES,
+  DEFAULT_MAX_MEMORY_BYTES,
+} from '../internal/constants';
 import type { Module } from '../types';
-
-// lru configuration defaults
-const DEFAULT_MAX_MODULES = 500;
-// 50MB
-const DEFAULT_MAX_MEMORY_BYTES = 50 * 1024 * 1024;
 
 // cache entry combining module w/ size estimate
 interface CacheEntry {

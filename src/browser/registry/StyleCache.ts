@@ -2,8 +2,7 @@
 // style tracking w/ reference counting using shared LRUCache
 
 import { LRUCache } from '../internal/lru-cache';
-
-const DEFAULT_MAX_STYLES = 100;
+import { DEFAULT_MAX_STYLES } from '../internal/constants';
 
 // style entry w/ reference count for protection
 interface StyleEntry {
