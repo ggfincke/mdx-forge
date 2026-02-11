@@ -2,6 +2,7 @@
 // type definitions for MDX AST transforms
 
 import type { RootContent, BlockContent, PhrasingContent } from 'mdast';
+import type { Properties } from 'hast';
 
 // MDX JSX attribute node
 export interface MdxJsxAttribute {
@@ -28,19 +29,30 @@ export interface NodeConfig {
   type: string;
   hName: string;
   className: string | string[];
-  children: unknown[];
-  additionalProps?: Record<string, unknown>;
+  children: RootContent[];
+  additionalProps?: Properties;
+}
+
+// AST node created by createNode() for Safe Mode HTML rendering
+// uses remark-rehype data.hName/hProperties convention to map to HTML elements
+export interface TransformNode {
+  type: string;
+  data: {
+    hName: string;
+    hProperties: Properties & { className: string[] };
+  };
+  children: RootContent[];
+}
+
+// register TransformNode as a valid mdast RootContent variant
+// allows transform functions to return createNode() results w/o unsafe casts
+declare module 'mdast' {
+  interface RootContentMap {
+    transformNode: TransformNode;
+  }
 }
 
 // transform function signature for MDX element transforms
 export type TransformFunction = (node: MdxJsxElement) => RootContent;
 
-// callout/admonition types
-export type CalloutType =
-  | 'note'
-  | 'tip'
-  | 'warning'
-  | 'danger'
-  | 'info'
-  | 'caution'
-  | 'important';
+export type { CalloutType } from '../../internal/callout';

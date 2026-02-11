@@ -21,20 +21,28 @@ import remarkGenericComponents, {
 import { escapeHtml } from '../pipeline/transforms/utils';
 import { getLogger } from '../internal/logging';
 
-import type { CompilerConfig, UnknownBehavior, SafeHTMLResult } from '../types';
+import type {
+  CompilerConfig,
+  UnknownBehavior,
+  SafeHTMLResult,
+  MdxJsxElement,
+} from '../types';
+import {
+  EXPRESSION_PLACEHOLDER,
+  JSX_PLACEHOLDER,
+  UNKNOWN_COMPONENT_PLACEHOLDER,
+  UNKNOWN_COMPONENT_EMPTY,
+  UNKNOWN_COMPONENT_HEADER,
+  UNKNOWN_ICON,
+  UNKNOWN_HINT,
+  UNKNOWN_COMPONENT_CONTENT,
+} from '../internal/css-classes';
 
 // options for remarkStripMdx plugin
 interface RemarkStripMdxOptions {
   unknownBehavior?: UnknownBehavior;
   builtinsEnabled?: boolean;
   componentNameResolver?: (name: string) => string | undefined;
-}
-
-// MDX JSX element node w/ name & children
-interface MdxJsxElement {
-  type: 'mdxJsxFlowElement' | 'mdxJsxTextElement';
-  name: string | null;
-  children: RootContent[];
 }
 
 // remark plugin to strip MDX-specific nodes (replaces JSX elements & expressions based on behavior)
@@ -126,7 +134,7 @@ function remarkStripMdx(options: RemarkStripMdxOptions = {}) {
           children: [
             {
               type: 'html',
-              value: `<span class="mdx-expression-placeholder" title="JavaScript expression (requires Trusted Mode)">{...}</span>`,
+              value: `<span class="${EXPRESSION_PLACEHOLDER}" title="JavaScript expression (requires Trusted Mode)">{...}</span>`,
             },
           ],
         };
@@ -138,7 +146,7 @@ function remarkStripMdx(options: RemarkStripMdxOptions = {}) {
       if (node.type === 'mdxTextExpression') {
         const placeholder: RootContent = {
           type: 'html',
-          value: `<span class="mdx-expression-placeholder" title="JavaScript expression (requires Trusted Mode)">{...}</span>`,
+          value: `<span class="${EXPRESSION_PLACEHOLDER}" title="JavaScript expression (requires Trusted Mode)">{...}</span>`,
         } as RootContent;
         (parent as Parent).children[index] = placeholder;
         return;
@@ -171,7 +179,7 @@ function createJsxReplacement(
     case 'raw':
       // keep children, remove wrapper
       if (node.children && node.children.length > 0) {
-        return node.children;
+        return node.children as unknown as RootContent[];
       }
       return null;
 
@@ -193,20 +201,20 @@ function createJsxReplacement(
             data: {
               hName: 'div',
               hProperties: {
-                className: ['mdx-unknown-component-placeholder'],
+                className: [UNKNOWN_COMPONENT_PLACEHOLDER],
               },
             },
             children: [
               {
                 type: 'html',
-                value: `<div class="mdx-unknown-component-header"><span class="mdx-unknown-icon">⚠</span><code>&lt;${escapedName}&gt;</code><span class="mdx-unknown-hint">${hint}</span></div>`,
+                value: `<div class="${UNKNOWN_COMPONENT_HEADER}"><span class="${UNKNOWN_ICON}">⚠</span><code>&lt;${escapedName}&gt;</code><span class="${UNKNOWN_HINT}">${hint}</span></div>`,
               },
               {
                 type: 'unknownComponentContent' as RootContent['type'],
                 data: {
                   hName: 'div',
                   hProperties: {
-                    className: ['mdx-unknown-component-content'],
+                    className: [UNKNOWN_COMPONENT_CONTENT],
                   },
                 },
                 children: node.children,
@@ -220,7 +228,7 @@ function createJsxReplacement(
             children: [
               {
                 type: 'html',
-                value: `<div class="mdx-unknown-component-placeholder mdx-unknown-component-empty"><div class="mdx-unknown-component-header"><span class="mdx-unknown-icon">⚠</span><code>&lt;${escapedName} /&gt;</code><span class="mdx-unknown-hint">${hint}</span></div></div>`,
+                value: `<div class="${UNKNOWN_COMPONENT_PLACEHOLDER} ${UNKNOWN_COMPONENT_EMPTY}"><div class="${UNKNOWN_COMPONENT_HEADER}"><span class="${UNKNOWN_ICON}">⚠</span><code>&lt;${escapedName} /&gt;</code><span class="${UNKNOWN_HINT}">${hint}</span></div></div>`,
               },
             ],
           };
@@ -229,7 +237,7 @@ function createJsxReplacement(
         // inline placeholder
         return {
           type: 'html',
-          value: `<span class="mdx-jsx-placeholder" title="JSX component ${hint}">&lt;${escapedName} /&gt;</span>`,
+          value: `<span class="${JSX_PLACEHOLDER}" title="JSX component ${hint}">&lt;${escapedName} /&gt;</span>`,
         } as RootContent;
       }
     }

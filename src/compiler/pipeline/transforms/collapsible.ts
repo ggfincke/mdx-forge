@@ -9,6 +9,11 @@ import {
   escapeHtml,
   createNode,
 } from './utils';
+import {
+  SAFE_COLLAPSIBLE,
+  SAFE_COLLAPSIBLE_SUMMARY,
+  SAFE_COLLAPSIBLE_CONTENT,
+} from '../../internal/css-classes';
 
 // transform Collapsible/Accordion/Details component to semantic HTML
 export function transformCollapsible(node: MdxJsxElement): RootContent {
@@ -21,21 +26,21 @@ export function transformCollapsible(node: MdxJsxElement): RootContent {
   return createNode({
     type: 'collapsible',
     hName: 'details',
-    className: 'mdx-safe-collapsible',
+    className: SAFE_COLLAPSIBLE,
     additionalProps: defaultOpen ? { open: true } : {},
     children: [
       createNode({
         type: 'collapsibleSummary',
         hName: 'summary',
-        className: 'mdx-safe-collapsible-summary',
+        className: SAFE_COLLAPSIBLE_SUMMARY,
         children: [{ type: 'text', value: escapeHtml(title) }],
       }),
       createNode({
         type: 'collapsibleContent',
         hName: 'div',
-        className: 'mdx-safe-collapsible-content',
+        className: SAFE_COLLAPSIBLE_CONTENT,
         children: node.children,
       }),
     ],
-  }) as RootContent;
+  });
 }

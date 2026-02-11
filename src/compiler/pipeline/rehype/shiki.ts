@@ -11,6 +11,14 @@ import {
   type ShikiTransformer,
 } from 'shiki';
 import { createCssVariablesTheme } from 'shiki/core';
+import {
+  PREVIEW_CODEBLOCK,
+  PREVIEW_CODEBLOCK_TITLE,
+  PREVIEW_CODEBLOCK_SHIKI,
+  PREVIEW_CODEBLOCK_LINE_NUMBERS,
+  DIFF_ADD,
+  DIFF_REMOVE,
+} from '../../internal/css-classes';
 
 // common languages to pre-bundle (others fall back to plaintext)
 const COMMON_LANGUAGES: BundledLanguage[] = [
@@ -105,9 +113,9 @@ const diffTransformer: ShikiTransformer = {
     const lineText = lines[lineNumber - 1] || '';
 
     if (lineText.startsWith('+')) {
-      this.addClassToHast(hast, 'diff-add');
+      this.addClassToHast(hast, DIFF_ADD);
     } else if (lineText.startsWith('-')) {
-      this.addClassToHast(hast, 'diff-remove');
+      this.addClassToHast(hast, DIFF_REMOVE);
     }
   },
 };
@@ -354,7 +362,7 @@ function createCodeBlockWrapper(options: {
     children.push({
       type: 'element',
       tagName: 'div',
-      properties: { className: ['mdx-preview-codeblock-title'] },
+      properties: { className: [PREVIEW_CODEBLOCK_TITLE] },
       children: [{ type: 'text', value: meta.title }],
     });
   }
@@ -365,8 +373,8 @@ function createCodeBlockWrapper(options: {
     tagName: 'div',
     properties: {
       className: [
-        'mdx-preview-codeblock-shiki',
-        meta.showLineNumbers ? 'with-line-numbers' : '',
+        PREVIEW_CODEBLOCK_SHIKI,
+        meta.showLineNumbers ? PREVIEW_CODEBLOCK_LINE_NUMBERS : '',
       ].filter(Boolean),
       'data-language': lang,
       // for copy button
@@ -390,7 +398,7 @@ function createCodeBlockWrapper(options: {
   return {
     type: 'element',
     tagName: 'div',
-    properties: { className: ['mdx-preview-codeblock'] },
+    properties: { className: [PREVIEW_CODEBLOCK] },
     children,
   };
 }

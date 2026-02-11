@@ -1,7 +1,7 @@
 // src/compiler/pipeline/transforms/utils.ts
 // shared utilities for Safe Mode component transforms
 
-import type { MdxJsxElement, NodeConfig } from '../../types';
+import type { MdxJsxElement, NodeConfig, TransformNode } from '../../types';
 
 // extract a static string prop from an MDX JSX element
 // only processes string literal values; expression values are ignored
@@ -60,7 +60,7 @@ export function escapeHtml(str: string): string {
 }
 
 // create an MDAST/rehype node w/ proper structure for HTML rendering
-export function createNode(config: NodeConfig): unknown {
+export function createNode(config: NodeConfig): TransformNode {
   return {
     type: config.type,
     data: {

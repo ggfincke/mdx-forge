@@ -4,25 +4,29 @@
 import type { RootContent } from 'mdast';
 import type { MdxJsxElement } from '../../types';
 import { createNode } from './utils';
+import {
+  SAFE_CODE_GROUP,
+  SAFE_CODE_GROUP_NOTICE,
+  SAFE_CODE_GROUP_CONTENT,
+} from '../../internal/css-classes';
 
 // transform CodeGroup container component to semantic HTML (non-interactive in Safe Mode)
 export function transformCodeGroup(node: MdxJsxElement): RootContent {
   return createNode({
     type: 'codeGroup',
     hName: 'div',
-    className: 'mdx-safe-code-group',
+    className: SAFE_CODE_GROUP,
     children: [
       {
         type: 'html',
-        value:
-          '<div class="mdx-safe-code-group-notice">Code group (tabbed view requires Trusted Mode)</div>',
+        value: `<div class="${SAFE_CODE_GROUP_NOTICE}">Code group (tabbed view requires Trusted Mode)</div>`,
       },
       createNode({
         type: 'codeGroupContent',
         hName: 'div',
-        className: 'mdx-safe-code-group-content',
+        className: SAFE_CODE_GROUP_CONTENT,
         children: node.children,
       }),
     ],
-  }) as RootContent;
+  });
 }
