@@ -4,12 +4,25 @@
 import type { RootContent } from 'mdast';
 import type { MdxJsxElement } from '../../types';
 import { getStaticStringProp, escapeHtml, createNode } from './utils';
-import { ADMONITION_ICONS } from '../common/icon-registry';
+import { CALLOUT_ICONS } from '../../../internal/icons';
 import {
   type CalloutType,
   CALLOUT_TITLES,
   normalizeCalloutType,
 } from '../../../internal/callout';
+import {
+  SAFE_CALLOUT,
+  SAFE_CALLOUT_NOTE,
+  SAFE_CALLOUT_INFO,
+  SAFE_CALLOUT_TIP,
+  SAFE_CALLOUT_WARNING,
+  SAFE_CALLOUT_CAUTION,
+  SAFE_CALLOUT_DANGER,
+  SAFE_CALLOUT_IMPORTANT,
+  SAFE_CALLOUT_HEADER,
+  SAFE_CALLOUT_ICON,
+  SAFE_CALLOUT_CONTENT,
+} from '../../internal/css-classes';
 
 // re-export for consumers that import from this file
 export {
@@ -24,38 +37,38 @@ export const CALLOUT_DEFAULTS: Record<
 > = {
   note: {
     label: CALLOUT_TITLES.note,
-    className: 'mdx-safe-callout-note',
-    icon: ADMONITION_ICONS.note,
+    className: SAFE_CALLOUT_NOTE,
+    icon: CALLOUT_ICONS.note,
   },
   info: {
     label: CALLOUT_TITLES.info,
-    className: 'mdx-safe-callout-info',
-    icon: ADMONITION_ICONS.info,
+    className: SAFE_CALLOUT_INFO,
+    icon: CALLOUT_ICONS.info,
   },
   tip: {
     label: CALLOUT_TITLES.tip,
-    className: 'mdx-safe-callout-tip',
-    icon: ADMONITION_ICONS.tip,
+    className: SAFE_CALLOUT_TIP,
+    icon: CALLOUT_ICONS.tip,
   },
   warning: {
     label: CALLOUT_TITLES.warning,
-    className: 'mdx-safe-callout-warning',
-    icon: ADMONITION_ICONS.warning,
+    className: SAFE_CALLOUT_WARNING,
+    icon: CALLOUT_ICONS.warning,
   },
   caution: {
     label: CALLOUT_TITLES.caution,
-    className: 'mdx-safe-callout-caution',
-    icon: ADMONITION_ICONS.caution,
+    className: SAFE_CALLOUT_CAUTION,
+    icon: CALLOUT_ICONS.caution,
   },
   danger: {
     label: CALLOUT_TITLES.danger,
-    className: 'mdx-safe-callout-danger',
-    icon: ADMONITION_ICONS.danger,
+    className: SAFE_CALLOUT_DANGER,
+    icon: CALLOUT_ICONS.danger,
   },
   important: {
     label: CALLOUT_TITLES.important,
-    className: 'mdx-safe-callout-important',
-    icon: ADMONITION_ICONS.important,
+    className: SAFE_CALLOUT_IMPORTANT,
+    icon: CALLOUT_ICONS.important,
   },
 };
 
@@ -69,17 +82,17 @@ export function transformCallout(node: MdxJsxElement): RootContent {
   return createNode({
     type: 'callout',
     hName: 'aside',
-    className: ['mdx-safe-callout', config.className],
+    className: [SAFE_CALLOUT, config.className],
     additionalProps: { 'data-callout-type': calloutType },
     children: [
       createNode({
         type: 'calloutHeader',
         hName: 'div',
-        className: 'mdx-safe-callout-header',
+        className: SAFE_CALLOUT_HEADER,
         children: [
           {
             type: 'html',
-            value: `<span class="mdx-safe-callout-icon">${config.icon}</span>`,
+            value: `<span class="${SAFE_CALLOUT_ICON}">${config.icon}</span>`,
           },
           { type: 'text', value: escapeHtml(title) },
         ],
@@ -87,9 +100,9 @@ export function transformCallout(node: MdxJsxElement): RootContent {
       createNode({
         type: 'calloutContent',
         hName: 'div',
-        className: 'mdx-safe-callout-content',
+        className: SAFE_CALLOUT_CONTENT,
         children: node.children,
       }),
     ],
-  }) as RootContent;
+  });
 }

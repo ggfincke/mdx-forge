@@ -4,8 +4,13 @@
 import { visit } from 'unist-util-visit';
 import type { Root, Blockquote, Paragraph, Text, Html } from 'mdast';
 import type { Parent } from 'unist';
-import { GITHUB_ALERT_ICONS } from '../common/icon-registry';
+import { GITHUB_ALERT_ICONS } from '../../../internal/icons';
 import { escapeHtml } from '../transforms/utils';
+import {
+  GITHUB_ALERT,
+  GITHUB_ALERT_TITLE,
+  GITHUB_ALERT_CONTENT,
+} from '../../internal/css-classes';
 
 // alert type configuration
 const ALERT_CONFIG = {
@@ -115,9 +120,9 @@ function buildAlertHtml(
 
   const content = contentParts.join('\n');
 
-  return `<div class="github-alert github-alert-${config.className}" role="note">
-<p class="github-alert-title">${config.icon}<span>${config.label}</span></p>
-<div class="github-alert-content">
+  return `<div class="${GITHUB_ALERT} ${GITHUB_ALERT}-${config.className}" role="note">
+<p class="${GITHUB_ALERT_TITLE}">${config.icon}<span>${config.label}</span></p>
+<div class="${GITHUB_ALERT_CONTENT}">
 ${content}
 </div>
 </div>`;

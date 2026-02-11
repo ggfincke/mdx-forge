@@ -4,7 +4,20 @@
 import { visit } from 'unist-util-visit';
 import type { Root, Parent, PhrasingContent, BlockContent } from 'mdast';
 import type { ContainerDirective } from 'mdast-util-directive';
-import { ADMONITION_ICONS } from '../common/icon-registry';
+import { CALLOUT_ICONS } from '../../../internal/icons';
+import {
+  PREVIEW_ADMONITION,
+  PREVIEW_ADMONITION_NOTE,
+  PREVIEW_ADMONITION_TIP,
+  PREVIEW_ADMONITION_INFO,
+  PREVIEW_ADMONITION_WARNING,
+  PREVIEW_ADMONITION_DANGER,
+  PREVIEW_ADMONITION_CAUTION,
+  PREVIEW_ADMONITION_IMPORTANT,
+  PREVIEW_ADMONITION_HEADER,
+  PREVIEW_ADMONITION_ICON,
+  PREVIEW_ADMONITION_CONTENT,
+} from '../../internal/css-classes';
 
 // admonition type configuration
 interface AdmonitionType {
@@ -16,39 +29,39 @@ interface AdmonitionType {
 // supported admonition types (Docusaurus + Starlight compatible)
 const ADMONITION_TYPES: Record<string, AdmonitionType> = {
   note: {
-    className: 'mdx-preview-admonition-note',
+    className: PREVIEW_ADMONITION_NOTE,
     label: 'Note',
-    icon: ADMONITION_ICONS.note,
+    icon: CALLOUT_ICONS.note,
   },
   tip: {
-    className: 'mdx-preview-admonition-tip',
+    className: PREVIEW_ADMONITION_TIP,
     label: 'Tip',
-    icon: ADMONITION_ICONS.tip,
+    icon: CALLOUT_ICONS.tip,
   },
   info: {
-    className: 'mdx-preview-admonition-info',
+    className: PREVIEW_ADMONITION_INFO,
     label: 'Info',
-    icon: ADMONITION_ICONS.info,
+    icon: CALLOUT_ICONS.info,
   },
   warning: {
-    className: 'mdx-preview-admonition-warning',
+    className: PREVIEW_ADMONITION_WARNING,
     label: 'Warning',
-    icon: ADMONITION_ICONS.warning,
+    icon: CALLOUT_ICONS.warning,
   },
   danger: {
-    className: 'mdx-preview-admonition-danger',
+    className: PREVIEW_ADMONITION_DANGER,
     label: 'Danger',
-    icon: ADMONITION_ICONS.danger,
+    icon: CALLOUT_ICONS.danger,
   },
   caution: {
-    className: 'mdx-preview-admonition-caution',
+    className: PREVIEW_ADMONITION_CAUTION,
     label: 'Caution',
-    icon: ADMONITION_ICONS.caution,
+    icon: CALLOUT_ICONS.caution,
   },
   important: {
-    className: 'mdx-preview-admonition-important',
+    className: PREVIEW_ADMONITION_IMPORTANT,
     label: 'Important',
-    icon: ADMONITION_ICONS.important,
+    icon: CALLOUT_ICONS.important,
   },
 };
 
@@ -164,7 +177,7 @@ function createAdmonitionNode(
 
   const htmlNode: HtmlNode = {
     type: 'html',
-    value: `<span class="mdx-preview-admonition-icon">${type.icon}</span>`,
+    value: `<span class="${PREVIEW_ADMONITION_ICON}">${type.icon}</span>`,
   };
 
   const textNode: TextNode = {
@@ -177,7 +190,7 @@ function createAdmonitionNode(
     data: {
       hName: 'div',
       hProperties: {
-        className: ['mdx-preview-admonition-header'],
+        className: [PREVIEW_ADMONITION_HEADER],
       },
     },
     children: [htmlNode, textNode] as unknown as (
@@ -191,7 +204,7 @@ function createAdmonitionNode(
     data: {
       hName: 'div',
       hProperties: {
-        className: ['mdx-preview-admonition-content'],
+        className: [PREVIEW_ADMONITION_CONTENT],
       },
     },
     children: contentChildren,
@@ -202,7 +215,7 @@ function createAdmonitionNode(
     data: {
       hName: 'div',
       hProperties: {
-        className: ['mdx-preview-admonition', type.className],
+        className: [PREVIEW_ADMONITION, type.className],
         'data-admonition-type': type.label.toLowerCase(),
       },
     },
