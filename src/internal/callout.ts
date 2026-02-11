@@ -41,6 +41,13 @@ export const CALLOUT_TITLES: Readonly<Record<CalloutType, string>> = {
   important: 'Important',
 } as const;
 
+// shared shape for callout/admonition/alert config objects
+export interface CalloutStyleConfig {
+  className: string;
+  label: string;
+  icon: string;
+}
+
 export function normalizeCalloutType(type: string | undefined): CalloutType {
   if (!type) {
     return 'note';
