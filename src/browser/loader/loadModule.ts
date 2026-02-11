@@ -19,13 +19,6 @@ import type {
   FetchResult,
 } from '../types';
 
-// circular dependency helpers (see circular.ts for details)
-import {
-  getPendingModule,
-  registerPendingModule,
-  clearPendingModule,
-} from './circular';
-
 // track in-flight fetches to deduplicate parallel requests
 // key: "parentId\0dep" to correctly handle relative specifiers
 // (same relative specifier from different parents can resolve to different files)
@@ -77,7 +70,7 @@ export async function loadModule(
 
   // check for circular dependency (pending fetch)
   // if this module is already being loaded, return the in-flight promise
-  const pending = getPendingModule(id);
+  const pending = registry.getPending(id);
   if (pending) {
     return pending;
   }
@@ -86,13 +79,13 @@ export async function loadModule(
   const modulePromise = loadModuleAsync(id, code, dependencies, fetcher, depth);
 
   // register as pending for circular dependency detection
-  registerPendingModule(id, modulePromise);
+  registry.setPending(id, modulePromise);
 
   try {
     return await modulePromise;
   } finally {
     // always clear pending state when done (success or failure)
-    clearPendingModule(id);
+    registry.clearPending(id);
   }
 }
 
