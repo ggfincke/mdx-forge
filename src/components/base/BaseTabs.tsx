@@ -119,9 +119,7 @@ export function createTabs(config: BaseTabsConfig): CreateTabsResult {
     );
 
     // build wrapper class
-    const wrapperClassName = wrapperClass
-      ? `${wrapperClass}${className ? ` ${className}` : ''}`
-      : `${classPrefix}${className ? ` ${className}` : ''}`;
+    const wrapperClassName = cn(wrapperClass || classPrefix, className);
 
     return (
       <TabsContext.Provider value={true}>
@@ -139,7 +137,10 @@ export function createTabs(config: BaseTabsConfig): CreateTabsResult {
                   tabRefs.current[index] = el;
                 }}
                 role="tab"
-                className={`${classPrefix}-button${tab.value === activeValue ? ' active' : ''}`}
+                className={cn(
+                  `${classPrefix}-button`,
+                  tab.value === activeValue && 'active'
+                )}
                 aria-selected={tab.value === activeValue}
                 onClick={() => setActiveValue(tab.value)}
                 onKeyDown={(e) => handleKeyDown(e, index)}
@@ -156,7 +157,10 @@ export function createTabs(config: BaseTabsConfig): CreateTabsResult {
               <div
                 key={item.value}
                 role="tabpanel"
-                className={`${classPrefix}-panel${item.value === activeValue ? ' active' : ''}`}
+                className={cn(
+                  `${classPrefix}-panel`,
+                  item.value === activeValue && 'active'
+                )}
                 hidden={item.value !== activeValue}
               >
                 {item.content}

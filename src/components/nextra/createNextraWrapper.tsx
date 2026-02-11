@@ -2,6 +2,7 @@
 // factory for creating Nextra wrapper components around Starlight components
 
 import React, { ReactNode, HTMLAttributes, ComponentType } from 'react';
+import { cn } from '../internal/cn';
 
 // configuration for creating a Nextra wrapper component
 type WrapperChildProps = {
@@ -34,7 +35,7 @@ export function createNextraWrapper(
     className,
     ...props
   }: NextraWrapperProps) {
-    const classes = [wrapperClassName, className].filter(Boolean).join(' ');
+    const classes = cn(wrapperClassName, className);
 
     return (
       <div className={classes} {...props}>

@@ -4,6 +4,7 @@
 // allow content to overflow beyond the container width
 
 import { ReactNode, ReactElement, HTMLAttributes } from 'react';
+import { cn } from '../internal/cn';
 
 // text size options
 type TextSize = 'sm' | 'base' | 'lg' | 'xl';
@@ -41,18 +42,16 @@ export function Bleed({
   className,
   ...props
 }: BleedProps): ReactElement {
-  const classes = [
+  const classes = cn(
     'mdx-preview-nextra-bleed',
-    size ? `mdx-preview-nextra-bleed-size-${size}` : '',
-    weight ? `mdx-preview-nextra-bleed-weight-${weight}` : '',
-    italic ? 'mdx-preview-nextra-bleed-italic' : '',
-    align ? `mdx-preview-nextra-bleed-align-${align}` : '',
-    valign ? `mdx-preview-nextra-bleed-valign-${valign}` : '',
-    height ? `mdx-preview-nextra-bleed-height-${height}` : '',
-    className,
-  ]
-    .filter(Boolean)
-    .join(' ');
+    size && `mdx-preview-nextra-bleed-size-${size}`,
+    weight && `mdx-preview-nextra-bleed-weight-${weight}`,
+    italic && 'mdx-preview-nextra-bleed-italic',
+    align && `mdx-preview-nextra-bleed-align-${align}`,
+    valign && `mdx-preview-nextra-bleed-valign-${valign}`,
+    height && `mdx-preview-nextra-bleed-height-${height}`,
+    className
+  );
 
   return (
     <div className={classes} {...props}>

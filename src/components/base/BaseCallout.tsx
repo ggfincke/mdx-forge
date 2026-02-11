@@ -2,6 +2,7 @@
 // factory for creating framework-specific Callout/Aside components
 
 import React, { ReactNode, ReactElement } from 'react';
+import { cn } from '../internal/cn';
 
 // icon source configuration - SVG string or React component
 export type IconSource<T extends string> =
@@ -77,9 +78,11 @@ export function createCallout<T extends string>(
     const displayTitle = title ?? defaultTitles[effectiveType];
 
     // build CSS class
-    const rootClass = className
-      ? `${classPrefix} ${classPrefix}-${effectiveType} ${className}`
-      : `${classPrefix} ${classPrefix}-${effectiveType}`;
+    const rootClass = cn(
+      classPrefix,
+      `${classPrefix}-${effectiveType}`,
+      className
+    );
 
     // render icon
     const renderIcon = (): ReactElement | null => {

@@ -3,6 +3,7 @@
 // provide preview-compatible version of @astrojs/starlight/components CardGrid
 
 import React, { ReactNode, ReactElement } from 'react';
+import { cn } from '../internal/cn';
 
 // cardGrid props (compatible w/ Starlight)
 export interface CardGridProps {
@@ -17,7 +18,7 @@ export function CardGrid({
 }: CardGridProps): ReactElement {
   return (
     <div
-      className={`mdx-preview-starlight-card-grid${stagger ? ' stagger' : ''}`}
+      className={cn('mdx-preview-starlight-card-grid', stagger && 'stagger')}
     >
       {children}
     </div>

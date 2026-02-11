@@ -4,6 +4,7 @@
 import React, { type ReactNode, type ReactElement } from 'react';
 import { extractTextContent } from './extractTextContent';
 import { CopyButton } from './CopyButton';
+import { cn } from '../internal/cn';
 
 // frame types for code blocks
 type FrameType = 'code' | 'terminal' | 'none' | 'auto';
@@ -86,12 +87,12 @@ export function createCodeBlock(
 
     // build class names
     const langClass = effectiveLanguage ? `language-${effectiveLanguage}` : '';
-    const combinedPreClass = [langClass, className].filter(Boolean).join(' ');
+    const combinedPreClass = cn(langClass, className);
     const frameClass =
       supportsFrames && effectiveFrame !== 'none'
         ? `${classPrefix}-${effectiveFrame}`
         : '';
-    const wrapperClass = [classPrefix, frameClass].filter(Boolean).join(' ');
+    const wrapperClass = cn(classPrefix, frameClass);
 
     // determine if language badge should be shown
     const showLanguageBadge =

@@ -4,6 +4,7 @@
 
 import React, { ReactElement, Children, isValidElement, useState } from 'react';
 import { CodeGroupProps } from './types';
+import { cn } from '../internal/cn';
 
 // extract label from code block element
 function extractLabelFromCodeBlock(child: ReactElement): string {
@@ -70,7 +71,10 @@ export function CodeGroup({ children, labels }: CodeGroupProps): ReactElement {
           <button
             key={index}
             role="tab"
-            className={`mdx-preview-generic-code-group-button${index === activeIndex ? ' active' : ''}`}
+            className={cn(
+              'mdx-preview-generic-code-group-button',
+              index === activeIndex && 'active'
+            )}
             aria-selected={index === activeIndex}
             onClick={() => setActiveIndex(index)}
             tabIndex={index === activeIndex ? 0 : -1}
@@ -86,7 +90,10 @@ export function CodeGroup({ children, labels }: CodeGroupProps): ReactElement {
           <div
             key={index}
             role="tabpanel"
-            className={`mdx-preview-generic-code-group-panel${index === activeIndex ? ' active' : ''}`}
+            className={cn(
+              'mdx-preview-generic-code-group-panel',
+              index === activeIndex && 'active'
+            )}
             hidden={index !== activeIndex}
           >
             {tab.content}

@@ -10,6 +10,7 @@ import React, {
 } from 'react';
 import { extractTextContent } from '../base/extractTextContent';
 import { FILE_TREE_ICONS } from '../base/icons';
+import { cn } from '../internal/cn';
 
 // file tree props (compatible w/ Starlight)
 export interface FileTreeProps {
@@ -220,7 +221,10 @@ function FileTreeItem({ entry }: { entry: FileTreeEntry }): ReactElement {
 
   return (
     <li
-      className={`mdx-preview-starlight-file-tree-file${entry.isHighlighted ? ' highlighted' : ''}`}
+      className={cn(
+        'mdx-preview-starlight-file-tree-file',
+        entry.isHighlighted && 'highlighted'
+      )}
     >
       <span
         className="icon file"
