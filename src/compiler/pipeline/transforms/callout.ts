@@ -7,6 +7,7 @@ import { getStaticStringProp, escapeHtml, createNode } from './utils';
 import { CALLOUT_ICONS } from '../../../internal/icons';
 import {
   type CalloutType,
+  type CalloutStyleConfig,
   CALLOUT_TITLES,
   normalizeCalloutType,
 } from '../../../internal/callout';
@@ -31,10 +32,7 @@ export {
 } from '../../../internal/callout';
 
 // callout defaults w/ icons & CSS class names for Safe Mode HTML rendering
-export const CALLOUT_DEFAULTS: Record<
-  CalloutType,
-  { label: string; className: string; icon: string }
-> = {
+export const CALLOUT_DEFAULTS: Record<CalloutType, CalloutStyleConfig> = {
   note: {
     label: CALLOUT_TITLES.note,
     className: SAFE_CALLOUT_NOTE,
