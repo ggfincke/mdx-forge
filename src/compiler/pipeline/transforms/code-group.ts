@@ -3,7 +3,7 @@
 
 import type { RootContent } from 'mdast';
 import type { MdxJsxElement } from '../../types';
-import { createNode } from './utils';
+import { createNode, createTrustedModeNotice } from './utils';
 import {
   SAFE_CODE_GROUP,
   SAFE_CODE_GROUP_NOTICE,
@@ -17,10 +17,10 @@ export function transformCodeGroup(node: MdxJsxElement): RootContent {
     hName: 'div',
     className: SAFE_CODE_GROUP,
     children: [
-      {
-        type: 'html',
-        value: `<div class="${SAFE_CODE_GROUP_NOTICE}">Code group (tabbed view requires Trusted Mode)</div>`,
-      },
+      createTrustedModeNotice(
+        SAFE_CODE_GROUP_NOTICE,
+        'Code group (tabbed view requires Trusted Mode)'
+      ),
       createNode({
         type: 'codeGroupContent',
         hName: 'div',

@@ -161,6 +161,66 @@ function remarkStripMdx(options: RemarkStripMdxOptions = {}) {
   };
 }
 
+// create block-level placeholder for unknown JSX flow element
+function createFlowPlaceholder(
+  node: MdxJsxElement,
+  escapedName: string,
+  hint: string
+): RootContent {
+  const hasChildren = node.children && node.children.length > 0;
+
+  if (hasChildren) {
+    // placeholder wrapper w/ children inside
+    return {
+      type: 'unknownComponent' as RootContent['type'],
+      data: {
+        hName: 'div',
+        hProperties: {
+          className: [UNKNOWN_COMPONENT_PLACEHOLDER],
+        },
+      },
+      children: [
+        {
+          type: 'html',
+          value: `<div class="${UNKNOWN_COMPONENT_HEADER}"><span class="${UNKNOWN_ICON}">⚠</span><code>&lt;${escapedName}&gt;</code><span class="${UNKNOWN_HINT}">${hint}</span></div>`,
+        },
+        {
+          type: 'unknownComponentContent' as RootContent['type'],
+          data: {
+            hName: 'div',
+            hProperties: {
+              className: [UNKNOWN_COMPONENT_CONTENT],
+            },
+          },
+          children: node.children,
+        } as RootContent,
+      ],
+    } as RootContent;
+  }
+
+  // self-closing component placeholder
+  return {
+    type: 'paragraph',
+    children: [
+      {
+        type: 'html',
+        value: `<div class="${UNKNOWN_COMPONENT_PLACEHOLDER} ${UNKNOWN_COMPONENT_EMPTY}"><div class="${UNKNOWN_COMPONENT_HEADER}"><span class="${UNKNOWN_ICON}">⚠</span><code>&lt;${escapedName} /&gt;</code><span class="${UNKNOWN_HINT}">${hint}</span></div></div>`,
+      },
+    ],
+  };
+}
+
+// create inline placeholder for unknown JSX text element
+function createInlinePlaceholder(
+  escapedName: string,
+  hint: string
+): RootContent {
+  return {
+    type: 'html',
+    value: `<span class="${JSX_PLACEHOLDER}" title="JSX component ${hint}">&lt;${escapedName} /&gt;</span>`,
+  } as RootContent;
+}
+
 // create replacement for JSX element based on unknownBehavior
 function createJsxReplacement(
   node: MdxJsxElement,
@@ -173,11 +233,9 @@ function createJsxReplacement(
 
   switch (behavior) {
     case 'strip':
-      // remove entirely
       return null;
 
     case 'raw':
-      // keep children, remove wrapper
       if (node.children && node.children.length > 0) {
         return node.children as unknown as RootContent[];
       }
@@ -185,61 +243,13 @@ function createJsxReplacement(
 
     case 'placeholder':
     default: {
-      // show placeholder w/ component name & children
       const hint = isKnownComponent
         ? '(builtin component - transform failed)'
         : '(unknown component)';
 
-      if (isFlowElement) {
-        // block-level placeholder w/ children
-        const hasChildren = node.children && node.children.length > 0;
-
-        if (hasChildren) {
-          // create placeholder wrapper w/ children inside
-          return {
-            type: 'unknownComponent' as RootContent['type'],
-            data: {
-              hName: 'div',
-              hProperties: {
-                className: [UNKNOWN_COMPONENT_PLACEHOLDER],
-              },
-            },
-            children: [
-              {
-                type: 'html',
-                value: `<div class="${UNKNOWN_COMPONENT_HEADER}"><span class="${UNKNOWN_ICON}">⚠</span><code>&lt;${escapedName}&gt;</code><span class="${UNKNOWN_HINT}">${hint}</span></div>`,
-              },
-              {
-                type: 'unknownComponentContent' as RootContent['type'],
-                data: {
-                  hName: 'div',
-                  hProperties: {
-                    className: [UNKNOWN_COMPONENT_CONTENT],
-                  },
-                },
-                children: node.children,
-              } as RootContent,
-            ],
-          } as RootContent;
-        } else {
-          // self-closing component placeholder
-          return {
-            type: 'paragraph',
-            children: [
-              {
-                type: 'html',
-                value: `<div class="${UNKNOWN_COMPONENT_PLACEHOLDER} ${UNKNOWN_COMPONENT_EMPTY}"><div class="${UNKNOWN_COMPONENT_HEADER}"><span class="${UNKNOWN_ICON}">⚠</span><code>&lt;${escapedName} /&gt;</code><span class="${UNKNOWN_HINT}">${hint}</span></div></div>`,
-              },
-            ],
-          };
-        }
-      } else {
-        // inline placeholder
-        return {
-          type: 'html',
-          value: `<span class="${JSX_PLACEHOLDER}" title="JSX component ${hint}">&lt;${escapedName} /&gt;</span>`,
-        } as RootContent;
-      }
+      return isFlowElement
+        ? createFlowPlaceholder(node, escapedName, hint)
+        : createInlinePlaceholder(escapedName, hint);
     }
   }
 }
