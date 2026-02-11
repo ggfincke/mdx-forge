@@ -10,27 +10,14 @@ import {
   rehypeKatex,
 } from './shared-plugins';
 import type { LoadedPlugins, PluginPipeline } from '../types';
-
-// rehype-raw configuration w/ MDX-specific passThrough nodes to preserve MDX semantics
-export const REHYPE_RAW_CONFIG = {
-  passThrough: [
-    'mdxJsxFlowElement',
-    'mdxJsxTextElement',
-    'mdxFlowExpression',
-    'mdxTextExpression',
-    // ESM import/export statements
-    'mdxjsEsm',
-  ],
-} as const;
+import { REHYPE_RAW_CONFIG } from '../pipeline/common/pipeline-config';
+import { mergePlugins } from './loader';
 
 // build the remark plugin array for Trusted Mode (merge shared & custom plugins)
 export function buildTrustedRemarkPlugins(
   customPlugins: LoadedPlugins
 ): Pluggable[] {
-  if (customPlugins.remarkPlugins.length === 0) {
-    return sharedRemarkPlugins;
-  }
-  return [...sharedRemarkPlugins, ...customPlugins.remarkPlugins];
+  return mergePlugins(sharedRemarkPlugins, customPlugins.remarkPlugins);
 }
 
 // build the rehype plugin array for Trusted Mode (rehype-raw, math, shiki, custom)
@@ -44,10 +31,7 @@ export function buildTrustedRehypePlugins(
     ...sharedRehypePluginsPostMath,
   ];
 
-  if (customPlugins.rehypePlugins.length === 0) {
-    return basePlugins;
-  }
-  return [...basePlugins, ...customPlugins.rehypePlugins];
+  return mergePlugins(basePlugins, customPlugins.rehypePlugins);
 }
 
 // build the complete plugin pipeline for Trusted Mode

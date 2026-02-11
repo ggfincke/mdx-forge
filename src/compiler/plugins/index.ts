@@ -7,8 +7,9 @@ export {
   buildTrustedPluginPipeline,
   getSafeRemarkPlugins,
   getSafeRehypePluginSets,
-  REHYPE_RAW_CONFIG,
 } from './builder';
+
+export { REHYPE_RAW_CONFIG } from '../pipeline/common/pipeline-config';
 
 export { loadPluginsFromConfig, mergePlugins } from './loader';
 export { parsePluginSpec, getPluginName } from './utils';
