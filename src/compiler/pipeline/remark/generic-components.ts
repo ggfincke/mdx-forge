@@ -18,7 +18,7 @@ import {
 import {
   getGenericComponentAliases,
   getGenericComponentSet,
-} from '../../internal/components';
+} from '../../../components/registry/queries';
 
 const CALLOUT_COMPONENTS = new Set([
   'Callout',
