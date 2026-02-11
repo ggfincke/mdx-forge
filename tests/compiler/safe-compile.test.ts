@@ -113,4 +113,15 @@ digraph G { A -> B }
 
     expect(result.frontmatter).toEqual({});
   });
+
+  it('escapes HTML in callout titles to prevent XSS', async () => {
+    const mdx = `<Callout type="note" title="<script>alert('xss')</script>">
+  Content here
+</Callout>`;
+
+    const result = await compileSafe(mdx, createConfig());
+
+    expect(result.html).not.toContain('<script>');
+    expect(result.html).not.toContain('</script>');
+  });
 });
