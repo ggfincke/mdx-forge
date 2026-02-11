@@ -2,6 +2,7 @@
 // trusted mode guard utility
 
 import type { CompilerConfig } from '../types';
+import { getDocumentPath, getDocumentUri } from './path';
 
 export function requireTrustedMode(
   config: CompilerConfig,
@@ -14,8 +15,8 @@ export function requireTrustedMode(
 
   const decision = config.trustValidator.isTrusted({
     operation,
-    documentPath: config.documentPath ?? config.docFsPath ?? '',
-    documentUri: config.documentUri ?? config.docUri,
+    documentPath: getDocumentPath(config),
+    documentUri: getDocumentUri(config),
   });
 
   if (decision.canExecute) {

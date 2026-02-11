@@ -10,19 +10,9 @@ import { buildTrustedPluginPipeline } from '../plugins/builder';
 import { loadPluginsFromConfig } from '../plugins/loader';
 import { generateComponentImports } from './component-mapper';
 import { getLogger } from '../internal/logging';
+import { getDocumentDir } from '../internal/path';
 
 import type { CompilerConfig, MdxTranspileResult } from '../types';
-
-function getDocumentPath(config: CompilerConfig): string {
-  return config.documentPath ?? config.docFsPath ?? '';
-}
-
-function getDocumentDir(config: CompilerConfig): string {
-  if (config.documentDir) {
-    return config.documentDir;
-  }
-  return path.dirname(getDocumentPath(config));
-}
 
 // inject MDX layout styles based on configuration
 const injectMDXStyles = (mdxText: string, config: CompilerConfig): string => {
