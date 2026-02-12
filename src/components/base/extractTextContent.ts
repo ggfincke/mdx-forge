@@ -15,7 +15,9 @@ export function extractTextContent(node: ReactNode): string {
     return node.map(extractTextContent).join('');
   }
   if (isValidElement(node)) {
-    return extractTextContent(node.props.children);
+    return extractTextContent(
+      (node.props as { children?: ReactNode }).children
+    );
   }
   return '';
 }

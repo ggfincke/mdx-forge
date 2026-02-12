@@ -96,7 +96,7 @@ function parseLiContent(children: ReactNode): {
 // parse a single <li> element into a FileTreeEntry
 function parseLiElement(li: ReactElement): FileTreeEntry | null {
   const { name, isHighlighted, comment, nestedList } = parseLiContent(
-    li.props.children
+    (li.props as { children?: ReactNode }).children
   );
 
   if (!name) {
@@ -120,7 +120,9 @@ function parseLiElement(li: ReactElement): FileTreeEntry | null {
   // parse nested children if present
   let entryChildren: FileTreeEntry[] | undefined;
   if (nestedList && isValidElement(nestedList)) {
-    entryChildren = parseFileTreeChildren(nestedList.props.children);
+    entryChildren = parseFileTreeChildren(
+      (nestedList.props as { children?: ReactNode }).children
+    );
   }
 
   return {
@@ -149,7 +151,11 @@ function parseFileTreeChildren(children: ReactNode): FileTreeEntry[] {
 
     // handle <ul> wrapper - recursively process its children
     if (child.type === 'ul') {
-      entries.push(...parseFileTreeChildren(child.props.children));
+      entries.push(
+        ...parseFileTreeChildren(
+          (child.props as { children?: ReactNode }).children
+        )
+      );
       continue;
     }
 
@@ -169,7 +175,9 @@ function parseFileTreeChildren(children: ReactNode): FileTreeEntry[] {
         isValidElement(nextChild) &&
         nextChild.type === 'ul'
       ) {
-        entry.children = parseFileTreeChildren(nextChild.props.children);
+        entry.children = parseFileTreeChildren(
+          (nextChild.props as { children?: ReactNode }).children
+        );
         // skip the <ul> since we've processed it as children
         i++;
       }
