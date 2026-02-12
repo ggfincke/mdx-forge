@@ -120,7 +120,7 @@
     "remark-mdx": "^3.0.0",
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.0.0",
-    "shiki": "^1.29.2",
+    "shiki": ">=3.22.0",
     "unist-util-visit": "^5.0.0"
   },
   "devDependencies": {
