@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-02-11
+
+### Changed
+
+- Bump `actions/checkout` from 4 to 6
+- Bump `globals` from 15.15.0 to 17.3.0
+- Bump `@types/node` from 20.x to 25.2.3
+- Bump `@types/react` from 18.x to 19.2.14
+- Bump `shiki` from 1.x to >=3.22.0
+
+### Fixed
+
+- React 19 type compatibility: cast `ReactElement.props` access in `extractTextContent` & `FileTree`
+
 ## [0.1.3] - 2026-02-11
 
 ### Added

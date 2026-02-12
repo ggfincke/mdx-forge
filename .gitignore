@@ -21,6 +21,7 @@ coverage/
 .DS_Store
 Thumbs.db
 Desktop.ini
+nul
 
 # IDE
 .idea/
