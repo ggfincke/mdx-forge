@@ -145,6 +145,7 @@
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tests/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"tests/**/*.ts\"",
-    "prepublishOnly": "npm run build && npm run check:esm-specifiers"
+    "prepublishOnly": "npm run build && npm run check:esm-specifiers",
+    "version": "node scripts/check-changelog.mjs && git add CHANGELOG.md"
   }
 }
