@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-02-11
+
+### Added
+
+- Vite + React dev showcase app (`dev/`) for visualizing component shims during development
+- Showcase pages for all 5 framework targets: Generic, Docusaurus, Starlight, Nextra & Next.js
+- Light/Dark/System theme toggle in dev app (activates both `prefers-color-scheme` & `.vscode-dark` pathways)
+- `npm run dev` script to launch the showcase at localhost:5173
+
+### Fixed
+
+- Dark mode text colors in `tokens.css` — added `--mdx-text-primary`, `--mdx-text-secondary`, `--mdx-text-muted` & `--mdx-link-color` overrides for both `prefers-color-scheme: dark` & `.vscode-dark` blocks
+
 ## [0.1.4] - 2026-02-11
 
 ### Changed

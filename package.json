@@ -1,6 +1,6 @@
 {
   "name": "mdx-forge",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Unified MDX runtime toolkit — compiler, browser module loader & framework component shims",
   "type": "module",
   "license": "MIT",
