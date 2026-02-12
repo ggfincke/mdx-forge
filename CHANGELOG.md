@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-02-11
+
+### Added
+
+- Callout normalization tests & XSS escape test for callout titles
+- `CalloutStyleConfig` shared interface for callout/admonition/alert config objects
+- `createTrustedModeNotice()` helper for Safe Mode feature placeholders
+- `getGenericComponentAliases()` in component registry queries
+- Document path helpers (`getDocumentPath`, `getDocumentDir`, `getDocumentUri`) in compiler internals
+
+### Changed
+
+- Admonitions, GitHub alerts & callout defaults now use shared `CalloutStyleConfig` & `createNode()`
+- Tabs & code-group transforms use `createTrustedModeNotice()` instead of inline HTML
+- Safe-compile JSX placeholder logic extracted into `createFlowPlaceholder()` & `createInlinePlaceholder()`
+- Component registry functions consolidated from `compiler/internal/components` into `components/registry/queries`
+- Document path helpers centralized in `compiler/internal/path` (removed duplicates from `trusted/compile`)
+- Publish workflow now generates GitHub Releases with changelog
+
+### Removed
+
+- `src/compiler/internal/components.ts` (replaced by `components/registry/queries`)
+
 ## [0.1.2] - 2026-02-11
 
 ### Added
