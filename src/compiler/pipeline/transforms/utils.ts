@@ -1,6 +1,7 @@
 // src/compiler/pipeline/transforms/utils.ts
 // shared utilities for Safe Mode component transforms
 
+import type { RootContent } from 'mdast';
 import type { MdxJsxElement, NodeConfig, TransformNode } from '../../types';
 
 // extract a static string prop from an MDX JSX element
@@ -74,6 +75,17 @@ export function createNode(config: NodeConfig): TransformNode {
     },
     children: config.children,
   };
+}
+
+// create an HTML notice div for features that require Trusted Mode
+export function createTrustedModeNotice(
+  className: string,
+  message: string
+): RootContent {
+  return {
+    type: 'html',
+    value: `<div class="${className}">${message}</div>`,
+  } as RootContent;
 }
 
 // type guard to check if a node is an MDX JSX element

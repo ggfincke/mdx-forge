@@ -1,7 +1,7 @@
 // src/compiler/trusted/component-mapper.ts
 // component name mapping for trusted compilation
 
-import { getAllGenericComponentNames } from '../internal/components';
+import { getAllGenericComponentNames } from '../../components/registry/queries';
 import { getLogger } from '../internal/logging';
 import { toAbsolutePath, toRelativeImportPath } from '../internal/path';
 import { requireTrustedMode } from '../internal/trust';

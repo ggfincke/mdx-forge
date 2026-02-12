@@ -3,7 +3,12 @@
 
 import type { RootContent } from 'mdast';
 import type { MdxJsxElement } from '../../types';
-import { getStaticStringProp, escapeHtml, createNode } from './utils';
+import {
+  getStaticStringProp,
+  escapeHtml,
+  createNode,
+  createTrustedModeNotice,
+} from './utils';
 import {
   SAFE_TABS,
   SAFE_TABS_NOTICE,
@@ -20,10 +25,10 @@ export function transformTabs(node: MdxJsxElement): RootContent {
     hName: 'div',
     className: SAFE_TABS,
     children: [
-      {
-        type: 'html',
-        value: `<div class="${SAFE_TABS_NOTICE}">Tab content (interactive tabs require Trusted Mode)</div>`,
-      },
+      createTrustedModeNotice(
+        SAFE_TABS_NOTICE,
+        'Tab content (interactive tabs require Trusted Mode)'
+      ),
       createNode({
         type: 'tabsContent',
         hName: 'div',

@@ -2,9 +2,20 @@
 // transform directive syntax (:::note, :::warning, etc.) to admonition HTML
 
 import { visit } from 'unist-util-visit';
-import type { Root, Parent, PhrasingContent, BlockContent } from 'mdast';
+import type {
+  Root,
+  Parent,
+  PhrasingContent,
+  BlockContent,
+  RootContent,
+} from 'mdast';
 import type { ContainerDirective } from 'mdast-util-directive';
 import { CALLOUT_ICONS } from '../../../internal/icons';
+import {
+  CALLOUT_TITLES,
+  type CalloutStyleConfig,
+} from '../../../internal/callout';
+import { createNode } from '../transforms/utils';
 import {
   PREVIEW_ADMONITION,
   PREVIEW_ADMONITION_NOTE,
@@ -19,48 +30,41 @@ import {
   PREVIEW_ADMONITION_CONTENT,
 } from '../../internal/css-classes';
 
-// admonition type configuration
-interface AdmonitionType {
-  className: string;
-  label: string;
-  icon: string;
-}
-
 // supported admonition types (Docusaurus + Starlight compatible)
-const ADMONITION_TYPES: Record<string, AdmonitionType> = {
+const ADMONITION_TYPES: Record<string, CalloutStyleConfig> = {
   note: {
     className: PREVIEW_ADMONITION_NOTE,
-    label: 'Note',
+    label: CALLOUT_TITLES.note,
     icon: CALLOUT_ICONS.note,
   },
   tip: {
     className: PREVIEW_ADMONITION_TIP,
-    label: 'Tip',
+    label: CALLOUT_TITLES.tip,
     icon: CALLOUT_ICONS.tip,
   },
   info: {
     className: PREVIEW_ADMONITION_INFO,
-    label: 'Info',
+    label: CALLOUT_TITLES.info,
     icon: CALLOUT_ICONS.info,
   },
   warning: {
     className: PREVIEW_ADMONITION_WARNING,
-    label: 'Warning',
+    label: CALLOUT_TITLES.warning,
     icon: CALLOUT_ICONS.warning,
   },
   danger: {
     className: PREVIEW_ADMONITION_DANGER,
-    label: 'Danger',
+    label: CALLOUT_TITLES.danger,
     icon: CALLOUT_ICONS.danger,
   },
   caution: {
     className: PREVIEW_ADMONITION_CAUTION,
-    label: 'Caution',
+    label: CALLOUT_TITLES.caution,
     icon: CALLOUT_ICONS.caution,
   },
   important: {
     className: PREVIEW_ADMONITION_IMPORTANT,
-    label: 'Important',
+    label: CALLOUT_TITLES.important,
     icon: CALLOUT_ICONS.important,
   },
 };
@@ -131,41 +135,12 @@ function getDirectiveName(node: ContainerDirective): string {
   return node.name.toLowerCase();
 }
 
-// custom mdast node types for admonitions (converted to HTML via hName/hProperties)
-interface AdmonitionNode extends Parent {
-  type: 'admonition';
-  data: {
-    hName: string;
-    hProperties: { className: string[]; 'data-admonition-type': string };
-  };
-}
-
-interface AdmonitionHeaderNode extends Parent {
-  type: 'admonitionHeader';
-  data: { hName: string; hProperties: { className: string[] } };
-}
-
-interface AdmonitionContentNode extends Parent {
-  type: 'admonitionContent';
-  data: { hName: string; hProperties: { className: string[] } };
-}
-
-interface HtmlNode {
-  type: 'html';
-  value: string;
-}
-
-interface TextNode {
-  type: 'text';
-  value: string;
-}
-
-// create HTML AST node for admonition
+// create AST node for admonition using shared createNode() pattern
 function createAdmonitionNode(
-  type: AdmonitionType,
+  config: CalloutStyleConfig,
   title: string,
   children: Array<BlockContent | PhrasingContent>
-): Parent {
+): RootContent {
   // filter out directive label from children if present
   const contentChildren = children.filter((child) => {
     if ('data' in child) {
@@ -175,57 +150,32 @@ function createAdmonitionNode(
     return true;
   });
 
-  const htmlNode: HtmlNode = {
-    type: 'html',
-    value: `<span class="${PREVIEW_ADMONITION_ICON}">${type.icon}</span>`,
-  };
-
-  const textNode: TextNode = {
-    type: 'text',
-    value: title,
-  };
-
-  const headerNode: AdmonitionHeaderNode = {
-    type: 'admonitionHeader',
-    data: {
-      hName: 'div',
-      hProperties: {
-        className: [PREVIEW_ADMONITION_HEADER],
-      },
-    },
-    children: [htmlNode, textNode] as unknown as (
-      | BlockContent
-      | PhrasingContent
-    )[],
-  };
-
-  const contentNode: AdmonitionContentNode = {
-    type: 'admonitionContent',
-    data: {
-      hName: 'div',
-      hProperties: {
-        className: [PREVIEW_ADMONITION_CONTENT],
-      },
-    },
-    children: contentChildren,
-  };
-
-  const admonitionNode: AdmonitionNode = {
+  return createNode({
     type: 'admonition',
-    data: {
-      hName: 'div',
-      hProperties: {
-        className: [PREVIEW_ADMONITION, type.className],
-        'data-admonition-type': type.label.toLowerCase(),
-      },
-    },
-    children: [headerNode, contentNode] as unknown as (
-      | BlockContent
-      | PhrasingContent
-    )[],
-  };
-
-  return admonitionNode as Parent;
+    hName: 'div',
+    className: [PREVIEW_ADMONITION, config.className],
+    additionalProps: { 'data-admonition-type': config.label.toLowerCase() },
+    children: [
+      createNode({
+        type: 'admonitionHeader',
+        hName: 'div',
+        className: PREVIEW_ADMONITION_HEADER,
+        children: [
+          {
+            type: 'html',
+            value: `<span class="${PREVIEW_ADMONITION_ICON}">${config.icon}</span>`,
+          },
+          { type: 'text', value: title },
+        ],
+      }),
+      createNode({
+        type: 'admonitionContent',
+        hName: 'div',
+        className: PREVIEW_ADMONITION_CONTENT,
+        children: contentChildren as RootContent[],
+      }),
+    ],
+  });
 }
 
 // transform container directives to admonitions

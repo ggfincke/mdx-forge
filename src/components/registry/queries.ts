@@ -32,6 +32,13 @@ export function getGenericComponentSet(): Set<string> {
   return _cachedGenericSet;
 }
 
+// get aliases for a generic component by primary name
+export function getGenericComponentAliases(
+  name: GenericComponentName
+): string[] {
+  return GENERIC_COMPONENTS[name]?.aliases ?? [];
+}
+
 // get primary generic component names only (no aliases)
 export function getPrimaryGenericComponentNames(): GenericComponentName[] {
   return Object.keys(GENERIC_COMPONENTS) as GenericComponentName[];

@@ -6,6 +6,7 @@ import type { Root, Blockquote, Paragraph, Text, Html } from 'mdast';
 import type { Parent } from 'unist';
 import { GITHUB_ALERT_ICONS } from '../../../internal/icons';
 import { escapeHtml } from '../transforms/utils';
+import { type CalloutStyleConfig } from '../../../internal/callout';
 import {
   GITHUB_ALERT,
   GITHUB_ALERT_TITLE,
@@ -13,7 +14,9 @@ import {
 } from '../../internal/css-classes';
 
 // alert type configuration
-const ALERT_CONFIG = {
+type AlertType = 'NOTE' | 'TIP' | 'IMPORTANT' | 'WARNING' | 'CAUTION';
+
+const ALERT_CONFIG: Record<AlertType, CalloutStyleConfig> = {
   NOTE: {
     className: 'note',
     label: 'Note',
@@ -39,9 +42,7 @@ const ALERT_CONFIG = {
     label: 'Caution',
     icon: GITHUB_ALERT_ICONS.CAUTION,
   },
-} as const;
-
-type AlertType = keyof typeof ALERT_CONFIG;
+};
 
 // match [!TYPE] at start of first paragraph in blockquote
 const ALERT_REGEX = /^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*/i;
@@ -102,10 +103,7 @@ export default function remarkGithubAlerts() {
 }
 
 // build HTML string for alert (cleaner than complex MDAST manipulation)
-function buildAlertHtml(
-  config: (typeof ALERT_CONFIG)[AlertType],
-  node: Blockquote
-): string {
+function buildAlertHtml(config: CalloutStyleConfig, node: Blockquote): string {
   // extract text from remaining children (simplified approach)
   const contentParts: string[] = [];
 
