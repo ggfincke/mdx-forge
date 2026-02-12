@@ -35,6 +35,7 @@ export default tseslint.config(
   {
     ignores: [
       'dist/**',
+      'dev/**',
       'node_modules/**',
       '**/*.mjs',
       '**/vitest.config.ts',
