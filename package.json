@@ -128,7 +128,7 @@
     "@types/node": "^20.0.0",
     "@mdx-js/mdx": "^3.0.0",
     "@types/react": "^18.0.0",
-    "eslint": "^9.0.0",
+    "eslint": "^10.0.0",
     "globals": "^15.0.0",
     "prettier": "^3.0.0",
     "typescript": "^5.4.0",
