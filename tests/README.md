@@ -49,8 +49,11 @@ tests/
 ├── compiler/                    # MDX compilation (safe & trusted modes)
 │   ├── safe-compile.test.ts
 │   └── trusted-compile.test.ts
-├── components/                  # Component registry queries
-│   └── registry-queries.test.ts
+├── components/                  # Component registry & generic component rendering
+│   ├── registry-queries.test.ts
+│   ├── useTabState.test.ts
+│   ├── generic-smoke.test.tsx
+│   └── callout-types.test.tsx
 ├── browser/                     # Browser module evaluation
 │   └── evaluate-module.test.ts
 ├── compiler-exports.test.ts     # Smoke: compiler public API surface
