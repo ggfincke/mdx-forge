@@ -2,12 +2,26 @@
 // preload API entry point & framework shim loading
 
 import type { ModuleRegistry } from '../registry/ModuleRegistry';
-import type { Framework, FrameworkId, PreloadEntry } from '../types';
+import type {
+  Framework,
+  FrameworkId,
+  HostPreloadCallbacks,
+  PreloadEntry,
+} from '../types';
 import { PRELOADED_MODULE_IDS } from '../types';
 import { preloadCoreModules } from './core';
 import { configureModuleLoader } from '../internal/runtime-config';
 
 export { fallbackLayoutModule } from './core';
+
+// host-provided callbacks for environment-specific preload behavior
+let hostCallbacks: HostPreloadCallbacks = {};
+
+// register host-specific preload implementations
+// call before any module loading to override default no-op stubs
+export function setHostPreloadCallbacks(callbacks: HostPreloadCallbacks): void {
+  hostCallbacks = callbacks;
+}
 
 // request-specifier -> canonical module ID
 const PRELOAD_ALIASES: Record<string, string> = {};
@@ -79,6 +93,13 @@ export function initPreloadedModules(
   registry: ModuleRegistry,
   vscodeMarkdownLayout: unknown
 ): void {
+  if (hostCallbacks.initPreloadedModules) {
+    hostCallbacks.initPreloadedModules(registry, vscodeMarkdownLayout);
+    syncRuntimeAliases();
+    return;
+  }
+
+  // default standalone behavior
   preloadCoreModules(
     registry,
     vscodeMarkdownLayout,
@@ -89,17 +110,23 @@ export function initPreloadedModules(
 }
 
 export async function ensureFrameworkShims(
-  _registry: ModuleRegistry,
-  _framework: FrameworkId
+  registry: ModuleRegistry,
+  framework: FrameworkId
 ): Promise<void> {
-  // framework-specific shim preloading is owned by host integration
+  if (hostCallbacks.ensureFrameworkShims) {
+    return hostCallbacks.ensureFrameworkShims(registry, framework);
+  }
+  // no-op in standalone (host integration provides real implementation)
 }
 
 export async function ensureGenericShims(
-  _registry: ModuleRegistry,
-  _components: string[]
+  registry: ModuleRegistry,
+  components: string[]
 ): Promise<void> {
-  // generic shim preloading is owned by host integration
+  if (hostCallbacks.ensureGenericShims) {
+    return hostCallbacks.ensureGenericShims(registry, components);
+  }
+  // no-op in standalone (host integration provides real implementation)
 }
 
 export function getPreservedIds(): string[] {

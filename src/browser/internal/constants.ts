@@ -3,8 +3,8 @@
 
 export const DEFAULT_MAX_MODULE_LOAD_DEPTH = 100;
 export const DEFAULT_MAX_CONCURRENT_FETCHES = 8;
-export const DEFAULT_SHIM_LOAD_MAX_RETRIES = 2;
-export const DEFAULT_SHIM_LOAD_RETRY_DELAY_MS = 150;
+export const DEFAULT_SHIM_LOAD_MAX_RETRIES = 3;
+export const DEFAULT_SHIM_LOAD_RETRY_DELAY_MS = 200;
 
 // registry cache defaults
 export const DEFAULT_MAX_MODULES = 500;
