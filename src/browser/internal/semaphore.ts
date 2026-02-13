@@ -1,5 +1,7 @@
 // src/browser/internal/semaphore.ts
 // async semaphore for concurrency limiting
+// ! cross-repo duplicate: vsc-mdx-preview/packages/runtime-utils/src/async/semaphore.ts
+// ! changes here must be mirrored (GPL licensing prevents shared dependency)
 
 export class Semaphore {
   private permits: number;
