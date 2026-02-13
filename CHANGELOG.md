@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-02-13
+
+### Changed
+
+- **Browser**: Add `HostPreloadCallbacks` interface for environment-specific preload behavior (replaces hardcoded layout callback)
+- **Browser**: Align `DEFAULT_SHIM_LOAD_MAX_RETRIES` (2→3) & `DEFAULT_SHIM_LOAD_RETRY_DELAY_MS` (150→200) w/ downstream consumers
+- Bump Vite from 6.x to ^7.3.1 & `@vitejs/plugin-react` from 4.x to ^5.1.4
+
+### Added
+
+- Cross-repo duplicate warnings on `cn.ts`, `clipboard.ts` & `semaphore.ts`
+- Component tests: generic smoke tests, callout type rendering & `useTabState` hook
+- Constants contract & cross-repo utility parity tests
+- Dev dependencies: `@testing-library/react`, `@testing-library/jest-dom`, `jsdom`
+
 ## [0.1.5] - 2026-02-11
 
 ### Added
