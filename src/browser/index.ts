@@ -26,20 +26,24 @@ export { injectStyles } from './styles/injectStyles';
 export { loadModule } from './loader/loadModule';
 export { evaluateModule } from './eval/evaluateModule';
 export { createSyncRequire } from './runtime/require';
-export type { FetchResult, Module, ModuleRuntime, PreloadEntry } from './types';
-export { setPreloadEntries, registerPreloadEntries } from './preload';
+export type {
+  FetchResult,
+  HostPreloadCallbacks,
+  Module,
+  ModuleRuntime,
+  PreloadEntry,
+} from './types';
+export {
+  setPreloadEntries,
+  registerPreloadEntries,
+  setHostPreloadCallbacks,
+} from './preload';
 
 // state
 let preloadedModulesInitialized = false;
-let vscodeMarkdownLayoutModule: unknown = null;
 let pendingFrameworkShimLoad: Promise<void> | null = null;
 let pendingGenericShimLoad: Promise<void> | null = null;
 let activeFetcher: ModuleFetcher | null = null;
-
-// set the vscode-markdown-layout module - called from App.tsx if the module is available
-export function setVscodeMarkdownLayout(module: unknown): void {
-  vscodeMarkdownLayoutModule = module;
-}
 
 // configure module loader behavior
 export function configureRuntime(config: ModuleLoaderConfig): void {
@@ -55,13 +59,7 @@ function ensurePreloadedModules(): void {
   if (preloadedModulesInitialized) {
     return;
   }
-
-  // initialize w/ layout module if available, otherwise use fallback
-  if (vscodeMarkdownLayoutModule) {
-    initPreloadedModules(registry, vscodeMarkdownLayoutModule);
-  } else {
-    initPreloadedModules(registry, fallbackLayoutModule);
-  }
+  initPreloadedModules(registry, fallbackLayoutModule);
   preloadedModulesInitialized = true;
 }
 
@@ -114,7 +112,7 @@ export function ensureGenericShimsLoaded(components: string[]): void {
   pendingGenericShimLoad = ensureGenericShims(registry, components);
 }
 
-// rpc fetcher that delegates to extension via Comlink
+// fetcher that delegates to host-provided implementation
 async function rpcFetcher(
   request: string,
   isBare: boolean,

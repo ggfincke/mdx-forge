@@ -1,5 +1,7 @@
 // src/browser/types.ts
-// fetch result w/ module code & dependency list
+// browser runtime types & host callback interfaces
+
+import type { ModuleRegistry } from './registry/ModuleRegistry';
 export interface FetchResult {
   fsPath: string;
   code: string;
@@ -67,4 +69,21 @@ export interface StyleInjector {
   injectModuleCss(id: string, css: string): void;
   removeModuleCss(id: string): void;
   clearModules(): void;
+}
+
+// host-provided preload callbacks for environment-specific shim loading
+// standalone usage keeps default no-ops; VS Code webview registers real implementations
+export interface HostPreloadCallbacks {
+  initPreloadedModules?: (
+    registry: ModuleRegistry,
+    layout: unknown
+  ) => void;
+  ensureFrameworkShims?: (
+    registry: ModuleRegistry,
+    framework: FrameworkId
+  ) => Promise<void>;
+  ensureGenericShims?: (
+    registry: ModuleRegistry,
+    components: string[]
+  ) => Promise<void>;
 }
