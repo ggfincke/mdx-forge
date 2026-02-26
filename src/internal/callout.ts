@@ -8,7 +8,17 @@ export type CalloutType =
   | 'danger'
   | 'info'
   | 'caution'
-  | 'important';
+  | 'important'
+  | 'summary'
+  | 'hint'
+  | 'success'
+  | 'question'
+  | 'failure'
+  | 'bug'
+  | 'example'
+  | 'quote'
+  | 'todo'
+  | 'attention';
 
 export const VALID_CALLOUT_TYPES: readonly CalloutType[] = [
   'note',
@@ -18,6 +28,16 @@ export const VALID_CALLOUT_TYPES: readonly CalloutType[] = [
   'info',
   'caution',
   'important',
+  'summary',
+  'hint',
+  'success',
+  'question',
+  'failure',
+  'bug',
+  'example',
+  'quote',
+  'todo',
+  'attention',
 ] as const;
 
 export const VALID_CALLOUT_TYPE_SET: ReadonlySet<string> = new Set(
@@ -25,10 +45,18 @@ export const VALID_CALLOUT_TYPE_SET: ReadonlySet<string> = new Set(
 );
 
 export const CALLOUT_TYPE_ALIASES: Readonly<Record<string, CalloutType>> = {
-  success: 'tip',
+  abstract: 'summary',
+  tldr: 'summary',
+  check: 'success',
+  done: 'success',
+  help: 'question',
+  faq: 'question',
+  fail: 'failure',
+  missing: 'failure',
+  snippet: 'example',
+  cite: 'quote',
   error: 'danger',
   warn: 'warning',
-  hint: 'tip',
 } as const;
 
 export const CALLOUT_TITLES: Readonly<Record<CalloutType, string>> = {
@@ -39,6 +67,16 @@ export const CALLOUT_TITLES: Readonly<Record<CalloutType, string>> = {
   info: 'Info',
   caution: 'Caution',
   important: 'Important',
+  summary: 'Summary',
+  hint: 'Hint',
+  success: 'Success',
+  question: 'Question',
+  failure: 'Failure',
+  bug: 'Bug',
+  example: 'Example',
+  quote: 'Quote',
+  todo: 'Todo',
+  attention: 'Attention',
 } as const;
 
 // shared shape for callout/admonition/alert config objects

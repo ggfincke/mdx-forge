@@ -20,6 +20,16 @@ import {
   SAFE_CALLOUT_CAUTION,
   SAFE_CALLOUT_DANGER,
   SAFE_CALLOUT_IMPORTANT,
+  SAFE_CALLOUT_SUMMARY,
+  SAFE_CALLOUT_HINT,
+  SAFE_CALLOUT_SUCCESS,
+  SAFE_CALLOUT_QUESTION,
+  SAFE_CALLOUT_FAILURE,
+  SAFE_CALLOUT_BUG,
+  SAFE_CALLOUT_EXAMPLE,
+  SAFE_CALLOUT_QUOTE,
+  SAFE_CALLOUT_TODO,
+  SAFE_CALLOUT_ATTENTION,
   SAFE_CALLOUT_HEADER,
   SAFE_CALLOUT_ICON,
   SAFE_CALLOUT_CONTENT,
@@ -67,6 +77,56 @@ export const CALLOUT_DEFAULTS: Record<CalloutType, CalloutStyleConfig> = {
     label: CALLOUT_TITLES.important,
     className: SAFE_CALLOUT_IMPORTANT,
     icon: CALLOUT_ICONS.important,
+  },
+  summary: {
+    label: CALLOUT_TITLES.summary,
+    className: SAFE_CALLOUT_SUMMARY,
+    icon: CALLOUT_ICONS.summary,
+  },
+  hint: {
+    label: CALLOUT_TITLES.hint,
+    className: SAFE_CALLOUT_HINT,
+    icon: CALLOUT_ICONS.hint,
+  },
+  success: {
+    label: CALLOUT_TITLES.success,
+    className: SAFE_CALLOUT_SUCCESS,
+    icon: CALLOUT_ICONS.success,
+  },
+  question: {
+    label: CALLOUT_TITLES.question,
+    className: SAFE_CALLOUT_QUESTION,
+    icon: CALLOUT_ICONS.question,
+  },
+  failure: {
+    label: CALLOUT_TITLES.failure,
+    className: SAFE_CALLOUT_FAILURE,
+    icon: CALLOUT_ICONS.failure,
+  },
+  bug: {
+    label: CALLOUT_TITLES.bug,
+    className: SAFE_CALLOUT_BUG,
+    icon: CALLOUT_ICONS.bug,
+  },
+  example: {
+    label: CALLOUT_TITLES.example,
+    className: SAFE_CALLOUT_EXAMPLE,
+    icon: CALLOUT_ICONS.example,
+  },
+  quote: {
+    label: CALLOUT_TITLES.quote,
+    className: SAFE_CALLOUT_QUOTE,
+    icon: CALLOUT_ICONS.quote,
+  },
+  todo: {
+    label: CALLOUT_TITLES.todo,
+    className: SAFE_CALLOUT_TODO,
+    icon: CALLOUT_ICONS.todo,
+  },
+  attention: {
+    label: CALLOUT_TITLES.attention,
+    className: SAFE_CALLOUT_ATTENTION,
+    icon: CALLOUT_ICONS.attention,
   },
 };
 

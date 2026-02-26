@@ -25,12 +25,22 @@ import {
   PREVIEW_ADMONITION_DANGER,
   PREVIEW_ADMONITION_CAUTION,
   PREVIEW_ADMONITION_IMPORTANT,
+  PREVIEW_ADMONITION_SUMMARY,
+  PREVIEW_ADMONITION_HINT,
+  PREVIEW_ADMONITION_SUCCESS,
+  PREVIEW_ADMONITION_QUESTION,
+  PREVIEW_ADMONITION_FAILURE,
+  PREVIEW_ADMONITION_BUG,
+  PREVIEW_ADMONITION_EXAMPLE,
+  PREVIEW_ADMONITION_QUOTE,
+  PREVIEW_ADMONITION_TODO,
+  PREVIEW_ADMONITION_ATTENTION,
   PREVIEW_ADMONITION_HEADER,
   PREVIEW_ADMONITION_ICON,
   PREVIEW_ADMONITION_CONTENT,
 } from '../../internal/css-classes';
 
-// supported admonition types (Docusaurus + Starlight compatible)
+// supported admonition types (Docusaurus + Starlight + crossnote compatible)
 const ADMONITION_TYPES: Record<string, CalloutStyleConfig> = {
   note: {
     className: PREVIEW_ADMONITION_NOTE,
@@ -67,6 +77,70 @@ const ADMONITION_TYPES: Record<string, CalloutStyleConfig> = {
     label: CALLOUT_TITLES.important,
     icon: CALLOUT_ICONS.important,
   },
+  summary: {
+    className: PREVIEW_ADMONITION_SUMMARY,
+    label: CALLOUT_TITLES.summary,
+    icon: CALLOUT_ICONS.summary,
+  },
+  hint: {
+    className: PREVIEW_ADMONITION_HINT,
+    label: CALLOUT_TITLES.hint,
+    icon: CALLOUT_ICONS.hint,
+  },
+  success: {
+    className: PREVIEW_ADMONITION_SUCCESS,
+    label: CALLOUT_TITLES.success,
+    icon: CALLOUT_ICONS.success,
+  },
+  question: {
+    className: PREVIEW_ADMONITION_QUESTION,
+    label: CALLOUT_TITLES.question,
+    icon: CALLOUT_ICONS.question,
+  },
+  failure: {
+    className: PREVIEW_ADMONITION_FAILURE,
+    label: CALLOUT_TITLES.failure,
+    icon: CALLOUT_ICONS.failure,
+  },
+  bug: {
+    className: PREVIEW_ADMONITION_BUG,
+    label: CALLOUT_TITLES.bug,
+    icon: CALLOUT_ICONS.bug,
+  },
+  example: {
+    className: PREVIEW_ADMONITION_EXAMPLE,
+    label: CALLOUT_TITLES.example,
+    icon: CALLOUT_ICONS.example,
+  },
+  quote: {
+    className: PREVIEW_ADMONITION_QUOTE,
+    label: CALLOUT_TITLES.quote,
+    icon: CALLOUT_ICONS.quote,
+  },
+  todo: {
+    className: PREVIEW_ADMONITION_TODO,
+    label: CALLOUT_TITLES.todo,
+    icon: CALLOUT_ICONS.todo,
+  },
+  attention: {
+    className: PREVIEW_ADMONITION_ATTENTION,
+    label: CALLOUT_TITLES.attention,
+    icon: CALLOUT_ICONS.attention,
+  },
+};
+
+// aliases map to canonical types above
+const ADMONITION_ALIASES: Record<string, string> = {
+  abstract: 'summary',
+  tldr: 'summary',
+  check: 'success',
+  done: 'success',
+  help: 'question',
+  faq: 'question',
+  fail: 'failure',
+  missing: 'failure',
+  snippet: 'example',
+  cite: 'quote',
 };
 
 // type guard for container directive
@@ -135,6 +209,22 @@ function getDirectiveName(node: ContainerDirective): string {
   return node.name.toLowerCase();
 }
 
+// resolve directive name to admonition config (handles aliases)
+function resolveAdmonitionType(name: string): CalloutStyleConfig | undefined {
+  // direct match
+  if (name in ADMONITION_TYPES) {
+    return ADMONITION_TYPES[name];
+  }
+
+  // alias match
+  const canonical = ADMONITION_ALIASES[name];
+  if (canonical) {
+    return ADMONITION_TYPES[canonical];
+  }
+
+  return undefined;
+}
+
 // create AST node for admonition using shared createNode() pattern
 function createAdmonitionNode(
   config: CalloutStyleConfig,
@@ -195,8 +285,8 @@ export default function remarkAdmonitions() {
 
         const directiveName = getDirectiveName(node);
 
-        // check if this is a supported admonition type
-        const admonitionType = ADMONITION_TYPES[directiveName];
+        // check if this is a supported admonition type (direct or alias)
+        const admonitionType = resolveAdmonitionType(directiveName);
         if (!admonitionType) {
           // not an admonition directive, leave it alone
           return;
