@@ -61,9 +61,10 @@
 
 /* Callout type: default (green/tip) */
 .mdx-preview-nextra-callout-default {
+  --nextra-callout-text: #166534;
   background-color: rgba(34, 197, 94, 0.1);
   border: 1px solid rgba(34, 197, 94, 0.3);
-  color: #166534;
+  color: var(--nextra-callout-text);
 }
 
 .mdx-preview-nextra-callout-default .mdx-preview-nextra-callout-icon {
@@ -72,9 +73,10 @@
 
 /* Callout type: info (blue) */
 .mdx-preview-nextra-callout-info {
+  --nextra-callout-text: #1e40af;
   background-color: rgba(59, 130, 246, 0.1);
   border: 1px solid rgba(59, 130, 246, 0.3);
-  color: #1e40af;
+  color: var(--nextra-callout-text);
 }
 
 .mdx-preview-nextra-callout-info .mdx-preview-nextra-callout-icon {
@@ -83,9 +85,10 @@
 
 /* Callout type: warning (amber/yellow) */
 .mdx-preview-nextra-callout-warning {
+  --nextra-callout-text: #92400e;
   background-color: rgba(245, 158, 11, 0.1);
   border: 1px solid rgba(245, 158, 11, 0.3);
-  color: #92400e;
+  color: var(--nextra-callout-text);
 }
 
 .mdx-preview-nextra-callout-warning .mdx-preview-nextra-callout-icon {
@@ -94,9 +97,10 @@
 
 /* Callout type: error (red) */
 .mdx-preview-nextra-callout-error {
+  --nextra-callout-text: #991b1b;
   background-color: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #991b1b;
+  color: var(--nextra-callout-text);
 }
 
 .mdx-preview-nextra-callout-error .mdx-preview-nextra-callout-icon {
@@ -105,9 +109,10 @@
 
 /* Callout type: important (purple) */
 .mdx-preview-nextra-callout-important {
+  --nextra-callout-text: #6b21a8;
   background-color: rgba(168, 85, 247, 0.1);
   border: 1px solid rgba(168, 85, 247, 0.3);
-  color: #6b21a8;
+  color: var(--nextra-callout-text);
 }
 
 .mdx-preview-nextra-callout-important .mdx-preview-nextra-callout-icon {
@@ -125,7 +130,7 @@
 .mdx-preview-nextra-tabs-header {
   display: flex;
   gap: 0;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--vscode-panel-border, #e5e7eb);
   overflow-x: auto;
 }
 
@@ -207,9 +212,9 @@
   display: flex;
   flex-direction: column;
   padding: 16px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #fff;
+  border: 1px solid var(--vscode-panel-border, #e5e7eb);
+  border-radius: var(--mdx-radius-lg);
+  background: var(--vscode-editor-background, #fff);
   text-decoration: none;
   color: inherit;
   transition:
@@ -397,37 +402,37 @@ a.mdx-preview-nextra-card:hover .mdx-preview-nextra-card-arrow {
  * ============================================================================ */
 
 .vscode-dark .mdx-preview-nextra-callout-default {
+  --nextra-callout-text: #86efac;
   background-color: rgba(34, 197, 94, 0.15);
   border-color: rgba(34, 197, 94, 0.4);
-  color: #86efac;
 }
 
 .vscode-dark .mdx-preview-nextra-callout-info {
+  --nextra-callout-text: #93c5fd;
   background-color: rgba(59, 130, 246, 0.15);
   border-color: rgba(59, 130, 246, 0.4);
-  color: #93c5fd;
 }
 
 .vscode-dark .mdx-preview-nextra-callout-warning {
+  --nextra-callout-text: #fcd34d;
   background-color: rgba(245, 158, 11, 0.15);
   border-color: rgba(245, 158, 11, 0.4);
-  color: #fcd34d;
 }
 
 .vscode-dark .mdx-preview-nextra-callout-error {
+  --nextra-callout-text: #fca5a5;
   background-color: rgba(239, 68, 68, 0.15);
   border-color: rgba(239, 68, 68, 0.4);
-  color: #fca5a5;
 }
 
 .vscode-dark .mdx-preview-nextra-callout-important {
+  --nextra-callout-text: #d8b4fe;
   background-color: rgba(168, 85, 247, 0.15);
   border-color: rgba(168, 85, 247, 0.4);
-  color: #d8b4fe;
 }
 
 .vscode-dark .mdx-preview-nextra-tabs-header {
-  border-bottom-color: #374151;
+  border-bottom-color: var(--vscode-panel-border, #374151);
 }
 
 .vscode-dark .mdx-preview-nextra-tabs-button {
