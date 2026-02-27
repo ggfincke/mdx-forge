@@ -1,5 +1,6 @@
 /* packages/webview-app/src/components/shims/base/styles/callout.css */
 /* Shared callout/aside/admonition styles using data-attribute selectors */
+/* Material Design elevation & crossnote-inspired formatting */
 /* Works w/ all frameworks that use createCallout() factory */
 
 /* Import shared tokens & callout color variants */
@@ -7,15 +8,19 @@
 
 /* ==================== Base Structure ==================== */
 [data-callout-type] {
-  padding: var(--mdx-space-lg) var(--mdx-space-xl);
-  margin: var(--mdx-space-lg) 0;
+  padding: 0 1.2rem;
+  margin: 1.5625em 0;
   border-left: var(--mdx-callout-border-width) solid
     var(--callout-color, var(--mdx-text-muted));
-  border-radius: 0 var(--mdx-radius-lg) var(--mdx-radius-lg) 0;
+  border-radius: 0 0.2rem 0.2rem 0;
   background-color: var(
     --callout-bg,
     rgba(128, 128, 128, var(--mdx-alpha-subtle))
   );
+  box-shadow: var(--mdx-shadow-elevation);
+  transition:
+    background-color var(--mdx-transition-fast) ease,
+    border-color var(--mdx-transition-fast) ease;
 }
 
 /* Header layout (Generic, Starlight) */
@@ -23,16 +28,17 @@
   display: flex;
   align-items: center;
   gap: var(--mdx-space-sm);
-  font-weight: var(--mdx-font-weight-semibold);
-  margin-bottom: var(--mdx-space-md);
+  font-weight: var(--mdx-font-weight-bold);
+  margin: 0 -1.2rem;
+  padding: 0.8rem 1.2rem;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+  background-color: rgba(var(--callout-color-rgb, 128, 128, 128), 0.1);
   color: var(--callout-color);
 }
 
-/* Title text - uppercase for header layout */
+/* Title text */
 [data-callout-type] > [class*='-header'] > [class*='-title'] {
-  text-transform: uppercase;
   font-size: var(--mdx-font-size-sm);
-  letter-spacing: var(--mdx-letter-spacing-wide);
 }
 
 /* Icon container */
@@ -47,6 +53,10 @@
 }
 
 /* Content container */
+[data-callout-type] > [class*='-content'] {
+  padding: 0.8rem 0;
+}
+
 [data-callout-type] > [class*='-content'] > :first-child {
   margin-top: 0;
 }

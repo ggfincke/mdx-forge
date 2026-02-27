@@ -40,6 +40,75 @@
   --callout-bg: rgba(var(--mdx-color-important-rgb), var(--mdx-alpha-subtle));
 }
 
+/* Summary / Abstract / TL;DR - Cyan */
+[data-callout-type='summary'],
+[data-callout-type='abstract'],
+[data-callout-type='tldr'] {
+  --callout-color: var(--mdx-color-summary);
+  --callout-bg: rgba(var(--mdx-color-summary-rgb), var(--mdx-alpha-subtle));
+}
+
+/* Question / Help / FAQ - Lime */
+[data-callout-type='question'],
+[data-callout-type='help'],
+[data-callout-type='faq'] {
+  --callout-color: var(--mdx-color-question);
+  --callout-bg: rgba(var(--mdx-color-question-rgb), var(--mdx-alpha-subtle));
+}
+
+/* Failure / Fail / Missing - Red */
+[data-callout-type='failure'],
+[data-callout-type='fail'],
+[data-callout-type='missing'] {
+  --callout-color: var(--mdx-color-failure);
+  --callout-bg: rgba(var(--mdx-color-failure-rgb), var(--mdx-alpha-subtle));
+}
+
+/* Example / Snippet - Cyan */
+[data-callout-type='example'],
+[data-callout-type='snippet'] {
+  --callout-color: var(--mdx-color-example);
+  --callout-bg: rgba(var(--mdx-color-example-rgb), var(--mdx-alpha-subtle));
+}
+
+/* Quote / Cite - Gray */
+[data-callout-type='quote'],
+[data-callout-type='cite'] {
+  --callout-color: var(--mdx-color-quote);
+  --callout-bg: rgba(var(--mdx-color-quote-rgb), var(--mdx-alpha-subtle));
+}
+
+/* Bug - Dark Red */
+[data-callout-type='bug'] {
+  --callout-color: var(--mdx-color-bug);
+  --callout-bg: rgba(var(--mdx-color-bug-rgb), var(--mdx-alpha-subtle));
+}
+
+/* Todo - Light Blue */
+[data-callout-type='todo'] {
+  --callout-color: var(--mdx-color-todo);
+  --callout-bg: rgba(var(--mdx-color-todo-rgb), var(--mdx-alpha-subtle));
+}
+
+/* Hint - Teal (alias for tip) */
+[data-callout-type='hint'] {
+  --callout-color: var(--mdx-color-tip);
+  --callout-bg: rgba(var(--mdx-color-tip-rgb), var(--mdx-alpha-subtle));
+}
+
+/* Attention - Amber (alias for warning) */
+[data-callout-type='attention'] {
+  --callout-color: var(--mdx-color-warning);
+  --callout-bg: rgba(var(--mdx-color-warning-rgb), var(--mdx-alpha-subtle));
+}
+
+/* ==================== Keyboard Accessibility ==================== */
+[data-callout-type]:focus-within {
+  outline: 2px solid
+    var(--vscode-focusBorder, var(--callout-color, var(--mdx-link-color)));
+  outline-offset: 1px;
+}
+
 /* ==================== Utility Classes ==================== */
 /* For frameworks that need class-based color application */
 
@@ -78,4 +147,32 @@
 .mdx-callout-important {
   --callout-color: var(--mdx-color-important);
   --callout-bg: rgba(var(--mdx-color-important-rgb), var(--mdx-alpha-subtle));
+}
+.mdx-callout-summary {
+  --callout-color: var(--mdx-color-summary);
+  --callout-bg: rgba(var(--mdx-color-summary-rgb), var(--mdx-alpha-subtle));
+}
+.mdx-callout-question {
+  --callout-color: var(--mdx-color-question);
+  --callout-bg: rgba(var(--mdx-color-question-rgb), var(--mdx-alpha-subtle));
+}
+.mdx-callout-failure {
+  --callout-color: var(--mdx-color-failure);
+  --callout-bg: rgba(var(--mdx-color-failure-rgb), var(--mdx-alpha-subtle));
+}
+.mdx-callout-example {
+  --callout-color: var(--mdx-color-example);
+  --callout-bg: rgba(var(--mdx-color-example-rgb), var(--mdx-alpha-subtle));
+}
+.mdx-callout-quote {
+  --callout-color: var(--mdx-color-quote);
+  --callout-bg: rgba(var(--mdx-color-quote-rgb), var(--mdx-alpha-subtle));
+}
+.mdx-callout-bug {
+  --callout-color: var(--mdx-color-bug);
+  --callout-bg: rgba(var(--mdx-color-bug-rgb), var(--mdx-alpha-subtle));
+}
+.mdx-callout-todo {
+  --callout-color: var(--mdx-color-todo);
+  --callout-bg: rgba(var(--mdx-color-todo-rgb), var(--mdx-alpha-subtle));
 }

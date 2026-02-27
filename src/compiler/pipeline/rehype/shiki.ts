@@ -252,6 +252,7 @@ export default function rehypeShiki() {
       lang: string;
       code: string;
       meta: CodeMeta;
+      sourceLine: string | undefined;
     }> = [];
 
     // first pass: collect code blocks
@@ -294,6 +295,10 @@ export default function rehypeShiki() {
         (node.properties?.['data-meta'] as string) ||
         '';
       const meta = parseMeta(metaStr);
+      const sourceLine =
+        typeof node.properties?.['data-source-line'] === 'string'
+          ? (node.properties?.['data-source-line'] as string)
+          : undefined;
 
       nodesToProcess.push({
         node,
@@ -302,6 +307,7 @@ export default function rehypeShiki() {
         lang: lang || 'plaintext',
         code,
         meta,
+        sourceLine,
       });
     });
 
@@ -314,7 +320,7 @@ export default function rehypeShiki() {
     const highlighter = await getHighlighter();
 
     // second pass: apply highlighting
-    for (const { parent, index, lang, code, meta } of nodesToProcess) {
+    for (const { parent, index, lang, code, meta, sourceLine } of nodesToProcess) {
       try {
         // resolve alias first (e.g., 'js' -> 'javascript', 'ts' -> 'typescript')
         const resolvedLang = resolveLanguageAlias(lang);
@@ -336,6 +342,7 @@ export default function rehypeShiki() {
           lang,
           meta,
           code,
+          sourceLine,
         });
 
         parent.children[index] = wrapper;
@@ -352,8 +359,9 @@ function createCodeBlockWrapper(options: {
   lang: string;
   meta: CodeMeta;
   code: string;
+  sourceLine?: string;
 }): Element {
-  const { html, lang, meta, code } = options;
+  const { html, lang, meta, code, sourceLine } = options;
 
   const children: ElementContent[] = [];
 
@@ -395,10 +403,16 @@ function createCodeBlockWrapper(options: {
 
   children.push(codeContainer);
 
-  return {
+  const wrapper: Element = {
     type: 'element',
     tagName: 'div',
     properties: { className: [PREVIEW_CODEBLOCK] },
     children,
   };
+
+  if (sourceLine) {
+    wrapper.properties!['data-source-line'] = sourceLine;
+  }
+
+  return wrapper;
 }

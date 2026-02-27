@@ -82,6 +82,13 @@ describe('compileSafe()', () => {
     expect(result.html).toContain('const');
   });
 
+  it('adds data-source-line metadata for preview hover mapping', async () => {
+    const result = await compileSafe(FIXTURES.basicMdx, createConfig());
+
+    expect(result.html).toMatch(/<h1[^>]*data-source-line="1"[^>]*>/);
+    expect(result.html).toMatch(/<p[^>]*data-source-line="3"[^>]*>/);
+  });
+
   it('converts PlantUML code blocks into placeholders', async () => {
     const result = await compileSafe(
       `\`\`\`plantuml

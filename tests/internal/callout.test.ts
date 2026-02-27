@@ -16,19 +16,37 @@ describe('normalizeCalloutType()', () => {
     expect(normalizeCalloutType('info')).toBe('info');
     expect(normalizeCalloutType('caution')).toBe('caution');
     expect(normalizeCalloutType('important')).toBe('important');
+    expect(normalizeCalloutType('summary')).toBe('summary');
+    expect(normalizeCalloutType('hint')).toBe('hint');
+    expect(normalizeCalloutType('success')).toBe('success');
+    expect(normalizeCalloutType('question')).toBe('question');
+    expect(normalizeCalloutType('failure')).toBe('failure');
+    expect(normalizeCalloutType('bug')).toBe('bug');
+    expect(normalizeCalloutType('example')).toBe('example');
+    expect(normalizeCalloutType('quote')).toBe('quote');
+    expect(normalizeCalloutType('todo')).toBe('todo');
+    expect(normalizeCalloutType('attention')).toBe('attention');
   });
 
   it('resolves aliases to canonical types', () => {
-    expect(normalizeCalloutType('success')).toBe('tip');
+    expect(normalizeCalloutType('abstract')).toBe('summary');
+    expect(normalizeCalloutType('tldr')).toBe('summary');
+    expect(normalizeCalloutType('check')).toBe('success');
+    expect(normalizeCalloutType('done')).toBe('success');
+    expect(normalizeCalloutType('help')).toBe('question');
+    expect(normalizeCalloutType('faq')).toBe('question');
+    expect(normalizeCalloutType('fail')).toBe('failure');
+    expect(normalizeCalloutType('missing')).toBe('failure');
+    expect(normalizeCalloutType('snippet')).toBe('example');
+    expect(normalizeCalloutType('cite')).toBe('quote');
     expect(normalizeCalloutType('error')).toBe('danger');
     expect(normalizeCalloutType('warn')).toBe('warning');
-    expect(normalizeCalloutType('hint')).toBe('tip');
   });
 
   it('normalizes case-insensitively', () => {
     expect(normalizeCalloutType('WARNING')).toBe('warning');
     expect(normalizeCalloutType('Note')).toBe('note');
-    expect(normalizeCalloutType('SUCCESS')).toBe('tip');
+    expect(normalizeCalloutType('ABSTRACT')).toBe('summary');
     expect(normalizeCalloutType('Error')).toBe('danger');
   });
 
@@ -48,13 +66,18 @@ describe('isValidCalloutType()', () => {
     expect(isValidCalloutType('note')).toBe(true);
     expect(isValidCalloutType('danger')).toBe(true);
     expect(isValidCalloutType('important')).toBe(true);
+    expect(isValidCalloutType('summary')).toBe(true);
+    expect(isValidCalloutType('question')).toBe(true);
+    expect(isValidCalloutType('bug')).toBe(true);
   });
 
   it('accepts aliases as valid', () => {
-    expect(isValidCalloutType('success')).toBe(true);
+    expect(isValidCalloutType('abstract')).toBe(true);
+    expect(isValidCalloutType('tldr')).toBe(true);
     expect(isValidCalloutType('error')).toBe(true);
     expect(isValidCalloutType('warn')).toBe(true);
-    expect(isValidCalloutType('hint')).toBe(true);
+    expect(isValidCalloutType('check')).toBe(true);
+    expect(isValidCalloutType('cite')).toBe(true);
   });
 
   it('rejects unknown types', () => {

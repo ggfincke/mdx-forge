@@ -20,14 +20,24 @@ import {
 
 describe('metadata contract', () => {
   describe('callout type contract', () => {
-    it('VALID_CALLOUT_TYPES has exactly 7 expected types', () => {
+    it('VALID_CALLOUT_TYPES has exactly 17 expected types', () => {
       expect([...VALID_CALLOUT_TYPES].sort()).toEqual([
+        'attention',
+        'bug',
         'caution',
         'danger',
+        'example',
+        'failure',
+        'hint',
         'important',
         'info',
         'note',
+        'question',
+        'quote',
+        'success',
+        'summary',
         'tip',
+        'todo',
         'warning',
       ]);
     });
@@ -41,6 +51,16 @@ describe('metadata contract', () => {
         info: 'Info',
         caution: 'Caution',
         important: 'Important',
+        summary: 'Summary',
+        hint: 'Hint',
+        success: 'Success',
+        question: 'Question',
+        failure: 'Failure',
+        bug: 'Bug',
+        example: 'Example',
+        quote: 'Quote',
+        todo: 'Todo',
+        attention: 'Attention',
       });
     });
   });
@@ -48,10 +68,18 @@ describe('metadata contract', () => {
   describe('callout alias contract', () => {
     it('CALLOUT_TYPE_ALIASES maps expected aliases', () => {
       expect(CALLOUT_TYPE_ALIASES).toEqual({
-        success: 'tip',
+        abstract: 'summary',
+        tldr: 'summary',
+        check: 'success',
+        done: 'success',
+        help: 'question',
+        faq: 'question',
+        fail: 'failure',
+        missing: 'failure',
+        snippet: 'example',
+        cite: 'quote',
         error: 'danger',
         warn: 'warning',
-        hint: 'tip',
       });
     });
 
@@ -64,12 +92,22 @@ describe('metadata contract', () => {
   describe('icon collection key contract', () => {
     it('CALLOUT_ICONS has expected keys', () => {
       expect(Object.keys(CALLOUT_ICONS).sort()).toEqual([
+        'attention',
+        'bug',
         'caution',
         'danger',
+        'example',
+        'failure',
+        'hint',
         'important',
         'info',
         'note',
+        'question',
+        'quote',
+        'success',
+        'summary',
         'tip',
+        'todo',
         'warning',
       ]);
     });

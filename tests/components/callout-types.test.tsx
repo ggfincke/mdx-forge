@@ -10,7 +10,7 @@ import { Callout } from '../../src/components/generic/index';
 
 describe('Callout type rendering', () => {
   it('renders known types w/ correct data attribute', () => {
-    const types = ['note', 'warning', 'danger', 'tip'] as const;
+    const types = ['note', 'warning', 'danger', 'tip', 'summary', 'question', 'bug'] as const;
 
     for (const type of types) {
       const { container } = render(
@@ -23,13 +23,20 @@ describe('Callout type rendering', () => {
   });
 
   it('resolves alias types in rendered output', () => {
-    // 'caution' & 'important' are standalone valid types
-    // 'success' -> 'tip', 'error' -> 'danger', 'warn' -> 'warning', 'hint' -> 'tip'
+    // aliases map to canonical types
     const aliases: [string, string][] = [
-      ['success', 'tip'],
+      ['abstract', 'summary'],
+      ['tldr', 'summary'],
+      ['check', 'success'],
+      ['done', 'success'],
+      ['help', 'question'],
+      ['faq', 'question'],
+      ['fail', 'failure'],
+      ['missing', 'failure'],
+      ['snippet', 'example'],
+      ['cite', 'quote'],
       ['error', 'danger'],
       ['warn', 'warning'],
-      ['hint', 'tip'],
     ];
 
     for (const [alias, expected] of aliases) {
