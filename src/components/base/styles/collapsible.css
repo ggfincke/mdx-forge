@@ -40,6 +40,7 @@
     --vscode-list-hoverBackground,
     rgba(0, 0, 0, var(--mdx-alpha-hover))
   );
+  transition: background-color var(--mdx-transition-normal) ease;
 }
 
 /* Icon container */

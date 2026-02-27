@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Browser**: Add `HostPreloadCallbacks` interface for environment-specific preload behavior (replaces hardcoded layout callback)
-- **Browser**: Align `DEFAULT_SHIM_LOAD_MAX_RETRIES` (2→3) & `DEFAULT_SHIM_LOAD_RETRY_DELAY_MS` (150→200) w/ downstream consumers
+- **Browser**: Align `DEFAULT_SHIM_LOAD_MAX_RETRIES` (2->3) & `DEFAULT_SHIM_LOAD_RETRY_DELAY_MS` (150->200) w/ downstream consumers
 - Bump Vite from 6.x to ^7.3.1 & `@vitejs/plugin-react` from 4.x to ^5.1.4
 
 ### Added

@@ -5,24 +5,52 @@
 :root {
   /* ==================== Semantic Colors ==================== */
   /* Note/Info - Blue (Google Material style) */
-  --mdx-color-note: #4285f4;
-  --mdx-color-note-rgb: 66, 133, 244;
+  --mdx-color-note: #448aff;
+  --mdx-color-note-rgb: 68, 138, 255;
 
   /* Tip/Success - Green (Google Material style) */
-  --mdx-color-tip: #34a853;
-  --mdx-color-tip-rgb: 52, 168, 83;
+  --mdx-color-tip: #00c853;
+  --mdx-color-tip-rgb: 0, 200, 83;
 
   /* Warning/Caution - Amber */
-  --mdx-color-warning: #f59e0b;
-  --mdx-color-warning-rgb: 245, 158, 11;
+  --mdx-color-warning: #ff9100;
+  --mdx-color-warning-rgb: 255, 145, 0;
 
   /* Danger/Error - Red */
-  --mdx-color-danger: #ef4444;
-  --mdx-color-danger-rgb: 239, 68, 68;
+  --mdx-color-danger: #ff1744;
+  --mdx-color-danger-rgb: 255, 23, 68;
 
   /* Important - Purple */
   --mdx-color-important: #8b5cf6;
   --mdx-color-important-rgb: 139, 92, 246;
+
+  /* Summary/Abstract/TL;DR - Cyan */
+  --mdx-color-summary: #00b0ff;
+  --mdx-color-summary-rgb: 0, 176, 255;
+
+  /* Question/Help/FAQ - Lime */
+  --mdx-color-question: #64dd17;
+  --mdx-color-question-rgb: 100, 221, 23;
+
+  /* Failure/Fail/Missing - Red */
+  --mdx-color-failure: #ff5252;
+  --mdx-color-failure-rgb: 255, 82, 82;
+
+  /* Example/Snippet - Cyan */
+  --mdx-color-example: #00b8d4;
+  --mdx-color-example-rgb: 0, 184, 212;
+
+  /* Quote/Cite - Gray */
+  --mdx-color-quote: #9e9e9e;
+  --mdx-color-quote-rgb: 158, 158, 158;
+
+  /* Bug - Dark Red */
+  --mdx-color-bug: #ff1744;
+  --mdx-color-bug-rgb: 255, 23, 68;
+
+  /* Todo - Light Blue */
+  --mdx-color-todo: #00b8d4;
+  --mdx-color-todo-rgb: 0, 184, 212;
 
   /* Aliases - map to canonical colors */
   --mdx-color-info: var(--mdx-color-note);
@@ -69,6 +97,7 @@
   /* ==================== Typography ==================== */
   --mdx-font-weight-medium: 500;
   --mdx-font-weight-semibold: 600;
+  --mdx-font-weight-bold: 700;
   --mdx-font-size-sm: 0.85rem;
   --mdx-font-size-xs: 0.75rem;
   --mdx-letter-spacing-wide: 0.025em;
@@ -77,10 +106,21 @@
   --mdx-transition-fast: 0.15s;
   --mdx-transition-normal: 0.2s;
   --mdx-transition-slow: 0.4s;
+  /* collapsible content reveal animation */
+  --mdx-transition-collapse: 0.25s;
+
+  /* ==================== Shadows ==================== */
+  --mdx-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --mdx-shadow-md:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  /* Material Design elevation shadow */
+  --mdx-shadow-elevation:
+    0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 1px 5px 0 rgba(0, 0, 0, 0.12),
+    0 3px 1px -2px rgba(0, 0, 0, 0.2);
 
   /* ==================== Component-Specific ==================== */
   /* Callout border width for left-border style */
-  --mdx-callout-border-width: 4px;
+  --mdx-callout-border-width: 0.4rem;
 }
 
 /* ==================== Dark Mode Overrides ==================== */
@@ -110,4 +150,6 @@
   --mdx-link-color: #6ea8fe;
   /* Use darker alpha for dark mode */
   --mdx-alpha-subtle: var(--mdx-alpha-subtle-dark);
+  /* Tighter hover alpha for better contrast in dark mode */
+  --mdx-alpha-hover: 0.08;
 }

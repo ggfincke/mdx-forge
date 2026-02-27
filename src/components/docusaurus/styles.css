@@ -30,7 +30,10 @@
   font-size: 0.95rem;
   font-weight: var(--mdx-font-weight-medium);
   color: var(--vscode-foreground, var(--mdx-text-primary));
-  transition: all var(--mdx-transition-normal) ease;
+  transition:
+    color var(--mdx-transition-normal) ease,
+    border-color var(--mdx-transition-normal) ease,
+    background-color var(--mdx-transition-normal) ease;
   margin-bottom: -1px;
 }
 
@@ -48,7 +51,7 @@
 }
 
 .mdx-preview-tabs-button:focus-visible {
-  outline: 2px solid var(--vscode-focusBorder, rgba(0, 102, 204, 0.3));
+  outline: 2px solid var(--vscode-focusBorder, var(--mdx-link-color));
   outline-offset: -2px;
 }
 
@@ -207,11 +210,15 @@
   display: flex;
   align-items: center;
   padding: var(--mdx-space-md) var(--mdx-space-lg);
-  background-color: var(--vscode-list-hoverBackground, rgba(0, 0, 0, 0.03));
+  background-color: var(
+    --vscode-list-hoverBackground,
+    rgba(0, 0, 0, var(--mdx-alpha-hover))
+  );
   cursor: pointer;
   font-weight: var(--mdx-font-weight-medium);
   list-style: none;
   user-select: none;
+  transition: background-color var(--mdx-transition-normal) ease;
 }
 
 .details-summary::-webkit-details-marker {
@@ -264,6 +271,35 @@
 
 /* ==================== Dark Mode Adjustments ==================== */
 /* Dark mode values are handled by VS Code CSS variables w/ fallbacks to tokens */
+
+.vscode-dark .details-summary {
+  background-color: var(
+    --vscode-list-hoverBackground,
+    rgba(255, 255, 255, var(--mdx-alpha-subtle-dark))
+  );
+}
+
+.vscode-dark .details-summary:hover {
+  background-color: var(
+    --vscode-list-activeSelectionBackground,
+    rgba(255, 255, 255, 0.12)
+  );
+}
+
+.vscode-dark .docusaurus-codeblock-copy {
+  background-color: var(
+    --vscode-button-secondaryBackground,
+    rgba(255, 255, 255, 0.15)
+  );
+  color: var(--vscode-button-secondaryForeground, #ccc);
+}
+
+.vscode-dark .docusaurus-codeblock-copy:hover {
+  background-color: var(
+    --vscode-button-secondaryHoverBackground,
+    rgba(255, 255, 255, 0.25)
+  );
+}
 
 .vscode-dark .docusaurus-tabs .mdx-preview-tabs-header {
   border-bottom-color: var(--vscode-panel-border, var(--mdx-border-color));

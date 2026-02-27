@@ -53,6 +53,24 @@ function matchLanguage(
   return null;
 }
 
+function getSourceLine(node: Element): string | null {
+  const fromProperty = node.properties?.['data-source-line'];
+  if (typeof fromProperty === 'string' && fromProperty.length > 0) {
+    return fromProperty;
+  }
+
+  const fromPosition = node.position?.start?.line;
+  if (
+    typeof fromPosition === 'number' &&
+    Number.isFinite(fromPosition) &&
+    fromPosition > 0
+  ) {
+    return String(fromPosition);
+  }
+
+  return null;
+}
+
 // create a rehype plugin that transforms code blocks into placeholder divs
 export function createDiagramPlaceholder(config: DiagramPlaceholderConfig) {
   return function rehypeDiagramPlaceholder() {
@@ -99,6 +117,11 @@ export function createDiagramPlaceholder(config: DiagramPlaceholderConfig) {
           [config.codeAttr]: code,
           [config.idAttr]: diagramId,
         };
+
+        const sourceLine = getSourceLine(node);
+        if (sourceLine) {
+          properties['data-source-line'] = sourceLine;
+        }
 
         // merge extra attributes if configured
         if (config.extraAttributes) {

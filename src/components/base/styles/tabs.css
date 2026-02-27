@@ -34,7 +34,10 @@
   white-space: nowrap;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
-  transition: all var(--mdx-transition-normal) ease;
+  transition:
+    color var(--mdx-transition-normal) ease,
+    border-color var(--mdx-transition-normal) ease,
+    background-color var(--mdx-transition-normal) ease;
 }
 
 [data-component='tabs'] [role='tab']:hover {
