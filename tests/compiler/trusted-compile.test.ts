@@ -77,4 +77,14 @@ describe('compileTrusted()', () => {
 
     expect(result.frontmatter).toEqual({});
   });
+
+  it('adds source-line metadata to compiled JSX output', async () => {
+    const result = await compileTrusted(
+      FIXTURES.basicMdx,
+      true,
+      createConfig()
+    );
+
+    expect(result.code).toContain('data-source-line');
+  });
 });
