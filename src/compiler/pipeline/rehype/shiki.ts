@@ -320,7 +320,14 @@ export default function rehypeShiki() {
     const highlighter = await getHighlighter();
 
     // second pass: apply highlighting
-    for (const { parent, index, lang, code, meta, sourceLine } of nodesToProcess) {
+    for (const {
+      parent,
+      index,
+      lang,
+      code,
+      meta,
+      sourceLine,
+    } of nodesToProcess) {
       try {
         // resolve alias first (e.g., 'js' -> 'javascript', 'ts' -> 'typescript')
         const resolvedLang = resolveLanguageAlias(lang);

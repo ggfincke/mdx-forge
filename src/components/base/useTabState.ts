@@ -169,7 +169,7 @@ export function useIndexTabs<T>({
   const getInitialIndex = useCallback((): number => {
     if (storageKey && typeof window !== 'undefined') {
       try {
-        const stored = localStorage.getItem(`nextra-tabs-${storageKey}`);
+        const stored = window.localStorage.getItem(`nextra-tabs-${storageKey}`);
         if (stored !== null) {
           const parsed = parseInt(stored, 10);
           if (!isNaN(parsed) && parsed >= 0 && parsed < items.length) {
@@ -202,7 +202,10 @@ export function useIndexTabs<T>({
       // save to localStorage if storageKey is provided
       if (storageKey && typeof window !== 'undefined') {
         try {
-          localStorage.setItem(`nextra-tabs-${storageKey}`, String(index));
+          window.localStorage.setItem(
+            `nextra-tabs-${storageKey}`,
+            String(index)
+          );
         } catch {
           // ignore localStorage errors
         }
