@@ -16,6 +16,7 @@ import rehypePlantUmlPlaceholder from '../pipeline/rehype/plantuml-placeholder';
 import rehypeGraphvizPlaceholder from '../pipeline/rehype/graphviz-placeholder';
 import rehypeKatex from 'rehype-katex';
 import rehypeShiki from '../pipeline/rehype/shiki';
+import rehypeSourceLine from '../pipeline/rehype/source-line';
 import rehypeSlug from 'rehype-slug';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import rehypeLazyImages from '../pipeline/rehype/lazy-images';
@@ -56,6 +57,8 @@ export { rehypeKatex };
 
 // shared rehype plugins after math rendering (& after rehypeRaw in Trusted mode)
 export const sharedRehypePluginsPostMath: Pluggable[] = [
+  // run before shiki so transformed wrappers can preserve source-line metadata
+  rehypeSourceLine,
   rehypeShiki,
   rehypeSlug,
   [rehypeAutolinkHeadings, autolinkHeadingsConfig],
