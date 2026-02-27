@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-02-27
+
+### Added
+
+- **Compiler**: Add `rehypeSourceLine` plugin to annotate rendered elements with `data-source-line` in both Safe and Trusted outputs
+- **Compiler**: Preserve `data-source-line` metadata through Shiki code block wrappers and diagram placeholder transforms
+- **Callouts**: Expand supported canonical types to 17 total by adding `summary`, `hint`, `success`, `question`, `failure`, `bug`, `example`, `quote`, `todo` and `attention`
+- **Testing**: Add broader component and cross-repo contract coverage (`framework-shims`, `nextjs-shims`, `file-tree`, `code-group`, `useIndexTabs` and metadata contracts)
+
+### Changed
+
+- **Callouts**: Introduce alias mappings for `abstract`/`tldr`, `check`/`done`, `help`/`faq`, `fail`/`missing`, `snippet` and `cite` to canonical types
+- **Components**: Refresh callout, tabs and token styling across Generic, Docusaurus, Nextra and Starlight themes (updated color tokens, focus states, dark-mode fallbacks and elevation styling)
+- **Dependencies**: Bump `eslint` from 9.x to ^10.0.2 and refresh lockfile versions (including `jsdom` 28.1.0, `@types/node` 25.3.1, `shiki` 3.23.0 and `typescript-eslint` 8.56.1)
+
+### Fixed
+
+- **Tabs**: Use `window.localStorage` in `useIndexTabs` and harden storage mocking in tests for browser-like runtime compatibility
+
 ## [0.1.6] - 2026-02-13
 
 ### Changed
