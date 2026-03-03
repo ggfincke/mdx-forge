@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-03-02
+
+### Changed
+
+- **Dependencies**: Bump `shiki` from >=3.22.0 to >=4.0.0, `globals` to ^17.4.0 & `@types/node` to ^25.3.3
+
 ## [0.2.0] - 2026-02-27
 
 ### Added
