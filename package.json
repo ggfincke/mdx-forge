@@ -43,10 +43,6 @@
       "import": "./dist/esm/compiler/plugins/index.js",
       "types": "./dist/types/compiler/plugins/index.d.ts"
     },
-    "./compiler/transforms": {
-      "import": "./dist/esm/compiler/transforms/index.js",
-      "types": "./dist/types/compiler/transforms/index.d.ts"
-    },
     "./browser": {
       "import": "./dist/esm/browser/index.js",
       "types": "./dist/types/browser/index.d.ts"

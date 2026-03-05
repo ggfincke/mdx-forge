@@ -1,5 +1,5 @@
 // src/compiler/pipeline/rehype/source-line.ts
-// annotate rendered elements with source line metadata for preview interactions
+// annotate rendered elements w/ source line metadata for preview interactions
 
 import { visit } from 'unist-util-visit';
 import type { Root, Element } from 'hast';
