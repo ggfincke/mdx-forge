@@ -143,3 +143,36 @@ export function createDiagramPlaceholder(config: DiagramPlaceholderConfig) {
     };
   };
 }
+
+// pre-configured diagram placeholder plugins
+
+// convert mermaid code blocks to placeholders for client-side rendering
+export const rehypeMermaidPlaceholder = createDiagramPlaceholder({
+  name: 'mermaid',
+  languages: [{ className: 'language-mermaid', id: 'mermaid' }],
+  containerClass: 'mermaid-container',
+  codeAttr: 'data-mermaid-chart',
+  idAttr: 'data-mermaid-id',
+});
+
+// convert PlantUML code blocks to placeholders for client-side rendering
+export const rehypePlantUmlPlaceholder = createDiagramPlaceholder({
+  name: 'plantuml',
+  languages: [{ className: 'language-plantuml', id: 'plantuml' }],
+  containerClass: 'plantuml-container',
+  codeAttr: 'data-plantuml-code',
+  idAttr: 'data-plantuml-id',
+});
+
+// convert Graphviz code blocks to placeholders for client-side rendering
+export const rehypeGraphvizPlaceholder = createDiagramPlaceholder({
+  name: 'graphviz',
+  languages: [
+    { className: 'language-dot', id: 'dot' },
+    { className: 'language-graphviz', id: 'graphviz' },
+  ],
+  containerClass: 'graphviz-container',
+  codeAttr: 'data-graphviz-code',
+  idAttr: 'data-graphviz-id',
+  extraAttributes: (lang) => ({ 'data-graphviz-language': lang }),
+});
