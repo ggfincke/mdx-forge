@@ -4,12 +4,11 @@
 import type { RootContent } from 'mdast';
 import type { MdxJsxElement } from '../../types';
 import { getStaticStringProp, escapeHtml, createNode } from './utils';
-import { CALLOUT_ICONS } from '../../../internal/icons';
 import {
   type CalloutType,
   type CalloutStyleConfig,
-  CALLOUT_TITLES,
   normalizeCalloutType,
+  buildCalloutStyleMap,
 } from '../../../internal/callout';
 import {
   SAFE_CALLOUT,
@@ -41,94 +40,30 @@ export {
   normalizeCalloutType,
 } from '../../../internal/callout';
 
-// callout defaults w/ icons & CSS class names for Safe Mode HTML rendering
-export const CALLOUT_DEFAULTS: Record<CalloutType, CalloutStyleConfig> = {
-  note: {
-    label: CALLOUT_TITLES.note,
-    className: SAFE_CALLOUT_NOTE,
-    icon: CALLOUT_ICONS.note,
-  },
-  info: {
-    label: CALLOUT_TITLES.info,
-    className: SAFE_CALLOUT_INFO,
-    icon: CALLOUT_ICONS.info,
-  },
-  tip: {
-    label: CALLOUT_TITLES.tip,
-    className: SAFE_CALLOUT_TIP,
-    icon: CALLOUT_ICONS.tip,
-  },
-  warning: {
-    label: CALLOUT_TITLES.warning,
-    className: SAFE_CALLOUT_WARNING,
-    icon: CALLOUT_ICONS.warning,
-  },
-  caution: {
-    label: CALLOUT_TITLES.caution,
-    className: SAFE_CALLOUT_CAUTION,
-    icon: CALLOUT_ICONS.caution,
-  },
-  danger: {
-    label: CALLOUT_TITLES.danger,
-    className: SAFE_CALLOUT_DANGER,
-    icon: CALLOUT_ICONS.danger,
-  },
-  important: {
-    label: CALLOUT_TITLES.important,
-    className: SAFE_CALLOUT_IMPORTANT,
-    icon: CALLOUT_ICONS.important,
-  },
-  summary: {
-    label: CALLOUT_TITLES.summary,
-    className: SAFE_CALLOUT_SUMMARY,
-    icon: CALLOUT_ICONS.summary,
-  },
-  hint: {
-    label: CALLOUT_TITLES.hint,
-    className: SAFE_CALLOUT_HINT,
-    icon: CALLOUT_ICONS.hint,
-  },
-  success: {
-    label: CALLOUT_TITLES.success,
-    className: SAFE_CALLOUT_SUCCESS,
-    icon: CALLOUT_ICONS.success,
-  },
-  question: {
-    label: CALLOUT_TITLES.question,
-    className: SAFE_CALLOUT_QUESTION,
-    icon: CALLOUT_ICONS.question,
-  },
-  failure: {
-    label: CALLOUT_TITLES.failure,
-    className: SAFE_CALLOUT_FAILURE,
-    icon: CALLOUT_ICONS.failure,
-  },
-  bug: {
-    label: CALLOUT_TITLES.bug,
-    className: SAFE_CALLOUT_BUG,
-    icon: CALLOUT_ICONS.bug,
-  },
-  example: {
-    label: CALLOUT_TITLES.example,
-    className: SAFE_CALLOUT_EXAMPLE,
-    icon: CALLOUT_ICONS.example,
-  },
-  quote: {
-    label: CALLOUT_TITLES.quote,
-    className: SAFE_CALLOUT_QUOTE,
-    icon: CALLOUT_ICONS.quote,
-  },
-  todo: {
-    label: CALLOUT_TITLES.todo,
-    className: SAFE_CALLOUT_TODO,
-    icon: CALLOUT_ICONS.todo,
-  },
-  attention: {
-    label: CALLOUT_TITLES.attention,
-    className: SAFE_CALLOUT_ATTENTION,
-    icon: CALLOUT_ICONS.attention,
-  },
+// CSS class lookup for Safe Mode callout types
+const SAFE_CALLOUT_CLASSES: Record<CalloutType, string> = {
+  note: SAFE_CALLOUT_NOTE,
+  info: SAFE_CALLOUT_INFO,
+  tip: SAFE_CALLOUT_TIP,
+  warning: SAFE_CALLOUT_WARNING,
+  caution: SAFE_CALLOUT_CAUTION,
+  danger: SAFE_CALLOUT_DANGER,
+  important: SAFE_CALLOUT_IMPORTANT,
+  summary: SAFE_CALLOUT_SUMMARY,
+  hint: SAFE_CALLOUT_HINT,
+  success: SAFE_CALLOUT_SUCCESS,
+  question: SAFE_CALLOUT_QUESTION,
+  failure: SAFE_CALLOUT_FAILURE,
+  bug: SAFE_CALLOUT_BUG,
+  example: SAFE_CALLOUT_EXAMPLE,
+  quote: SAFE_CALLOUT_QUOTE,
+  todo: SAFE_CALLOUT_TODO,
+  attention: SAFE_CALLOUT_ATTENTION,
 };
+
+// callout defaults w/ icons & CSS class names for Safe Mode HTML rendering
+export const CALLOUT_DEFAULTS: Record<CalloutType, CalloutStyleConfig> =
+  buildCalloutStyleMap((type) => SAFE_CALLOUT_CLASSES[type]);
 
 // transform Callout/Alert/Admonition component to semantic HTML
 export function transformCallout(node: MdxJsxElement): RootContent {

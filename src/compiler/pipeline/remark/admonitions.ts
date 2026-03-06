@@ -10,10 +10,11 @@ import type {
   RootContent,
 } from 'mdast';
 import type { ContainerDirective } from 'mdast-util-directive';
-import { CALLOUT_ICONS } from '../../../internal/icons';
 import {
-  CALLOUT_TITLES,
+  CALLOUT_TYPE_ALIASES,
+  type CalloutType,
   type CalloutStyleConfig,
+  buildCalloutStyleMap,
 } from '../../../internal/callout';
 import { createNode } from '../transforms/utils';
 import {
@@ -40,108 +41,30 @@ import {
   PREVIEW_ADMONITION_CONTENT,
 } from '../../internal/css-classes';
 
-// supported admonition types (Docusaurus + Starlight + crossnote compatible)
-const ADMONITION_TYPES: Record<string, CalloutStyleConfig> = {
-  note: {
-    className: PREVIEW_ADMONITION_NOTE,
-    label: CALLOUT_TITLES.note,
-    icon: CALLOUT_ICONS.note,
-  },
-  tip: {
-    className: PREVIEW_ADMONITION_TIP,
-    label: CALLOUT_TITLES.tip,
-    icon: CALLOUT_ICONS.tip,
-  },
-  info: {
-    className: PREVIEW_ADMONITION_INFO,
-    label: CALLOUT_TITLES.info,
-    icon: CALLOUT_ICONS.info,
-  },
-  warning: {
-    className: PREVIEW_ADMONITION_WARNING,
-    label: CALLOUT_TITLES.warning,
-    icon: CALLOUT_ICONS.warning,
-  },
-  danger: {
-    className: PREVIEW_ADMONITION_DANGER,
-    label: CALLOUT_TITLES.danger,
-    icon: CALLOUT_ICONS.danger,
-  },
-  caution: {
-    className: PREVIEW_ADMONITION_CAUTION,
-    label: CALLOUT_TITLES.caution,
-    icon: CALLOUT_ICONS.caution,
-  },
-  important: {
-    className: PREVIEW_ADMONITION_IMPORTANT,
-    label: CALLOUT_TITLES.important,
-    icon: CALLOUT_ICONS.important,
-  },
-  summary: {
-    className: PREVIEW_ADMONITION_SUMMARY,
-    label: CALLOUT_TITLES.summary,
-    icon: CALLOUT_ICONS.summary,
-  },
-  hint: {
-    className: PREVIEW_ADMONITION_HINT,
-    label: CALLOUT_TITLES.hint,
-    icon: CALLOUT_ICONS.hint,
-  },
-  success: {
-    className: PREVIEW_ADMONITION_SUCCESS,
-    label: CALLOUT_TITLES.success,
-    icon: CALLOUT_ICONS.success,
-  },
-  question: {
-    className: PREVIEW_ADMONITION_QUESTION,
-    label: CALLOUT_TITLES.question,
-    icon: CALLOUT_ICONS.question,
-  },
-  failure: {
-    className: PREVIEW_ADMONITION_FAILURE,
-    label: CALLOUT_TITLES.failure,
-    icon: CALLOUT_ICONS.failure,
-  },
-  bug: {
-    className: PREVIEW_ADMONITION_BUG,
-    label: CALLOUT_TITLES.bug,
-    icon: CALLOUT_ICONS.bug,
-  },
-  example: {
-    className: PREVIEW_ADMONITION_EXAMPLE,
-    label: CALLOUT_TITLES.example,
-    icon: CALLOUT_ICONS.example,
-  },
-  quote: {
-    className: PREVIEW_ADMONITION_QUOTE,
-    label: CALLOUT_TITLES.quote,
-    icon: CALLOUT_ICONS.quote,
-  },
-  todo: {
-    className: PREVIEW_ADMONITION_TODO,
-    label: CALLOUT_TITLES.todo,
-    icon: CALLOUT_ICONS.todo,
-  },
-  attention: {
-    className: PREVIEW_ADMONITION_ATTENTION,
-    label: CALLOUT_TITLES.attention,
-    icon: CALLOUT_ICONS.attention,
-  },
+// CSS class lookup for preview admonition types
+const ADMONITION_CLASSES: Record<CalloutType, string> = {
+  note: PREVIEW_ADMONITION_NOTE,
+  tip: PREVIEW_ADMONITION_TIP,
+  info: PREVIEW_ADMONITION_INFO,
+  warning: PREVIEW_ADMONITION_WARNING,
+  danger: PREVIEW_ADMONITION_DANGER,
+  caution: PREVIEW_ADMONITION_CAUTION,
+  important: PREVIEW_ADMONITION_IMPORTANT,
+  summary: PREVIEW_ADMONITION_SUMMARY,
+  hint: PREVIEW_ADMONITION_HINT,
+  success: PREVIEW_ADMONITION_SUCCESS,
+  question: PREVIEW_ADMONITION_QUESTION,
+  failure: PREVIEW_ADMONITION_FAILURE,
+  bug: PREVIEW_ADMONITION_BUG,
+  example: PREVIEW_ADMONITION_EXAMPLE,
+  quote: PREVIEW_ADMONITION_QUOTE,
+  todo: PREVIEW_ADMONITION_TODO,
+  attention: PREVIEW_ADMONITION_ATTENTION,
 };
 
-// aliases map to canonical types above
-const ADMONITION_ALIASES: Record<string, string> = {
-  abstract: 'summary',
-  tldr: 'summary',
-  check: 'success',
-  done: 'success',
-  help: 'question',
-  faq: 'question',
-  fail: 'failure',
-  missing: 'failure',
-  snippet: 'example',
-  cite: 'quote',
-};
+// admonition config derived from shared callout registry
+const ADMONITION_TYPES: Record<string, CalloutStyleConfig> =
+  buildCalloutStyleMap((type) => ADMONITION_CLASSES[type]);
 
 // type guard for container directive
 function isContainerDirective(node: unknown): node is ContainerDirective {
@@ -217,7 +140,7 @@ function resolveAdmonitionType(name: string): CalloutStyleConfig | undefined {
   }
 
   // alias match
-  const canonical = ADMONITION_ALIASES[name];
+  const canonical = CALLOUT_TYPE_ALIASES[name];
   if (canonical) {
     return ADMONITION_TYPES[canonical];
   }

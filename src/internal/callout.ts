@@ -1,6 +1,8 @@
 // src/internal/callout.ts
 // shared callout type definitions & normalization
 
+import { CALLOUT_ICONS } from './icons';
+
 export type CalloutType =
   | 'note'
   | 'tip'
@@ -108,4 +110,20 @@ export function isValidCalloutType(type: string): boolean {
   return (
     VALID_CALLOUT_TYPE_SET.has(normalized) || normalized in CALLOUT_TYPE_ALIASES
   );
+}
+
+// build a CalloutStyleConfig map from a className-per-type mapper
+// both admonitions.ts & callout.ts derive their config from this
+export function buildCalloutStyleMap(
+  classNameForType: (type: CalloutType) => string
+): Record<CalloutType, CalloutStyleConfig> {
+  const map = {} as Record<CalloutType, CalloutStyleConfig>;
+  for (const type of VALID_CALLOUT_TYPES) {
+    map[type] = {
+      className: classNameForType(type),
+      label: CALLOUT_TITLES[type],
+      icon: CALLOUT_ICONS[type],
+    };
+  }
+  return map;
 }

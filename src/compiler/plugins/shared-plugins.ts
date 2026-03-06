@@ -11,9 +11,11 @@ import remarkAdmonitions from '../pipeline/remark/admonitions';
 import remarkGithubAlerts from '../pipeline/remark/github-alerts';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
-import rehypeMermaidPlaceholder from '../pipeline/rehype/mermaid-placeholder';
-import rehypePlantUmlPlaceholder from '../pipeline/rehype/plantuml-placeholder';
-import rehypeGraphvizPlaceholder from '../pipeline/rehype/graphviz-placeholder';
+import {
+  rehypeMermaidPlaceholder,
+  rehypePlantUmlPlaceholder,
+  rehypeGraphvizPlaceholder,
+} from '../pipeline/rehype/create-diagram-placeholder';
 import rehypeKatex from 'rehype-katex';
 import rehypeShiki from '../pipeline/rehype/shiki';
 import rehypeSourceLine from '../pipeline/rehype/source-line';
