@@ -12,6 +12,7 @@ import {
   DEFAULT_MAX_MEMORY_BYTES,
   DEFAULT_MAX_STYLES,
 } from '../../src/browser/internal/constants';
+import { PRELOADED_MODULE_IDS } from '../../src/browser/types';
 
 describe('browser constants contract', () => {
   it('shim retry constants match vsc-mdx-preview contracts', () => {
@@ -29,5 +30,19 @@ describe('browser constants contract', () => {
     expect(DEFAULT_MAX_MODULES).toBe(500);
     expect(DEFAULT_MAX_MEMORY_BYTES).toBe(50 * 1024 * 1024);
     expect(DEFAULT_MAX_STYLES).toBe(100);
+  });
+
+  it('PRELOADED_MODULE_IDS values match vsc-mdx-preview contracts', () => {
+    // must match: packages/contracts/src/runtime/preloaded-modules.ts
+    expect(PRELOADED_MODULE_IDS.react).toBe('npm://react@18');
+    expect(PRELOADED_MODULE_IDS.reactDom).toBe('npm://react-dom@18');
+    expect(PRELOADED_MODULE_IDS.reactDomClient).toBe(
+      'npm://react-dom/client@18'
+    );
+    expect(PRELOADED_MODULE_IDS.jsxRuntime).toBe('npm://react/jsx-runtime@18');
+    expect(PRELOADED_MODULE_IDS.mdxReact).toBe('npm://@mdx-js/react@3');
+    expect(PRELOADED_MODULE_IDS.vscodeLayout).toBe(
+      'npm://vscode-markdown-layout@0.1.0'
+    );
   });
 });
