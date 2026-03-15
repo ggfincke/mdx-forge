@@ -14,55 +14,75 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'Callout',
     aliases: ['Alert', 'Admonition'],
+    semanticAliases: [
+      'note',
+      'tip',
+      'warning',
+      'danger',
+      'info',
+      'caution',
+      'important',
+      'admonition',
+      'hint',
+      'notice',
+    ],
+    snippetTemplate:
+      '<Callout type="${1|note,tip,warning,danger,info,caution,important|}">\n  $2\n</Callout>',
+    snippetDoc: 'Callout w/ type (note, tip, warning, danger, info)',
     framework: 'generic',
     importSpecifiers: [],
     shimPath: `${SHIM_PREFIX}/generic/Callout`,
-    preloadId: 'npm://@mdx-preview/shims-generic/Callout',
-    webviewImport: 'features/shims/generic/Callout',
     exposeAsBareImport: true,
   },
   {
     kind: 'component',
     name: 'Collapsible',
     aliases: ['Accordion', 'Details'],
+    semanticAliases: ['accordion', 'details', 'expandable', 'toggle'],
+    snippetTemplate:
+      '<Collapsible title="${1:Click to expand}">\n  $2\n</Collapsible>',
+    snippetDoc: 'Collapsible section w/ toggle',
     framework: 'generic',
     importSpecifiers: [],
     shimPath: `${SHIM_PREFIX}/generic/Collapsible`,
-    preloadId: 'npm://@mdx-preview/shims-generic/Collapsible',
-    webviewImport: 'features/shims/generic/Collapsible',
     exposeAsBareImport: true,
   },
   {
     kind: 'component',
     name: 'Tabs',
     aliases: [],
+    semanticAliases: ['tabgroup'],
+    snippetTemplate:
+      '<Tabs>\n  <TabItem label="${1:Tab 1}">\n    $2\n  </TabItem>\n  <TabItem label="${3:Tab 2}">\n    $4\n  </TabItem>\n</Tabs>',
+    snippetDoc: 'Tab group w/ multiple tabs',
     framework: 'generic',
     importSpecifiers: [],
     shimPath: `${SHIM_PREFIX}/generic/Tabs`,
-    preloadId: 'npm://@mdx-preview/shims-generic/Tabs',
-    webviewImport: 'features/shims/generic/Tabs',
     exposeAsBareImport: true,
   },
   {
     kind: 'component',
     name: 'TabItem',
     aliases: ['Tab'],
+    semanticAliases: ['tabpanel', 'tabcontent'],
+    snippetTemplate: '<TabItem label="${1:Label}">\n  $2\n</TabItem>',
+    snippetDoc: 'Individual tab panel (use inside Tabs)',
     framework: 'generic',
     importSpecifiers: [],
     shimPath: `${SHIM_PREFIX}/generic/TabItem`,
-    preloadId: 'npm://@mdx-preview/shims-generic/TabItem',
-    webviewImport: 'features/shims/generic/TabItem',
     exposeAsBareImport: true,
   },
   {
     kind: 'component',
     name: 'CodeGroup',
     aliases: [],
+    semanticAliases: ['codeblock', 'codetabs'],
+    snippetTemplate:
+      '<CodeGroup>\n```${1:js} title="${2:file.js}"\n$3\n```\n</CodeGroup>',
+    snippetDoc: 'Grouped code blocks w/ tabs',
     framework: 'generic',
     importSpecifiers: [],
     shimPath: `${SHIM_PREFIX}/generic/CodeGroup`,
-    preloadId: 'npm://@mdx-preview/shims-generic/CodeGroup',
-    webviewImport: 'features/shims/generic/CodeGroup',
     exposeAsBareImport: true,
   },
 
@@ -74,8 +94,6 @@ export const COMPONENT_REGISTRY = [
     framework: 'docusaurus',
     importSpecifiers: ['@theme/Tabs'],
     shimPath: `${SHIM_PREFIX}/docusaurus/Tabs`,
-    preloadId: 'npm://@mdx-preview/shims-docusaurus/Tabs',
-    webviewImport: 'features/shims/docusaurus/Tabs',
   },
   {
     kind: 'component',
@@ -84,8 +102,6 @@ export const COMPONENT_REGISTRY = [
     framework: 'docusaurus',
     importSpecifiers: ['@theme/TabItem'],
     shimPath: `${SHIM_PREFIX}/docusaurus/TabItem`,
-    preloadId: 'npm://@mdx-preview/shims-docusaurus/TabItem',
-    webviewImport: 'features/shims/docusaurus/Tabs',
     importKind: 'named',
     importName: 'TabItem',
   },
@@ -96,8 +112,6 @@ export const COMPONENT_REGISTRY = [
     framework: 'docusaurus',
     importSpecifiers: ['@theme/CodeBlock'],
     shimPath: `${SHIM_PREFIX}/docusaurus/CodeBlock`,
-    preloadId: 'npm://@mdx-preview/shims-docusaurus/CodeBlock',
-    webviewImport: 'features/shims/docusaurus/CodeBlock',
   },
   {
     kind: 'component',
@@ -106,8 +120,6 @@ export const COMPONENT_REGISTRY = [
     framework: 'docusaurus',
     importSpecifiers: ['@theme/Details'],
     shimPath: `${SHIM_PREFIX}/docusaurus/Details`,
-    preloadId: 'npm://@mdx-preview/shims-docusaurus/Details',
-    webviewImport: 'features/shims/docusaurus/Details',
   },
 
   // Starlight components
@@ -117,8 +129,6 @@ export const COMPONENT_REGISTRY = [
     framework: 'starlight',
     importSpecifiers: ['@astrojs/starlight/components'],
     shimPath: `${SHIM_PREFIX}/starlight`,
-    preloadId: 'npm://@mdx-preview/shims-starlight/components',
-    webviewImport: 'features/shims/starlight',
     exportNames: [
       'Card',
       'CardGrid',
@@ -139,8 +149,6 @@ export const COMPONENT_REGISTRY = [
     framework: 'starlight',
     importSpecifiers: ['@astrojs/starlight/components/Card'],
     shimPath: `${SHIM_PREFIX}/starlight/Card`,
-    preloadId: 'npm://@mdx-preview/shims-starlight/Card',
-    webviewImport: 'features/shims/starlight/Card',
   },
   {
     kind: 'component',
@@ -149,8 +157,6 @@ export const COMPONENT_REGISTRY = [
     framework: 'starlight',
     importSpecifiers: ['@astrojs/starlight/components/CardGrid'],
     shimPath: `${SHIM_PREFIX}/starlight/CardGrid`,
-    preloadId: 'npm://@mdx-preview/shims-starlight/CardGrid',
-    webviewImport: 'features/shims/starlight/CardGrid',
   },
   {
     kind: 'component',
@@ -159,8 +165,6 @@ export const COMPONENT_REGISTRY = [
     framework: 'starlight',
     importSpecifiers: ['@astrojs/starlight/components/LinkCard'],
     shimPath: `${SHIM_PREFIX}/starlight/LinkCard`,
-    preloadId: 'npm://@mdx-preview/shims-starlight/LinkCard',
-    webviewImport: 'features/shims/starlight/LinkCard',
   },
   {
     kind: 'component',
@@ -169,8 +173,6 @@ export const COMPONENT_REGISTRY = [
     framework: 'starlight',
     importSpecifiers: ['@astrojs/starlight/components/Steps'],
     shimPath: `${SHIM_PREFIX}/starlight/Steps`,
-    preloadId: 'npm://@mdx-preview/shims-starlight/Steps',
-    webviewImport: 'features/shims/starlight/Steps',
   },
   {
     kind: 'component',
@@ -179,8 +181,6 @@ export const COMPONENT_REGISTRY = [
     framework: 'starlight',
     importSpecifiers: ['@astrojs/starlight/components/Badge'],
     shimPath: `${SHIM_PREFIX}/starlight/Badge`,
-    preloadId: 'npm://@mdx-preview/shims-starlight/Badge',
-    webviewImport: 'features/shims/starlight/Badge',
   },
   {
     kind: 'component',
@@ -189,8 +189,6 @@ export const COMPONENT_REGISTRY = [
     framework: 'starlight',
     importSpecifiers: ['@astrojs/starlight/components/Aside'],
     shimPath: `${SHIM_PREFIX}/starlight/Aside`,
-    preloadId: 'npm://@mdx-preview/shims-starlight/Aside',
-    webviewImport: 'features/shims/starlight/Aside',
   },
   {
     kind: 'component',
@@ -199,8 +197,6 @@ export const COMPONENT_REGISTRY = [
     framework: 'starlight',
     importSpecifiers: ['@astrojs/starlight/components/Tabs'],
     shimPath: `${SHIM_PREFIX}/starlight/Tabs`,
-    preloadId: 'npm://@mdx-preview/shims-starlight/Tabs',
-    webviewImport: 'features/shims/starlight/Tabs',
     importKind: 'named',
     importName: 'Tabs',
   },
@@ -211,8 +207,6 @@ export const COMPONENT_REGISTRY = [
     framework: 'starlight',
     importSpecifiers: ['@astrojs/starlight/components/TabItem'],
     shimPath: `${SHIM_PREFIX}/starlight/TabItem`,
-    preloadId: 'npm://@mdx-preview/shims-starlight/TabItem',
-    webviewImport: 'features/shims/starlight/Tabs',
     importKind: 'named',
     importName: 'TabItem',
   },
@@ -223,8 +217,6 @@ export const COMPONENT_REGISTRY = [
     framework: 'starlight',
     importSpecifiers: ['@astrojs/starlight/components/FileTree'],
     shimPath: `${SHIM_PREFIX}/starlight/FileTree`,
-    preloadId: 'npm://@mdx-preview/shims-starlight/FileTree',
-    webviewImport: 'features/shims/starlight/FileTree',
   },
   {
     kind: 'component',
@@ -233,8 +225,6 @@ export const COMPONENT_REGISTRY = [
     framework: 'starlight',
     importSpecifiers: ['@astrojs/starlight/components/Code'],
     shimPath: `${SHIM_PREFIX}/starlight/Code`,
-    preloadId: 'npm://@mdx-preview/shims-starlight/Code',
-    webviewImport: 'features/shims/starlight/Code',
   },
 
   // Next.js components
@@ -245,8 +235,6 @@ export const COMPONENT_REGISTRY = [
     framework: 'nextjs',
     importSpecifiers: ['next/image'],
     shimPath: `${SHIM_PREFIX}/nextjs/Image`,
-    preloadId: 'npm://@mdx-preview/shims-nextjs/Image',
-    webviewImport: 'features/shims/nextjs/Image',
   },
   {
     kind: 'component',
@@ -255,8 +243,6 @@ export const COMPONENT_REGISTRY = [
     framework: 'nextjs',
     importSpecifiers: ['next/link'],
     shimPath: `${SHIM_PREFIX}/nextjs/Link`,
-    preloadId: 'npm://@mdx-preview/shims-nextjs/Link',
-    webviewImport: 'features/shims/nextjs/Link',
   },
 
   // Nextra components
@@ -270,8 +256,6 @@ export const COMPONENT_REGISTRY = [
       'nextra-theme-docs/components',
     ],
     shimPath: `${SHIM_PREFIX}/nextra`,
-    preloadId: 'npm://@mdx-preview/shims-nextra/components',
-    webviewImport: 'features/shims/nextra',
     exportNames: ['Callout', 'Tabs', 'Cards', 'FileTree', 'Steps', 'Bleed'],
   },
   {
@@ -281,8 +265,6 @@ export const COMPONENT_REGISTRY = [
     framework: 'nextra',
     importSpecifiers: ['nextra/components/Callout'],
     shimPath: `${SHIM_PREFIX}/nextra/Callout`,
-    preloadId: 'npm://@mdx-preview/shims-nextra/Callout',
-    webviewImport: 'features/shims/nextra/Callout',
   },
   {
     kind: 'component',
@@ -291,8 +273,6 @@ export const COMPONENT_REGISTRY = [
     framework: 'nextra',
     importSpecifiers: ['nextra/components/Tabs'],
     shimPath: `${SHIM_PREFIX}/nextra/Tabs`,
-    preloadId: 'npm://@mdx-preview/shims-nextra/Tabs',
-    webviewImport: 'features/shims/nextra/Tabs',
   },
   {
     kind: 'component',
@@ -301,8 +281,6 @@ export const COMPONENT_REGISTRY = [
     framework: 'nextra',
     importSpecifiers: ['nextra/components/Cards'],
     shimPath: `${SHIM_PREFIX}/nextra/Cards`,
-    preloadId: 'npm://@mdx-preview/shims-nextra/Cards',
-    webviewImport: 'features/shims/nextra/Cards',
   },
   {
     kind: 'component',
@@ -311,8 +289,6 @@ export const COMPONENT_REGISTRY = [
     framework: 'nextra',
     importSpecifiers: ['nextra/components/FileTree'],
     shimPath: `${SHIM_PREFIX}/nextra/FileTree`,
-    preloadId: 'npm://@mdx-preview/shims-nextra/FileTree',
-    webviewImport: 'features/shims/nextra/FileTree',
   },
   {
     kind: 'component',
@@ -321,8 +297,6 @@ export const COMPONENT_REGISTRY = [
     framework: 'nextra',
     importSpecifiers: ['nextra/components/Steps'],
     shimPath: `${SHIM_PREFIX}/nextra/Steps`,
-    preloadId: 'npm://@mdx-preview/shims-nextra/Steps',
-    webviewImport: 'features/shims/nextra/Steps',
   },
   {
     kind: 'component',
@@ -331,8 +305,6 @@ export const COMPONENT_REGISTRY = [
     framework: 'nextra',
     importSpecifiers: ['nextra/components/Bleed'],
     shimPath: `${SHIM_PREFIX}/nextra/Bleed`,
-    preloadId: 'npm://@mdx-preview/shims-nextra/Bleed',
-    webviewImport: 'features/shims/nextra/Bleed',
   },
 ] as const satisfies readonly ComponentRegistryEntry[];
 

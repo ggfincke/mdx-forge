@@ -2,6 +2,7 @@
 // query & lookup functions for the component registry
 
 import {
+  COMPONENT_REGISTRY,
   GENERIC_COMPONENTS,
   FRAMEWORK_COMPONENTS,
   type GenericComponentName,
@@ -88,6 +89,45 @@ export function isFrameworkComponent(
     }
   }
   return false;
+}
+
+// get canonical component name for a semantic alias (e.g., "note" -> "Callout")
+export function getSemanticAlias(name: string): string | undefined {
+  const lowerName = name.toLowerCase();
+  for (const entry of COMPONENT_REGISTRY) {
+    if (entry.kind !== 'component') {
+      continue;
+    }
+    if (
+      'semanticAliases' in entry &&
+      entry.semanticAliases?.some((a: string) => a === lowerName)
+    ) {
+      return entry.name;
+    }
+  }
+  return undefined;
+}
+
+// get generic component snippet data for completions
+export function getGenericComponentSnippets(): Array<{
+  name: string;
+  template: string;
+  doc: string;
+}> {
+  const results: Array<{ name: string; template: string; doc: string }> = [];
+  for (const entry of COMPONENT_REGISTRY) {
+    if (entry.kind !== 'component' || entry.framework !== 'generic') {
+      continue;
+    }
+    if ('snippetTemplate' in entry && 'snippetDoc' in entry) {
+      results.push({
+        name: entry.name,
+        template: entry.snippetTemplate as string,
+        doc: entry.snippetDoc as string,
+      });
+    }
+  }
+  return results;
 }
 
 // get shim path for generic component
