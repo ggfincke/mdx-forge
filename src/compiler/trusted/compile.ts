@@ -17,7 +17,7 @@ import type { CompilerConfig, MdxTranspileResult } from '../types';
 // inject MDX layout styles based on configuration
 const injectMDXStyles = (mdxText: string, config: CompilerConfig): string => {
   const log = getLogger(config.logger);
-  const { customLayoutFilePath, useVscodeMarkdownStyles, useWhiteBackground } =
+  const { customLayoutFilePath, useHostMarkdownStyles, useWhiteBackground } =
     config;
 
   if (customLayoutFilePath) {
@@ -38,7 +38,7 @@ ${mdxText}`;
       );
       return mdxText;
     }
-  } else if (useVscodeMarkdownStyles) {
+  } else if (useHostMarkdownStyles) {
     const layoutOptions = useWhiteBackground
       ? '{ forceLightTheme: true }'
       : '{}';

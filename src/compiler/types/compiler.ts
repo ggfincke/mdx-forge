@@ -77,12 +77,8 @@ export interface CompilerConfig {
   // optional document URI for host-specific trust policies
   documentUri?: string;
 
-  // backwards-compatible aliases (used by existing extension code during migration)
-  docFsPath?: string;
-  docUri?: string;
-
   customLayoutFilePath?: string;
-  useVscodeMarkdownStyles?: boolean;
+  useHostMarkdownStyles?: boolean;
   useWhiteBackground?: boolean;
   componentsBuiltins?: boolean;
   componentsUnknownBehavior?: UnknownBehavior;
