@@ -9,8 +9,8 @@ export interface FetchResult {
   css?: string;
 }
 
-export type Framework = 'docusaurus' | 'starlight' | 'nextjs' | 'nextra';
-export type FrameworkId = Framework | 'generic';
+import type { Framework, FrameworkId } from '../components/registry/types.js';
+export type { Framework, FrameworkId };
 
 export const PRELOADED_MODULE_IDS = {
   react: 'npm://react@18',

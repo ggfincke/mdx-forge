@@ -2,12 +2,7 @@
 // preload API entry point & framework shim loading
 
 import type { ModuleRegistry } from '../registry/ModuleRegistry';
-import type {
-  Framework,
-  FrameworkId,
-  HostPreloadCallbacks,
-  PreloadEntry,
-} from '../types';
+import type { FrameworkId, HostPreloadCallbacks, PreloadEntry } from '../types';
 import { PRELOADED_MODULE_IDS } from '../types';
 import { preloadCoreModules } from './core';
 import { configureModuleLoader } from '../internal/runtime-config';
@@ -133,28 +128,4 @@ export function getPreservedIds(): string[] {
   return Array.from(
     new Set([...Object.values(PRELOADED_MODULE_IDS), ...PRELOADED_SHIM_IDS])
   );
-}
-
-export function resetFrameworkState(): void {
-  // no-op in standalone core package
-}
-
-export function resetGenericShimsState(): void {
-  // no-op in standalone core package
-}
-
-export function getLastShimLoadResult(): {
-  success: boolean;
-  framework: Framework;
-  failedShims: string[];
-  usedFallback: boolean;
-} | null {
-  return null;
-}
-
-export function getLastGenericLoadResult(): {
-  loaded: string[];
-  failed: string[];
-} | null {
-  return null;
 }

@@ -24,11 +24,11 @@ export interface ComponentDefinitionBase {
   // shim path
   shimPath: string;
 
-  // preload ID
-  preloadId: string;
+  // host-specific preload ID (optional, computed by consumers)
+  preloadId?: string;
 
-  // webview import
-  webviewImport: string;
+  // host-specific webview import path (optional, computed by consumers)
+  webviewImport?: string;
 
   // expose bare
   exposeAsBareImport?: boolean;
@@ -39,6 +39,15 @@ export interface ComponentDefinition extends ComponentDefinitionBase {
 
   // aliases
   aliases: readonly string[];
+
+  // semantic aliases (e.g., "note" -> Callout, "accordion" -> Collapsible)
+  semanticAliases?: readonly string[];
+
+  // VS Code snippet template (uses $1, $2 placeholders)
+  snippetTemplate?: string;
+
+  // snippet documentation string
+  snippetDoc?: string;
 
   // import kind
   importKind?: 'default' | 'named';

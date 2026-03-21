@@ -10,7 +10,7 @@ import { FIXTURES } from '../fixtures';
 function createConfig(overrides: Partial<CompilerConfig> = {}): CompilerConfig {
   return {
     documentPath: '/workspace/test.mdx',
-    useVscodeMarkdownStyles: true,
+    useHostMarkdownStyles: true,
     componentsBuiltins: true,
     componentsUnknownBehavior: 'placeholder',
     ...overrides,
@@ -46,11 +46,11 @@ describe('compileTrusted()', () => {
     expect(result.frontmatter.author).toBe('Test Author');
   });
 
-  it('injects vscode-markdown-layout when no default export and useVscodeMarkdownStyles is true', async () => {
+  it('injects vscode-markdown-layout when no default export and useHostMarkdownStyles is true', async () => {
     const result = await compileTrusted(
       FIXTURES.basicMdx,
       true,
-      createConfig({ useVscodeMarkdownStyles: true })
+      createConfig({ useHostMarkdownStyles: true })
     );
 
     expect(result.code).toContain('vscode-markdown-layout');
@@ -61,7 +61,7 @@ describe('compileTrusted()', () => {
     const result = await compileTrusted(
       FIXTURES.mdxWithLayout,
       true,
-      createConfig({ useVscodeMarkdownStyles: true })
+      createConfig({ useHostMarkdownStyles: true })
     );
 
     // should NOT inject vscode-markdown-layout when there's already a default export

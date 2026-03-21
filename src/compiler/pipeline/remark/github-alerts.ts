@@ -16,6 +16,15 @@ import {
 // alert type configuration
 type AlertType = 'NOTE' | 'TIP' | 'IMPORTANT' | 'WARNING' | 'CAUTION';
 
+// exported for completions
+export const GITHUB_ALERT_TYPES: readonly AlertType[] = [
+  'NOTE',
+  'TIP',
+  'IMPORTANT',
+  'WARNING',
+  'CAUTION',
+] as const;
+
 const ALERT_CONFIG: Record<AlertType, CalloutStyleConfig> = {
   NOTE: {
     className: 'note',

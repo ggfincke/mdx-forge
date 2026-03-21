@@ -26,9 +26,9 @@ export function toRelativeImportPath(
   return normalizePathSeparators(relativePath);
 }
 
-// get canonical document filesystem path (w/ backwards-compatible fallback)
+// get canonical document filesystem path
 export function getDocumentPath(config: CompilerConfig): string {
-  return config.documentPath ?? config.docFsPath ?? '';
+  return config.documentPath ?? '';
 }
 
 // get document directory (explicit or derived from document path)
@@ -39,7 +39,7 @@ export function getDocumentDir(config: CompilerConfig): string {
   return path.dirname(getDocumentPath(config));
 }
 
-// get document URI for trust validation (w/ backwards-compatible fallback)
+// get document URI for trust validation
 export function getDocumentUri(config: CompilerConfig): string | undefined {
-  return config.documentUri ?? config.docUri;
+  return config.documentUri;
 }
