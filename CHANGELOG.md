@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-03-21
+
+### Changed
+
+- **Registry**: Add `semanticAliases`, `snippetTemplate` & `snippetDoc` fields to `ComponentDefinition` for registry-driven alias lookup & completions
+- **Registry**: Make `preloadId` & `webviewImport` optional, remove values from all entries (host metadata now computed downstream)
+- **Registry**: Re-export `Framework`/`FrameworkId` from `components/registry/types` in `browser/types`
+- **Compiler**: Remove legacy `docFsPath` & `docUri` backwards-compatible aliases from `CompilerConfig`; rename `useVscodeMarkdownStyles` to `useHostMarkdownStyles`
+- **Compiler**: Export `VALID_CALLOUT_TYPES`, `CalloutType` & `GITHUB_ALERT_TYPES` from compiler barrel
+
+### Added
+
+- **Registry**: `getSemanticAlias()` & `getGenericComponentSnippets()` query functions
+- **Testing**: `PRELOADED_MODULE_IDS` cross-repo parity check
+
+## [0.2.2] - 2026-03-05
+
+### Changed
+
+- **Compiler**: Consolidate diagram placeholder plugins (mermaid, PlantUML, Graphviz) into single `create-diagram-placeholder.ts` factory, eliminating 3 single-use wrapper files
+- **Compiler**: Deduplicate callout config via shared `buildCalloutStyleMap()` — both `admonitions.ts` & `callout.ts` derived from single source, reducing ~160 lines of repetitive wiring
+
+### Removed
+
+- **Exports**: Remove unused `./compiler/transforms` subpath export from `package.json`
+
 ## [0.2.1] - 2026-03-02
 
 ### Changed
