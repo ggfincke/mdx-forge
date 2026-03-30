@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-03-30
+
+### Changed
+
+- **Dependencies**: Bump `vitest` to 4.1.1, `typescript-eslint` to 8.58.0, `jsdom` to 29.0.1, `vite` to 8.0.3 & `typescript` to 6.0.2
+
 ## [0.2.3] - 2026-03-21
 
 ### Changed
