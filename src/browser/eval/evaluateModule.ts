@@ -53,11 +53,9 @@ export function evaluateModule(
     // preserve original error chain using Error.cause (ES2022)
     const originalError = normalizeError(error);
     const contextualError = new Error(
-      `Error evaluating module "${moduleId}": ${originalError.message}`
+      `Error evaluating module "${moduleId}": ${originalError.message}`,
+      { cause: originalError }
     );
-
-    // es2022 cause for tooling that support it
-    (contextualError as { cause?: Error }).cause = originalError;
 
     // also include original stack in the stack property for display
     if (originalError.stack) {

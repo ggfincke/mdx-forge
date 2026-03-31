@@ -23,7 +23,7 @@ Peer dependencies:
 import { compileSafe } from 'mdx-forge/compiler';
 
 const result = await compileSafe('# Hello', {
-  logger: { debug() {}, warn() {}, error() {} },
+  documentPath: '/example.mdx',
 });
 
 console.log(result.html);
@@ -33,7 +33,6 @@ console.log(result.html);
 
 - `mdx-forge/compiler`
 - `mdx-forge/compiler/plugins`
-- `mdx-forge/compiler/transforms`
 - `mdx-forge/browser`
 - `mdx-forge/browser/registry`
 - `mdx-forge/components`

@@ -20,12 +20,9 @@ export class ModuleError extends Error {
   readonly data: ModuleErrorData;
 
   constructor(message: string, data: ModuleErrorData, cause?: Error) {
-    super(message);
+    super(message, cause ? { cause } : undefined);
     this.name = 'ModuleError';
     this.data = data;
-    if (cause) {
-      (this as { cause?: Error }).cause = cause;
-    }
   }
 }
 
