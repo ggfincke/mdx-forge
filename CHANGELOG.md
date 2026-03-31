@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-03-31
+
+### Removed
+
+- **Compiler**: Delete stale `src/compiler/transforms/` re-export barrel (subpath export removed in 0.2.2)
+
+### Fixed
+
+- **Browser**: Use ES2022 `Error.cause` constructor option instead of unsafe manual casts in `ModuleError` & `evaluateModule`
+- **Docs**: Remove stale `mdx-forge/compiler/transforms` from README subpath exports list
+- **Docs**: Fix Quick Start example — add required `documentPath` field, remove incorrect logger
+
 ## [0.3.0] - 2026-03-30
 
 ### Added
