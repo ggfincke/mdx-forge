@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-03-30
+
+### Added
+
+- **Compiler**: HTML intrinsic elements (e.g., `<table>`, `<div>`, `<figure>`) written as JSX in MDX now pass through as real HTML in Safe Mode instead of rendering as "unknown component" placeholders
+- **Compiler**: Add `rehype-raw` to the Safe Mode pipeline to parse serialized HTML nodes into proper HAST elements
+- **Compiler**: `getSafeRehypePluginSets()` now returns a `raw` field for the `rehype-raw` plugin
+- **Compiler**: `isHtmlElement()`, `serializeJsxToHtml()` & `serializeAttribute()` helpers for JSX-to-HTML serialization
+
+### Changed
+
+- **Compiler**: `remarkStripMdx` now handles `mdxJsxFlowElement` & `mdxJsxTextElement` in a unified code path instead of separate branches
+
 ## [0.2.4] - 2026-03-30
 
 ### Changed
