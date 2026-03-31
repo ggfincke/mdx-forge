@@ -49,13 +49,15 @@ export function getSafeRemarkPlugins(): Pluggable[] {
   return sharedRemarkPlugins;
 }
 
-// get shared rehype plugins for Safe Mode (separate arrays for unified().use() pattern)
+// get rehype plugins for Safe Mode (rehype-raw, diagram, math & post-math)
 export function getSafeRehypePluginSets(): {
+  raw: Pluggable;
   preMath: Pluggable[];
   math: Pluggable;
   postMath: Pluggable[];
 } {
   return {
+    raw: [rehypeRawPkg, REHYPE_RAW_CONFIG] as Pluggable,
     preMath: sharedRehypePluginsPreMath,
     math: rehypeKatex,
     postMath: sharedRehypePluginsPostMath,

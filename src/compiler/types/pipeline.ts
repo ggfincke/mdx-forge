@@ -15,7 +15,7 @@ export type PipelineMode = 'trusted' | 'safe';
 export type RemarkPhase = 'pre' | 'mdx' | 'shared' | 'custom';
 
 // phase annotations for rehype plugins
-// raw: rehype-raw for HTML passthrough (Trusted Mode only)
+// raw: rehype-raw for HTML passthrough
 // preMath: plugins that run before KaTeX
 // math: KaTeX for math rendering
 // postMath: plugins that run after KaTeX (shiki, slug, autolink, lazy)
@@ -50,6 +50,8 @@ export interface PipelineDescription {
 export interface SafePipelineConfig {
   // shared remark plugins (GFM, alerts, math)
   sharedRemarkPlugins: Pluggable[];
+  // rehype-raw for HTML passthrough
+  rehypeRaw: Pluggable;
   // rehype plugins before math
   rehypePreMath: Pluggable[];
   // KaTeX plugin

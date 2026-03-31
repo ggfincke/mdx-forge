@@ -121,6 +121,16 @@ digraph G { A -> B }
     expect(result.frontmatter).toEqual({});
   });
 
+  it('renders raw HTML table tags as HTML elements', async () => {
+    const result = await compileSafe(FIXTURES.mdxWithHtmlTable, createConfig());
+
+    expect(result.html).toMatch(/<table[\s>]/);
+    expect(result.html).toMatch(/<td[\s>]/);
+    expect(result.html).toContain('Cell 1');
+    expect(result.html).toContain('Cell 2');
+    expect(result.html).not.toContain('&lt;table&gt;');
+  });
+
   it('escapes HTML in callout titles to prevent XSS', async () => {
     const mdx = `<Callout type="note" title="<script>alert('xss')</script>">
   Content here
