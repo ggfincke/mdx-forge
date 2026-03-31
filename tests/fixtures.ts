@@ -74,4 +74,13 @@ import TabItem from '@theme/TabItem'
 <Callout type="info">
   Important information
 </Callout>`,
+
+  mdxWithHtmlTable: `# Table
+
+<table>
+  <tr>
+    <td>Cell 1</td>
+    <td>Cell 2</td>
+  </tr>
+</table>`,
 };

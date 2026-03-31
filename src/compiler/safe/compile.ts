@@ -8,7 +8,13 @@ import remarkMdx from 'remark-mdx';
 import remarkRehype from 'remark-rehype';
 import rehypeStringify from 'rehype-stringify';
 import { visit } from 'unist-util-visit';
-import type { Root, Parent, RootContent } from 'mdast';
+import type {
+  Root,
+  Parent,
+  RootContent,
+  BlockContent,
+  PhrasingContent,
+} from 'mdast';
 import { extractFrontmatter } from '../pipeline/common/mdx-common';
 import {
   getSafeRemarkPlugins,
@@ -18,7 +24,7 @@ import { warnIgnoredSafeModeConfig } from '../pipeline/common/pipeline-warnings'
 import remarkGenericComponents, {
   KNOWN_GENERIC_COMPONENTS,
 } from '../pipeline/remark/generic-components';
-import { escapeHtml } from '../pipeline/transforms/utils';
+import { escapeHtml, isMdxJsxElement } from '../pipeline/transforms/utils';
 import { getLogger } from '../internal/logging';
 
 import type {
@@ -26,6 +32,7 @@ import type {
   UnknownBehavior,
   SafeHTMLResult,
   MdxJsxElement,
+  MdxJsxAttribute,
 } from '../types';
 import {
   EXPRESSION_PLACEHOLDER,
@@ -37,6 +44,89 @@ import {
   UNKNOWN_HINT,
   UNKNOWN_COMPONENT_CONTENT,
 } from '../internal/css-classes';
+
+// HTML void elements that don't need closing tags
+const VOID_ELEMENTS = new Set([
+  'area',
+  'base',
+  'br',
+  'col',
+  'embed',
+  'hr',
+  'img',
+  'input',
+  'link',
+  'meta',
+  'param',
+  'source',
+  'track',
+  'wbr',
+]);
+
+// regex to detect lowercase-initial element names (HTML intrinsic elements)
+const LOWERCASE_START = /^[a-z]/;
+
+// check if a JSX element name is a standard HTML intrinsic element
+// (lowercase first char, no dots — matches JSX/React convention)
+function isHtmlElement(name: string | null): boolean {
+  if (!name) {
+    return false;
+  }
+  return LOWERCASE_START.test(name) && !name.includes('.');
+}
+
+// serialize MDX JSX attribute to HTML attribute string
+function serializeAttribute(attr: MdxJsxAttribute): string {
+  if (attr.type !== 'mdxJsxAttribute') {
+    return '';
+  }
+  // boolean shorthand: <div hidden />
+  if (attr.value === null) {
+    return ` ${attr.name}`;
+  }
+  if (typeof attr.value === 'string') {
+    return ` ${attr.name}="${escapeHtml(attr.value)}"`;
+  }
+  // expression values (e.g., {someVar}) - skip in Safe Mode
+  return '';
+}
+
+// serialize a child AST node to HTML string
+function serializeChildToHtml(child: BlockContent | PhrasingContent): string {
+  if ('value' in child && typeof child.value === 'string') {
+    return child.value;
+  }
+  if (isMdxJsxElement(child)) {
+    return serializeJsxToHtml(child);
+  }
+  // nodes w/ children (e.g., paragraph wrapping inline elements)
+  if ('children' in child && Array.isArray(child.children)) {
+    return (child.children as Array<BlockContent | PhrasingContent>)
+      .map((c) => serializeChildToHtml(c))
+      .join('');
+  }
+  return '';
+}
+
+// serialize MDX JSX element back to raw HTML string
+function serializeJsxToHtml(node: MdxJsxElement): string {
+  const name = node.name || 'div';
+  const attrs = node.attributes.map(serializeAttribute).join('');
+
+  if (!node.children || node.children.length === 0) {
+    if (VOID_ELEMENTS.has(name)) {
+      return `<${name}${attrs}>`;
+    }
+    return `<${name}${attrs}></${name}>`;
+  }
+
+  // serialize children recursively
+  const childrenHtml = node.children
+    .map((child) => serializeChildToHtml(child))
+    .join('');
+
+  return `<${name}${attrs}>${childrenHtml}</${name}>`;
+}
 
 // options for remarkStripMdx plugin
 interface RemarkStripMdxOptions {
@@ -67,54 +157,35 @@ function remarkStripMdx(options: RemarkStripMdxOptions = {}) {
         return;
       }
 
-      // handle JSX flow elements (block-level components)
-      if (node.type === 'mdxJsxFlowElement') {
+      // handle JSX elements (both block-level & inline components)
+      if (
+        node.type === 'mdxJsxFlowElement' ||
+        node.type === 'mdxJsxTextElement'
+      ) {
         const jsxNode = node as unknown as MdxJsxElement;
         const name = jsxNode.name || 'Component';
+        const isFlow = node.type === 'mdxJsxFlowElement';
 
-        // check if this is a known generic component that should have been transformed
-        const isKnownComponent =
-          builtinsEnabled && KNOWN_GENERIC_COMPONENTS.has(name);
-        const resolvedName = componentNameResolver?.(name) ?? name;
-
-        // pass true for isFlowElement
-        const replacement = createJsxReplacement(
-          jsxNode,
-          resolvedName,
-          unknownBehavior,
-          isKnownComponent,
-          true
-        );
-
-        if (replacement === null) {
-          // strip: remove entirely
-          nodesToRemove.push({ parent: parent as Parent, index });
-        } else if (Array.isArray(replacement)) {
-          // raw: replace w/ children (splice multiple nodes)
-          (parent as Parent).children.splice(index, 1, ...replacement);
-        } else {
-          // placeholder: replace w/ placeholder node
-          (parent as Parent).children[index] = replacement;
+        // pass through standard HTML elements as raw HTML
+        if (isHtmlElement(jsxNode.name)) {
+          const htmlNode: RootContent = {
+            type: 'html',
+            value: serializeJsxToHtml(jsxNode),
+          } as RootContent;
+          (parent as Parent).children[index] = htmlNode;
+          return;
         }
-        return;
-      }
-
-      // handle JSX text elements (inline components)
-      if (node.type === 'mdxJsxTextElement') {
-        const jsxNode = node as unknown as MdxJsxElement;
-        const name = jsxNode.name || 'Component';
 
         const isKnownComponent =
           builtinsEnabled && KNOWN_GENERIC_COMPONENTS.has(name);
         const resolvedName = componentNameResolver?.(name) ?? name;
 
-        // pass false for isFlowElement
         const replacement = createJsxReplacement(
           jsxNode,
           resolvedName,
           unknownBehavior,
           isKnownComponent,
-          false
+          isFlow
         );
 
         if (replacement === null) {
@@ -297,7 +368,7 @@ export async function compileSafe(
     config.componentsUnknownBehavior ?? 'placeholder';
 
   // get rehype plugin sets from plugin-builder
-  const { preMath, math, postMath } = getSafeRehypePluginSets();
+  const { raw, preMath, math, postMath } = getSafeRehypePluginSets();
 
   // build unified pipeline w/ shared plugins via plugin-builder
   const remarkPlugins = getSafeRemarkPlugins();
@@ -319,10 +390,14 @@ export async function compileSafe(
   );
 
   // stage 2: convert to rehype & apply rehype plugins
+  // rehype-raw parses raw HTML nodes into proper HAST elements
   const rehypeProcessor = applyPlugins(
     applyPlugins(
       applyPlugins(
-        remarkProcessor.use(remarkRehype, { allowDangerousHtml: true }),
+        applyPlugins(
+          remarkProcessor.use(remarkRehype, { allowDangerousHtml: true }),
+          [raw]
+        ),
         preMath
       ),
       [math]
