@@ -1,0 +1,29 @@
+{
+  "name": "@mdx-forge/render-plugin",
+  "private": true,
+  "version": "0.1.0",
+  "description": "MCP server that renders MDX to HTML plus optional headless Chromium screenshot.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "hast-util-from-html-isomorphic": "^2.0.0",
+    "hast-util-to-html": "^9.0.5",
+    "mdx-forge": "^0.3.1",
+    "playwright": "^1.48.0",
+    "unified": "^11.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.6.3"
+  }
+}
