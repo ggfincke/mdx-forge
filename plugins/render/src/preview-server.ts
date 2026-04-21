@@ -1,8 +1,44 @@
 // Local HTTP preview server — serves the latest render at a stable URL on
-// 127.0.0.1 and live-reloads open tabs via SSE whenever a new render arrives.
+// 127.0.0.1, live-reloads open tabs via SSE, and statically serves the
+// Trusted Mode harness bundles so the browser tab can mount React directly.
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { spawn } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const PLUGIN_ROOT = resolve(dirname(__filename), '..');
+
+// valid framework path segment for /harness/:framework/bundle.js routing.
+// keep aligned w/ Framework type in css.ts.
+const HARNESS_FRAMEWORKS = new Set([
+  'generic',
+  'docusaurus',
+  'starlight',
+  'nextra',
+  'nextjs',
+]);
+
+const harnessBundleCache = new Map<string, Promise<Buffer>>();
+
+function readHarnessBundle(framework: string): Promise<Buffer> {
+  const cached = harnessBundleCache.get(framework);
+  if (cached) {
+    return cached;
+  }
+  const filePath = resolve(
+    PLUGIN_ROOT,
+    'dist',
+    'harness',
+    framework,
+    'bundle.js',
+  );
+  const pending = readFile(filePath);
+  harnessBundleCache.set(framework, pending);
+  return pending;
+}
 
 interface PreviewState {
   html: string | undefined;
@@ -49,6 +85,8 @@ function injectLiveReload(html: string): string {
   return `${html}${LIVE_RELOAD_SCRIPT}`;
 }
 
+const HARNESS_PATH = /^\/harness\/([A-Za-z0-9_-]+)\/bundle\.js$/;
+
 function handleRequest(req: IncomingMessage, res: ServerResponse): void {
   const url = req.url ?? '/';
 
@@ -58,6 +96,30 @@ function handleRequest(req: IncomingMessage, res: ServerResponse): void {
       'Cache-Control': 'no-store',
     });
     res.end(injectLiveReload(state.html ?? EMPTY_DOCUMENT));
+    return;
+  }
+
+  const harnessMatch = HARNESS_PATH.exec(url);
+  if (harnessMatch) {
+    const framework = harnessMatch[1];
+    if (!HARNESS_FRAMEWORKS.has(framework)) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('unknown framework');
+      return;
+    }
+    readHarnessBundle(framework).then(
+      (contents) => {
+        res.writeHead(200, {
+          'Content-Type': 'application/javascript; charset=utf-8',
+          'Cache-Control': 'public, max-age=60',
+        });
+        res.end(contents);
+      },
+      (err) => {
+        res.writeHead(500, { 'Content-Type': 'text/plain' });
+        res.end(`harness bundle missing: ${err.message}`);
+      },
+    );
     return;
   }
 

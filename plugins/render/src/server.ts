@@ -16,7 +16,7 @@ const server = new McpServer({
 
 server.tool(
   'render_mdx',
-  'Compile MDX via mdx-forge Safe Mode, publish it to a local live-reload HTTP server (stable URL across calls, auto-refreshes open tabs), & save a self-contained HTML file on disk. Returns a preview URL for the browser plus the full HTML for claude.ai artifact rendering. Optional PNG screenshot for chat surfaces that collapse tool output.',
+  'Compile MDX via mdx-forge (Safe or Trusted Mode), publish it to a local live-reload HTTP server (stable URL across calls, auto-refreshes open tabs), & save a self-contained HTML file on disk. Returns a preview URL for the browser plus the full HTML for claude.ai artifact rendering. Optional PNG screenshot for chat surfaces that collapse tool output.',
   {
     source: z.string().describe('MDX source text (inline). Frontmatter is parsed automatically.'),
     framework: z
@@ -24,6 +24,12 @@ server.tool(
       .optional()
       .describe(
         "Framework CSS bundle to apply — one of 'generic', 'docusaurus', 'starlight', 'nextra', 'nextjs'. Default: 'generic'.",
+      ),
+    mode: z
+      .enum(['safe', 'trusted'])
+      .optional()
+      .describe(
+        "Rendering mode. 'safe' compiles MDX to sanitized static HTML (no JS execution). 'trusted' executes the compiled MDX as React in a sandboxed, network-blocked Chromium context, giving full fidelity for JSX tags like <Tabs>, <Callout>, <Steps>, etc. Use 'trusted' when the MDX relies on framework components. Default: 'safe'.",
       ),
     screenshot: z
       .boolean()

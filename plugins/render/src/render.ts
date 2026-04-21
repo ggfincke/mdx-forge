@@ -1,4 +1,14 @@
-// Compile MDX -> HTML via mdx-forge Safe Mode, screenshot via headless Chromium
+// Compile MDX -> HTML via mdx-forge (Safe or Trusted Mode), screenshot via
+// headless Chromium. Both modes emit three HTML variants:
+//   html          body-only string (the compiled MDX output). for the MCP
+//                 "compiled HTML" display block + screenshot source.
+//   fullHtml      complete self-contained document. for claude.ai artifact
+//                 rendering. in trusted mode the harness bundle is inlined so
+//                 the artifact is interactive on its own.
+//   previewHtml   served by the local HTTP preview server. identical to
+//                 fullHtml in safe mode; in trusted mode it references the
+//                 harness bundle via /harness/:framework/bundle.js to avoid
+//                 resending ~650KB on every live-reload refresh.
 
 import { randomBytes } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
@@ -15,10 +25,20 @@ import {
   startPreviewServer,
   updatePreview,
 } from './preview-server.js';
+import { shutdownHarnessPages } from './harness-page.js';
+import {
+  compileTrustedModule,
+  readHarnessBundle,
+  snapshotTrustedModule,
+  type TrustedCompiledModule,
+} from './trusted.js';
+
+export type RenderMode = 'safe' | 'trusted';
 
 export interface RenderArgs {
   source: string;
   framework?: Framework;
+  mode?: RenderMode;
   screenshot?: boolean;
   theme?: 'light' | 'dark';
   viewport?: { width?: number; height?: number };
@@ -49,11 +69,17 @@ async function getBrowser(): Promise<Browser> {
 export async function shutdownBrowser(): Promise<void> {
   const pending = browserPromise;
   browserPromise = undefined;
-  if (!pending) {
-    return;
-  }
-  const browser = await pending.catch(() => undefined);
-  await browser?.close().catch(() => undefined);
+  // trusted mode owns its own Playwright Browser lifecycle; shut both down
+  await Promise.allSettled([
+    (async () => {
+      if (!pending) {
+        return;
+      }
+      const browser = await pending.catch(() => undefined);
+      await browser?.close().catch(() => undefined);
+    })(),
+    shutdownHarnessPages(),
+  ]);
 }
 
 // Default Shiki CSS-variable theme (GitHub-style). mdx-forge emits
@@ -105,23 +131,10 @@ const SHIKI_DEFAULTS = `
 }
 `;
 
-function buildDocument(
-  bodyHtml: string,
-  tokens: string,
-  frameworkCss: string,
-  theme: 'light' | 'dark',
-): string {
+function baseStyles(theme: 'light' | 'dark'): string {
   const bg = theme === 'dark' ? '#1e1e1e' : '#ffffff';
   const fg = theme === 'dark' ? '#e6e6e6' : '#1a1a1a';
-  return `<!doctype html>
-<html lang="en" data-theme="${theme}">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>${tokens}</style>
-  <style>${frameworkCss}</style>
-  <style>${SHIKI_DEFAULTS}</style>
-  <style>
+  return `
     :root { color-scheme: ${theme}; }
     body {
       margin: 0;
@@ -132,9 +145,83 @@ function buildDocument(
       line-height: 1.6;
     }
     pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-  </style>
-</head>
+  `;
+}
+
+function documentHead(
+  tokens: string,
+  frameworkCss: string,
+  theme: 'light' | 'dark',
+): string {
+  return `<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>${tokens}</style>
+  <style>${frameworkCss}</style>
+  <style>${SHIKI_DEFAULTS}</style>
+  <style>${baseStyles(theme)}</style>
+</head>`;
+}
+
+function buildSafeDocument(
+  bodyHtml: string,
+  tokens: string,
+  frameworkCss: string,
+  theme: 'light' | 'dark',
+): string {
+  return `<!doctype html>
+<html lang="en" data-theme="${theme}">
+${documentHead(tokens, frameworkCss, theme)}
 <body>${bodyHtml}</body>
+</html>`;
+}
+
+// JSON-encode a string so it can sit inside a <script> tag as JS source.
+// wraps in the safe HTML-in-JSON pattern (escape `</`, line separators, etc.)
+// so the script tag can't be closed prematurely by hostile input.
+function jsStringLiteral(value: string): string {
+  return JSON.stringify(value)
+    .replace(/<\//g, '<\\/')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+
+// escape a raw JS source block for embedding inside <script>...</script>.
+// we only need to neutralise `</script>` sequences; the rest is fine as-is.
+function escapeInlineScript(source: string): string {
+  return source.replace(/<\/script/gi, '<\\/script');
+}
+
+interface TrustedDocumentOptions {
+  compiled: TrustedCompiledModule;
+  tokens: string;
+  frameworkCss: string;
+  theme: 'light' | 'dark';
+  bundle: { kind: 'external'; src: string } | { kind: 'inline'; code: string };
+}
+
+function buildTrustedDocument(opts: TrustedDocumentOptions): string {
+  const { compiled, tokens, frameworkCss, theme, bundle } = opts;
+
+  const globals = `
+    window.__MDX_FORGE_CODE__ = ${jsStringLiteral(compiled.cjsCode)};
+    window.__MDX_FORGE_DEPS__ = ${JSON.stringify(compiled.dependencies)};
+    window.__MDX_FORGE_ENTRY__ = ${jsStringLiteral(compiled.entryId)};
+  `;
+
+  const bundleTag =
+    bundle.kind === 'external'
+      ? `<script src="${bundle.src}"></script>`
+      : `<script>${escapeInlineScript(bundle.code)}</script>`;
+
+  return `<!doctype html>
+<html lang="en" data-theme="${theme}">
+${documentHead(tokens, frameworkCss, theme)}
+<body>
+  <div id="mdx-root"></div>
+  <script>${globals}</script>
+  ${bundleTag}
+</body>
 </html>`;
 }
 
@@ -145,36 +232,92 @@ async function writePreviewFile(fullHtml: string): Promise<string> {
   return filePath;
 }
 
+interface ModeDocs {
+  bodyHtml: string;
+  frontmatter: Record<string, unknown>;
+  previewHtml: string;
+  fullHtml: string;
+}
+
+async function buildModeDocs(
+  mode: RenderMode,
+  source: string,
+  framework: Framework,
+  tokens: string,
+  frameworkCss: string,
+  theme: 'light' | 'dark',
+): Promise<ModeDocs> {
+  if (mode === 'trusted') {
+    const compiled = await compileTrustedModule(source, framework);
+    // snapshot + harness bundle read happen in parallel (both are slow)
+    const [bodyHtml, bundleSource] = await Promise.all([
+      snapshotTrustedModule(compiled),
+      readHarnessBundle(framework),
+    ]);
+
+    const previewHtml = buildTrustedDocument({
+      compiled,
+      tokens,
+      frameworkCss,
+      theme,
+      bundle: { kind: 'external', src: `/harness/${framework}/bundle.js` },
+    });
+
+    const fullHtml = buildTrustedDocument({
+      compiled,
+      tokens,
+      frameworkCss,
+      theme,
+      bundle: { kind: 'inline', code: bundleSource },
+    });
+
+    return { bodyHtml, frontmatter: compiled.frontmatter, previewHtml, fullHtml };
+  }
+
+  const compiled = await compileSafe(source, {
+    documentPath: '/virtual/render.mdx',
+  });
+  const bodyHtml = sanitizeScreenshotHtml(compiled.html);
+  const doc = buildSafeDocument(bodyHtml, tokens, frameworkCss, theme);
+  return {
+    bodyHtml,
+    frontmatter: compiled.frontmatter,
+    previewHtml: doc,
+    fullHtml: doc,
+  };
+}
+
 export async function renderMdx(args: RenderArgs): Promise<RenderResult> {
   const framework: Framework = args.framework ?? 'generic';
   const theme = args.theme ?? 'light';
-
-  const compiled = await compileSafe(args.source, {
-    documentPath: '/virtual/render.mdx',
-  });
+  const mode: RenderMode = args.mode ?? 'safe';
 
   const [tokens, frameworkCss, previewUrl] = await Promise.all([
     tokensCss(),
     resolveFrameworkCss(framework),
     startPreviewServer(),
   ]);
-  const fullHtml = buildDocument(
-    sanitizeScreenshotHtml(compiled.html),
+
+  const docs = await buildModeDocs(
+    mode,
+    args.source,
+    framework,
     tokens,
     frameworkCss,
     theme,
   );
-  const previewPath = await writePreviewFile(fullHtml);
-  updatePreview(fullHtml);
+
+  const previewPath = await writePreviewFile(docs.fullHtml);
+  updatePreview(docs.previewHtml);
 
   if (args.autoOpen) {
     autoOpenOnce(getPreviewUrl() ?? previewUrl);
   }
 
   const base: RenderResult = {
-    html: compiled.html,
-    fullHtml,
-    frontmatter: compiled.frontmatter,
+    html: docs.bodyHtml,
+    fullHtml: docs.fullHtml,
+    frontmatter: docs.frontmatter,
     previewPath,
     previewUrl,
   };
@@ -182,6 +325,13 @@ export async function renderMdx(args: RenderArgs): Promise<RenderResult> {
   if (!args.screenshot) {
     return base;
   }
+
+  // screenshots always use the headless snapshot doc so even interactive
+  // trusted renders yield a predictable PNG without waiting for React mount.
+  const screenshotDoc =
+    mode === 'trusted'
+      ? buildSafeDocument(docs.bodyHtml, tokens, frameworkCss, theme)
+      : docs.fullHtml;
 
   const browser = await getBrowser();
   const context = await browser.newContext({
@@ -193,7 +343,7 @@ export async function renderMdx(args: RenderArgs): Promise<RenderResult> {
   });
   try {
     const page = await context.newPage();
-    await page.setContent(fullHtml, { waitUntil: 'networkidle' });
+    await page.setContent(screenshotDoc, { waitUntil: 'networkidle' });
     const png = await page.screenshot({ type: 'png', fullPage: true });
     return { ...base, screenshot: png };
   } finally {

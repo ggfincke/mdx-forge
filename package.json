@@ -128,6 +128,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^5.1.4",
+    "esbuild": "^0.27.7",
     "eslint": "^10.0.2",
     "globals": "^17.4.0",
     "jsdom": "^29.0.1",
