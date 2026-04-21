@@ -33,10 +33,21 @@ npm run build
 | `theme`     | `'light' \| 'dark'`                                               | `'light'`     |
 | `viewport`  | `{ width?, height? }`                                             | `1024 x 768`  |
 
-Returns:
-- HTML (fenced code block)
-- Parsed YAML frontmatter (JSON)
-- PNG screenshot (when `screenshot: true`)
+Returns three content blocks:
+1. **Lead-in text** with a `file://` URL to a self-contained HTML preview
+   saved in your tmp directory — click to open in your default browser for
+   the full-fidelity render (real CSS, Shiki colors, framework shims).
+2. **PNG screenshot** (only when `screenshot: true`) — useful as a fallback
+   in chat surfaces that don't render `file://` links.
+3. **Trailing text** with the compiled HTML body (fenced), parsed
+   frontmatter (JSON), and agent directives so the model surfaces the
+   preview URL in its reply.
+
+Chat-surface compatibility:
+- **Claude Code (CLI)**: click the `file://` URL to open in your browser.
+- **Claude desktop**: same, plus the PNG appears inside the collapsed Result panel.
+- **claude.ai web**: ask Claude to read the preview file and convert it
+  into an HTML artifact for inline side-panel rendering.
 
 ## Scope
 

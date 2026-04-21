@@ -1,9 +1,20 @@
 // Compile MDX -> HTML via mdx-forge Safe Mode, screenshot via headless Chromium
 
+import { randomBytes } from 'node:crypto';
+import { writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { compileSafe } from 'mdx-forge/compiler';
 import { chromium, type Browser } from 'playwright';
 import { resolveFrameworkCss, tokensCss, type Framework } from './css.js';
 import { sanitizeScreenshotHtml } from './html.js';
+import {
+  autoOpenOnce,
+  getPreviewUrl,
+  startPreviewServer,
+  updatePreview,
+} from './preview-server.js';
 
 export interface RenderArgs {
   source: string;
@@ -11,11 +22,15 @@ export interface RenderArgs {
   screenshot?: boolean;
   theme?: 'light' | 'dark';
   viewport?: { width?: number; height?: number };
+  autoOpen?: boolean;
 }
 
 export interface RenderResult {
   html: string;
+  fullHtml: string;
   frontmatter: Record<string, unknown>;
+  previewPath: string;
+  previewUrl: string;
   screenshot?: Buffer;
 }
 
@@ -123,6 +138,13 @@ function buildDocument(
 </html>`;
 }
 
+async function writePreviewFile(fullHtml: string): Promise<string> {
+  const filename = `mdx-forge-render-${randomBytes(6).toString('hex')}.html`;
+  const filePath = join(tmpdir(), filename);
+  await writeFile(filePath, fullHtml, 'utf8');
+  return filePath;
+}
+
 export async function renderMdx(args: RenderArgs): Promise<RenderResult> {
   const framework: Framework = args.framework ?? 'generic';
   const theme = args.theme ?? 'light';
@@ -131,20 +153,35 @@ export async function renderMdx(args: RenderArgs): Promise<RenderResult> {
     documentPath: '/virtual/render.mdx',
   });
 
-  if (!args.screenshot) {
-    return { html: compiled.html, frontmatter: compiled.frontmatter };
-  }
-
-  const [tokens, frameworkCss] = await Promise.all([
+  const [tokens, frameworkCss, previewUrl] = await Promise.all([
     tokensCss(),
     resolveFrameworkCss(framework),
+    startPreviewServer(),
   ]);
-  const document = buildDocument(
+  const fullHtml = buildDocument(
     sanitizeScreenshotHtml(compiled.html),
     tokens,
     frameworkCss,
     theme,
   );
+  const previewPath = await writePreviewFile(fullHtml);
+  updatePreview(fullHtml);
+
+  if (args.autoOpen) {
+    autoOpenOnce(getPreviewUrl() ?? previewUrl);
+  }
+
+  const base: RenderResult = {
+    html: compiled.html,
+    fullHtml,
+    frontmatter: compiled.frontmatter,
+    previewPath,
+    previewUrl,
+  };
+
+  if (!args.screenshot) {
+    return base;
+  }
 
   const browser = await getBrowser();
   const context = await browser.newContext({
@@ -156,13 +193,9 @@ export async function renderMdx(args: RenderArgs): Promise<RenderResult> {
   });
   try {
     const page = await context.newPage();
-    await page.setContent(document, { waitUntil: 'networkidle' });
+    await page.setContent(fullHtml, { waitUntil: 'networkidle' });
     const png = await page.screenshot({ type: 'png', fullPage: true });
-    return {
-      html: compiled.html,
-      frontmatter: compiled.frontmatter,
-      screenshot: png,
-    };
+    return { ...base, screenshot: png };
   } finally {
     await context.close();
   }
