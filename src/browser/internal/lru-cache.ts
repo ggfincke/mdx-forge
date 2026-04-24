@@ -1,7 +1,6 @@
 // src/browser/internal/lru-cache.ts
 // generic LRU cache w/ count & memory-based eviction
-// ! cross-repo duplicate: vsc-mdx-preview/packages/runtime-utils/src/cache/lru-cache.ts
-// ! changes here must be mirrored (GPL licensing prevents shared dependency)
+// ! cross-repo duplicate: mirror runtime-utils LRU behavior
 
 export interface LRUCacheOptions<K, V> {
   maxEntries: number;

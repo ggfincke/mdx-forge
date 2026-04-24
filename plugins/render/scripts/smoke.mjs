@@ -1,4 +1,5 @@
-// Smoke test: compile + screenshot a tiny MDX via renderMdx directly
+// plugins/render/scripts/smoke.mjs
+// smoke test renderMdx Safe Mode HTML & screenshot output
 import { renderMdx, shutdownBrowser } from '../dist/render.js';
 import { stopPreviewServer } from '../dist/preview-server.js';
 import { writeFile } from 'node:fs/promises';
@@ -30,7 +31,11 @@ console.log('  previewUrl:', htmlOnly.previewUrl);
 console.log('  screenshots:', htmlOnly.screenshots?.length ?? 0);
 
 console.log('\nRendering with screenshot (framework=generic)...');
-const withShot = await renderMdx({ source, screenshot: true, framework: 'generic' });
+const withShot = await renderMdx({
+  source,
+  screenshot: true,
+  framework: 'generic',
+});
 const singleShot = withShot.screenshots?.[0]?.png;
 console.log('  screenshot bytes:', singleShot?.length);
 console.log('  previewPath:', withShot.previewPath);

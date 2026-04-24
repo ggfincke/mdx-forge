@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-// bundle the Trusted Mode harness once per framework
-//
-// produces dist/harness/{framework}/{bundle.js,index.html}
+// plugins/render/scripts/build-harness.mjs
+// bundle Trusted Mode harnesses for each framework
 
 import { build } from 'esbuild';
 import { copyFile, mkdir, rm } from 'node:fs/promises';
@@ -56,7 +55,7 @@ async function main() {
   await Promise.all(FRAMEWORKS.map(bundleFramework));
   const elapsed = ((Date.now() - started) / 1000).toFixed(2);
   console.log(
-    `mdx-forge-render: built ${FRAMEWORKS.length} harness bundles in ${elapsed}s`,
+    `mdx-forge-render: built ${FRAMEWORKS.length} harness bundles in ${elapsed}s`
   );
 }
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// mdx-forge-render MCP server — tools: render_mdx & list_components
+// plugins/render/src/server.ts
+// mdx-forge-render MCP tools for rendering & component registry queries
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -403,8 +404,7 @@ function buildErrorResponse(err: unknown): {
 async function main(): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  // Kick off preview server in the background — first render_mdx call awaits
-  // it inside renderMdx, but starting early warms the port.
+  // start preview server early; renderMdx awaits the shared promise
   void startPreviewServer().catch((err) => {
     console.error('mdx-forge-render: preview server failed to start:', err);
   });

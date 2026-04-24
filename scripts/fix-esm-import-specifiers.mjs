@@ -46,7 +46,9 @@ function resolveSpecifier(filePath, specifier) {
 
   const indexCandidate = path.join(basePath, 'index.js');
   if (fs.existsSync(indexCandidate) && fs.statSync(indexCandidate).isFile()) {
-    return specifier.endsWith('/') ? `${specifier}index.js` : `${specifier}/index.js`;
+    return specifier.endsWith('/')
+      ? `${specifier}index.js`
+      : `${specifier}/index.js`;
   }
 
   return specifier;

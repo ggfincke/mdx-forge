@@ -1,6 +1,5 @@
-// structured diagnostics for the render plugin. every failure mode — mdx
-// parse errors, runtime crashes, prop lint warnings, frontmatter gaps —
-// funnels through this shape so the MCP response is uniform.
+// plugins/render/src/diagnostics.ts
+// structured diagnostics for lint, compile & runtime failures
 
 import type {
   FrameworkId,
@@ -39,8 +38,7 @@ export interface Diagnostic {
   suggestion?: string;
 }
 
-// render-failing diagnostics throw this. the server catches it & emits a
-// structured MCP error instead of a stack trace.
+// throw render-failing diagnostics for structured MCP errors
 export class RenderDiagnosticError extends Error {
   readonly diagnostic: Diagnostic;
   // additional non-fatal diagnostics that accumulated before the failure
@@ -84,9 +82,7 @@ function levenshtein(a: string, b: string): number {
   return prev[b.length];
 }
 
-// fuzzy-match a candidate against a fixed vocabulary; return the best match
-// within `maxDistance` if any, else undefined. honours length-based weighting
-// to avoid suggesting short garbage for long inputs.
+// fuzzy-match candidate against vocabulary w/ length-weighted cutoff
 export function suggestMatch(
   candidate: string,
   vocabulary: readonly string[],
@@ -143,8 +139,7 @@ export function suggestFrontmatterField(
 
 // --- error normalization ----------------------------------------------------
 
-// extract `{ line, column }` from the "1:5:" prefix that MDX/unified errors
-// embed in their messages. best-effort — not every error has a position.
+// extract line/column from MDX/unified error messages when available
 const POSITION_PATTERN = /(\d+):(\d+)/;
 
 function extractPosition(err: unknown): { line?: number; column?: number } {
@@ -184,8 +179,7 @@ function errorMessage(err: unknown): string {
   return String(err);
 }
 
-// patterns that identify common Trusted Mode runtime failures so we can
-// re-tag them from the generic `runtime-error` bucket to a more specific kind.
+// re-tag common Trusted Mode runtime failures from generic runtime-error
 const EXPECTED_COMPONENT_PATTERN =
   /Expected component `?([A-Za-z_$][A-Za-z0-9_$]*)`? to be defined/;
 
@@ -201,8 +195,7 @@ export function normalizeCompileError(
   const msg = errorMessage(err);
   const { line, column } = extractPosition(err);
 
-  // "Expected component 'X' to be defined" — Trusted Mode threw during mount
-  // because the MDX referenced a component the shim barrel doesn't export.
+  // map Trusted Mode missing components to unknown-component diagnostics
   const componentMatch = EXPECTED_COMPONENT_PATTERN.exec(msg);
   if (componentMatch) {
     const component = componentMatch[1];
@@ -217,8 +210,7 @@ export function normalizeCompileError(
     };
   }
 
-  // "Could not parse import/exports" / "Unexpected character" etc. come from
-  // micromark-extension-mdx-*. Position is usually embedded in the message.
+  // map MDX parser errors to syntax diagnostics w/ source positions
   if (
     msg.includes('Could not parse') ||
     msg.includes('Unexpected') ||
@@ -275,8 +267,7 @@ export function buildUnknownComponentDiagnostic(
   };
 }
 
-// severity is 'warning' because lintMdxSource never treats this as fatal —
-// a missing required field surfaces but doesn't block the render.
+// warn on missing required frontmatter fields without blocking render
 export function buildMissingFrontmatterDiagnostic(
   field: string,
   framework: FrameworkId

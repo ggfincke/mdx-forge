@@ -1,21 +1,11 @@
 // src/browser/eval/evaluateModule.ts
-// module evaluator - evaluate module code using new Function()
-// ONLY used in Trusted Mode when canExecute is true
-//
-// support two module formats
-// 1. MDX function-body: expect runtime in arguments[0], return { default: Component }
-// 2. CJS-style: use require/exports/module.exports pattern
+// evaluate Trusted Mode function-body & CJS-style module code
 
 import type { ModuleRuntime } from '../types';
 import { normalizeError } from '../../internal/errors';
 
-// evaluate a module string
-// MDX function-body format
-//   - pass runtime as arguments[0]
-//   - return { default: MDXContent }
-// for CJS-style modules
-//   - use require/exports/module.exports
-//   - return module.exports
+// evaluate function-body or CJS-style module code
+// pass runtime via arguments[0]; return default export or module.exports
 export function evaluateModule(
   code: string,
   moduleId: string,

@@ -1,6 +1,5 @@
 // plugins/render/src/lint.ts
-// MDX AST lint pass — walks JSX & frontmatter pre-compile, emits Diagnostics
-// for unknown components, prop shape mismatches, & schema gaps.
+// MDX AST lint pass for JSX props & frontmatter diagnostics
 
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
@@ -30,8 +29,7 @@ import {
   isIntrinsicTag,
 } from './registry.js';
 
-// lowercase-start JSX member expressions (Tabs.Tab) have their "name"
-// encoded with a dot. the owner identifier is the segment before the dot.
+// get owner id from lowercase-start JSX member names like Tabs.Tab
 function rootIdentifier(name: string): string {
   return name.split('.')[0];
 }
@@ -78,8 +76,7 @@ function nodePosition(node: JsxElementNode): Position {
   return { line: start?.line, column: start?.column };
 }
 
-// build a lookup from attribute name -> node so we can iterate both
-// the declared attrs (for type checks) and the required props (for missing)
+// index attributes by name for declared-prop & required-prop passes
 function attributesByName(node: JsxElementNode): Map<string, JsxAttributeNode> {
   const map = new Map<string, JsxAttributeNode>();
   for (const attr of node.attributes) {
@@ -90,8 +87,7 @@ function attributesByName(node: JsxElementNode): Map<string, JsxAttributeNode> {
   return map;
 }
 
-// attribute value shape -> resolvable string for enum checks. expressions
-// ({foo}) aren't statically analyzable — skip enum validation in that case.
+// resolve static string values for enum checks; skip dynamic expressions
 function literalStringValue(attr: JsxAttributeNode): string | undefined {
   const value = attr.value;
   if (value === null || value === undefined) {
@@ -101,8 +97,8 @@ function literalStringValue(attr: JsxAttributeNode): string | undefined {
     return value;
   }
   if (value.type === 'mdxJsxAttributeValueExpression') {
-    // {'danger'} style — check if the expression is a single string literal.
-    // for anything more complex we silently give up (runtime decides).
+    // read {'danger'} expressions as static string literals
+    // skip complex expressions so runtime owns final behavior
     const raw = value.value ?? '';
     const m = /^\s*['"`]([^'"`]*)['"`]\s*$/.exec(raw);
     return m?.[1];
@@ -111,7 +107,7 @@ function literalStringValue(attr: JsxAttributeNode): string | undefined {
 }
 
 function isBooleanAttribute(attr: JsxAttributeNode): boolean {
-  // JSX boolean shorthand `<Foo bar />` surfaces as value === null.
+  // JSX boolean shorthand `<Foo bar />` surfaces as value === null
   return attr.value === null;
 }
 
@@ -181,9 +177,8 @@ function validatePropValue(
     return undefined;
   }
 
-  // numeric props written as strings — only warn when the string can't be
-  // coerced. valid numeric strings (width="100") are widely accepted by
-  // shims & flagging them produced noise on every Next.js Image render.
+  // warn only when numeric string props cannot be coerced
+  // avoid noise for common width="100" style shim props
   if (prop.type === 'number' && typeof attr.value === 'string') {
     if (Number.isNaN(Number(attr.value))) {
       return {
@@ -249,8 +244,7 @@ function lintComponent(
     if (known.has(name)) {
       continue;
     }
-    // `className` / `style` / `id` / `data-*` / `aria-*` / event handlers
-    // are universally permissible even if not declared.
+    // permit standard DOM escape-hatch props even when undeclared
     if (isUniversallyAllowedProp(name)) {
       continue;
     }
@@ -447,8 +441,7 @@ export async function lintMdxSource(
   source: string,
   framework: FrameworkId
 ): Promise<LintResult> {
-  // frontmatter first — if gray-matter blows up on the YAML block we still
-  // want to try parsing the MDX body.
+  // parse frontmatter first; keep body parse attempt after YAML failure
   let frontmatter: Record<string, unknown> = {};
   let content = source;
   try {
@@ -470,7 +463,7 @@ export async function lintMdxSource(
 
   const frontmatterDiagnostics = lintFrontmatter(frontmatter, framework);
 
-  // parse MDX. we don't need rehype / stringify for lint — just the raw AST.
+  // parse raw MDX AST for lint without rehype or stringify
   let tree: Root;
   try {
     const processor = unified().use(remarkParse).use(remarkMdx);

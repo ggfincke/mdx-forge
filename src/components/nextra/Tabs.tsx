@@ -1,7 +1,5 @@
 // src/components/nextra/Tabs.tsx
-// Nextra Tabs component shim for MDX Preview
-// provide preview-compatible version of nextra/components Tabs
-// use createIndexTabs factory from BaseTabs
+// Nextra Tabs shim using createIndexTabs
 
 import { ReactNode } from 'react';
 import { createIndexTabs, type IndexTabsProps } from '../base/BaseTabs';

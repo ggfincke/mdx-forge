@@ -20,9 +20,7 @@ import {
 
 describe('generic components [smoke]', () => {
   it('Callout renders w/ children', () => {
-    const { container } = render(
-      React.createElement(Callout, null, 'Hello')
-    );
+    const { container } = render(React.createElement(Callout, null, 'Hello'));
     expect(container.textContent).toContain('Hello');
   });
 
@@ -68,10 +66,14 @@ describe('generic components [smoke]', () => {
       React.createElement(
         CodeGroup,
         null,
-        React.createElement('pre', { title: 'JavaScript' },
+        React.createElement(
+          'pre',
+          { title: 'JavaScript' },
           React.createElement('code', null, 'const x = 1;')
         ),
-        React.createElement('pre', { title: 'Python' },
+        React.createElement(
+          'pre',
+          { title: 'Python' },
           React.createElement('code', null, 'x = 1')
         )
       )

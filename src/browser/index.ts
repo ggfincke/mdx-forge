@@ -126,10 +126,8 @@ async function rpcFetcher(
   return activeFetcher(request, isBare, parentId);
 }
 
-// evaluate MDX code & return a React component - main entry point for Trusted Mode rendering
-// use incremental invalidation: only clear modules when entry file changes
-// on subsequent evaluations of the same entry, only the entry module & its
-// dependents are invalidated, preserving cached dependencies for better perf
+// evaluate MDX into a component & preserve dependency cache when possible
+// full reset only when entry path changes; otherwise invalidate dependents
 export async function evaluateModuleToComponent(
   code: string,
   entryFilePath: string,
@@ -138,9 +136,7 @@ export async function evaluateModuleToComponent(
   // ensure preloaded modules are ready
   ensurePreloadedModules();
 
-  // wait for any pending shim loading to complete in parallel
-  // these operations are independent (different state vars, different registry keys)
-  // this fixes the race condition where setUsedComponents/setFramework is called right before updatePreview
+  // wait for pending independent shim loads before evaluation
   const pendingLoads: Promise<void>[] = [];
   if (pendingGenericShimLoad) {
     pendingLoads.push(pendingGenericShimLoad);
@@ -153,10 +149,7 @@ export async function evaluateModuleToComponent(
     await Promise.all(pendingLoads);
   }
 
-  // reset after awaiting (important: do this after Promise.all to avoid race)
-  // note: if a new setFramework/setUsedComponents call happens during await,
-  // the new promise is set before this nullification, which is fine -
-  // the new caller will await its own promise
+  // clear awaited load handles; newer loads install their own promise
   pendingGenericShimLoad = null;
   pendingFrameworkShimLoad = null;
 

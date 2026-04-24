@@ -1,16 +1,5 @@
 // src/browser/styles/injectStyles.ts
-// CSS injection - handle injecting CSS from imported style files
-//
-// STYLE INJECTION ARCHITECTURE
-// - ModuleRegistry: authoritative source of truth for style tracking
-//   - have reference counting & lru eviction for style entries
-//   - use hasInjectedStyle() to check before injection
-//   - use markStyleInjected() to track after injection
-//
-// - StyleInjector: pure DOM manipulation layer
-//   - handle <style> element creation & removal
-//   - cache DOM references for O(1) removal
-//   - do NOT track which styles have been injected (defer to registry)
+// inject imported CSS while registry remains style-tracking source of truth
 
 import { registry } from '../registry/ModuleRegistry';
 import { getStyleInjector } from '../internal/style-injector';

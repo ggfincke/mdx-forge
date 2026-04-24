@@ -19,18 +19,24 @@ export function GenericPage() {
     <div>
       <h1>Generic Components</h1>
 
-      <Section title="Callout Types" description="All 7 callout types w/ default titles & icons">
+      <Section
+        title="Callout Types"
+        description="All 7 callout types w/ default titles & icons"
+      >
         <Callout type="note">
-          <strong>Note</strong> — General information and context. Blue color scheme.
+          <strong>Note</strong> — General information and context. Blue color
+          scheme.
         </Callout>
         <Callout type="tip">
-          <strong>Tip</strong> — Helpful suggestions and best practices. Green color scheme.
+          <strong>Tip</strong> — Helpful suggestions and best practices. Green
+          color scheme.
         </Callout>
         <Callout type="info">
           <strong>Info</strong> — Informational content. Blue color scheme.
         </Callout>
         <Callout type="warning">
-          <strong>Warning</strong> — Potential issues and gotchas. Amber color scheme.
+          <strong>Warning</strong> — Potential issues and gotchas. Amber color
+          scheme.
         </Callout>
         <Callout type="danger">
           <strong>Danger</strong> — Critical warnings. Red color scheme.
@@ -43,7 +49,10 @@ export function GenericPage() {
         </Callout>
       </Section>
 
-      <Section title="Callout Aliases" description="Alert & Admonition are aliases for Callout">
+      <Section
+        title="Callout Aliases"
+        description="Alert & Admonition are aliases for Callout"
+      >
         <Alert type="tip">
           This uses the <code>Alert</code> component — same as Callout.
         </Alert>
@@ -52,7 +61,10 @@ export function GenericPage() {
         </Admonition>
       </Section>
 
-      <Section title="Custom Title & Icon" description="Override default title & icon">
+      <Section
+        title="Custom Title & Icon"
+        description="Override default title & icon"
+      >
         <Callout type="tip" title="Pro Tip">
           Custom title overrides the default "Tip" heading.
         </Callout>
@@ -67,18 +79,25 @@ export function GenericPage() {
         </Callout>
       </Section>
 
-      <Section title="Collapsible" description="Expandable sections w/ default closed & open states">
+      <Section
+        title="Collapsible"
+        description="Expandable sections w/ default closed & open states"
+      >
         <Collapsible title="Default closed — click to expand">
           This content is hidden by default. It can contain any content:
           <ul>
             <li>Lists</li>
-            <li><strong>Formatting</strong></li>
-            <li><code>Code</code></li>
+            <li>
+              <strong>Formatting</strong>
+            </li>
+            <li>
+              <code>Code</code>
+            </li>
           </ul>
         </Collapsible>
         <Collapsible title="Default open" defaultOpen>
-          This section starts expanded. Use <code>defaultOpen</code> for important
-          content that should be visible by default.
+          This section starts expanded. Use <code>defaultOpen</code> for
+          important content that should be visible by default.
         </Collapsible>
         <Accordion title="Accordion alias">
           Same component as Collapsible, just a different name.
@@ -95,21 +114,33 @@ export function GenericPage() {
         </Collapsible>
       </Section>
 
-      <Section title="Tabs" description="Tabbed content w/ basic usage & defaultValue">
+      <Section
+        title="Tabs"
+        description="Tabbed content w/ basic usage & defaultValue"
+      >
         <Tabs>
           <TabItem value="js" label="JavaScript">
-            <pre><code>{`function greet(name) {\n  return \`Hello, \${name}!\`;\n}`}</code></pre>
+            <pre>
+              <code>{`function greet(name) {\n  return \`Hello, \${name}!\`;\n}`}</code>
+            </pre>
           </TabItem>
           <TabItem value="ts" label="TypeScript">
-            <pre><code>{`function greet(name: string): string {\n  return \`Hello, \${name}!\`;\n}`}</code></pre>
+            <pre>
+              <code>{`function greet(name: string): string {\n  return \`Hello, \${name}!\`;\n}`}</code>
+            </pre>
           </TabItem>
           <TabItem value="py" label="Python">
-            <pre><code>{`def greet(name):\n    return f"Hello, {name}!"`}</code></pre>
+            <pre>
+              <code>{`def greet(name):\n    return f"Hello, {name}!"`}</code>
+            </pre>
           </TabItem>
         </Tabs>
       </Section>
 
-      <Section title="Tabs w/ defaultValue" description="Second tab selected by default">
+      <Section
+        title="Tabs w/ defaultValue"
+        description="Second tab selected by default"
+      >
         <Tabs defaultValue="option2">
           <TabItem value="option1" label="Option 1">
             Not selected by default.

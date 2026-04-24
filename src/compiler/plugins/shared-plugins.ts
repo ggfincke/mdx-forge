@@ -1,10 +1,6 @@
 // src/compiler/plugins/shared-plugins.ts
 // shared remark/rehype plugin configurations for MDX pipelines
-//
-// ! plugin ordering is critical - do not reorder w/o testing both Safe & Trusted modes
-// ! remarkDirective must run first (parse ::: syntax)
-// ! remarkAdmonitions must run after remarkDirective (transform directives)
-// ! remarkGithubAlerts must run before remarkGfm
+// ! plugin order is critical; test both Safe & Trusted before changing
 
 import remarkDirective from 'remark-directive';
 import remarkAdmonitions from '../pipeline/remark/admonitions';
@@ -33,12 +29,8 @@ export const autolinkHeadingsConfig = {
   },
 };
 
-// shared remark plugins (order matters!)
-// 1. remarkDirective parses ::: syntax into directive nodes
-// 2. remarkAdmonitions transforms directive nodes to admonition HTML
-// 3. remarkGithubAlerts handles [!NOTE] etc (must come before GFM)
-// 4. remarkGfm adds GitHub Flavored Markdown
-// 5. remarkMath handles math expressions
+// shared remark plugins in directive -> alert -> GFM -> math order
+// keep GitHub alert transform before GFM
 export const sharedRemarkPlugins: Pluggable[] = [
   remarkDirective,
   remarkAdmonitions,

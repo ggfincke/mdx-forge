@@ -1,7 +1,5 @@
 // src/components/nextra/Cards.tsx
-// Nextra Cards component shim for MDX Preview
-// provide preview-compatible version of nextra/components Cards
-// use compound component pattern: Cards & Cards.Card
+// Nextra Cards shim using compound Cards & Cards.Card pattern
 
 import React, {
   ReactNode,

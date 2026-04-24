@@ -14,7 +14,10 @@ export function NextjsPage() {
     <div>
       <h1>Next.js Components</h1>
 
-      <Section title="Image" description="Next.js Image shim — renders a basic img tag">
+      <Section
+        title="Image"
+        description="Next.js Image shim — renders a basic img tag"
+      >
         <Image
           src="https://picsum.photos/400/250"
           alt="Random placeholder image"
@@ -25,12 +28,19 @@ export function NextjsPage() {
 
       <Section title="Image w/ object src">
         <Image
-          src={{ src: 'https://picsum.photos/300/200', width: 300, height: 200 }}
+          src={{
+            src: 'https://picsum.photos/300/200',
+            width: 300,
+            height: 200,
+          }}
           alt="Image with object src"
         />
       </Section>
 
-      <Section title="Image w/ fill mode" description="Fills parent container (needs relative parent)">
+      <Section
+        title="Image w/ fill mode"
+        description="Fills parent container (needs relative parent)"
+      >
         <div
           style={{
             position: 'relative',
@@ -68,7 +78,10 @@ export function NextjsPage() {
         />
       </Section>
 
-      <Section title="Link" description="Next.js Link shim — renders a basic anchor tag">
+      <Section
+        title="Link"
+        description="Next.js Link shim — renders a basic anchor tag"
+      >
         <p>
           <Link href="https://example.com">External link</Link> — opens in new
           tab automatically.

@@ -1,4 +1,5 @@
-// Resolve mdx-forge component CSS bundles from the installed package
+// plugins/render/src/css.ts
+// resolve mdx-forge component CSS bundles from installed package
 
 import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';

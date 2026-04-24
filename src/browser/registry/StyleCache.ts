@@ -14,10 +14,8 @@ export interface StyleCacheConfig {
   maxStyles?: number;
 }
 
-// track injected CSS styles w/ reference counting for proper cleanup
-// use LRUCache w/ isProtected predicate
-// - protect styles w/ refCount > 0 from eviction
-// - evict styles w/ refCount === 0 in lru order
+// track injected CSS styles w/ reference-counted LRU cleanup
+// protect active styles; evict inactive styles in lru order
 export class StyleCache {
   private cache: LRUCache<string, StyleEntry>;
   private maxStyles = DEFAULT_MAX_STYLES;

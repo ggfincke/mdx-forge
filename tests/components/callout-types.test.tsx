@@ -10,14 +10,24 @@ import { Callout } from '../../src/components/generic/index';
 
 describe('Callout type rendering', () => {
   it('renders known types w/ correct data attribute', () => {
-    const types = ['note', 'warning', 'danger', 'tip', 'summary', 'question', 'bug'] as const;
+    const types = [
+      'note',
+      'warning',
+      'danger',
+      'tip',
+      'summary',
+      'question',
+      'bug',
+    ] as const;
 
     for (const type of types) {
       const { container } = render(
         React.createElement(Callout, { type }, `${type} content`)
       );
 
-      const calloutEl = container.querySelector(`[data-callout-type="${type}"]`);
+      const calloutEl = container.querySelector(
+        `[data-callout-type="${type}"]`
+      );
       expect(calloutEl).not.toBeNull();
     }
   });
@@ -44,14 +54,23 @@ describe('Callout type rendering', () => {
         React.createElement(Callout, { type: alias as any }, 'Content')
       );
 
-      const calloutEl = container.querySelector(`[data-callout-type="${expected}"]`);
-      expect(calloutEl, `alias "${alias}" should resolve to "${expected}"`).not.toBeNull();
+      const calloutEl = container.querySelector(
+        `[data-callout-type="${expected}"]`
+      );
+      expect(
+        calloutEl,
+        `alias "${alias}" should resolve to "${expected}"`
+      ).not.toBeNull();
     }
   });
 
   it('displays custom title when provided', () => {
     const { container } = render(
-      React.createElement(Callout, { type: 'note', title: 'Custom Title' }, 'Body')
+      React.createElement(
+        Callout,
+        { type: 'note', title: 'Custom Title' },
+        'Body'
+      )
     );
 
     expect(container.textContent).toContain('Custom Title');

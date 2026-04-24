@@ -1,14 +1,5 @@
-// Compile MDX -> HTML via mdx-forge (Safe or Trusted Mode), screenshot via
-// headless Chromium. Both modes emit three HTML variants:
-//   html          body-only string (the compiled MDX output). for the MCP
-//                 "compiled HTML" display block + screenshot source.
-//   fullHtml      complete self-contained document. for claude.ai artifact
-//                 rendering. in trusted mode the harness bundle is inlined so
-//                 the artifact is interactive on its own.
-//   previewHtml   served by the local HTTP preview server. identical to
-//                 fullHtml in safe mode; in trusted mode it references the
-//                 harness bundle via /harness/:framework/bundle.js to avoid
-//                 resending ~650KB on every live-reload refresh.
+// plugins/render/src/render.ts
+// render MDX to HTML documents, live preview output & optional screenshots
 
 import { randomBytes } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
@@ -112,9 +103,7 @@ export async function shutdownBrowser(): Promise<void> {
   ]);
 }
 
-// Default Shiki CSS-variable theme (GitHub-style). mdx-forge emits
-// `var(--shiki-*)` refs via createCssVariablesTheme — consumers supply the
-// values. These defaults make code blocks colored out of the box.
+// fallback CSS-variable values for code blocks when consumers omit a theme
 const SHIKI_DEFAULTS = `
 [data-theme="light"] {
   --shiki-foreground: #24292e;
@@ -201,9 +190,8 @@ ${documentHead(tokens, frameworkCss)}
 </html>`;
 }
 
-// JSON-encode a string so it can sit inside a <script> tag as JS source.
-// wraps in the safe HTML-in-JSON pattern (escape `</`, line separators, etc.)
-// so the script tag can't be closed prematurely by hostile input.
+// encode string for safe embedding inside script-source JSON
+// escape closing tags & line separators before HTML insertion
 function jsStringLiteral(value: string): string {
   return JSON.stringify(value)
     .replace(/<\//g, '<\\/')
@@ -211,8 +199,8 @@ function jsStringLiteral(value: string): string {
     .replace(/\u2029/g, '\\u2029');
 }
 
-// escape a raw JS source block for embedding inside <script>...</script>.
-// we only need to neutralise `</script>` sequences; the rest is fine as-is.
+// escape raw JS source for embedding inside <script>
+// neutralize closing script tags; leave other source untouched
 function escapeInlineScript(source: string): string {
   return source.replace(/<\/script/gi, '<\\/script');
 }
@@ -284,9 +272,7 @@ async function buildModeDocs(
       );
     }
 
-    // snapshot failures stem from the user's MDX (component threw, missing
-    // shim, etc.) — normalize. harness-bundle failures are infrastructure
-    // (build never ran, file missing) — let them propagate raw.
+    // normalize user MDX snapshot failures; let harness infrastructure fail raw
     const snapshotPromise = snapshotTrustedModule(compiled).catch((err) => {
       throw new RenderDiagnosticError(
         normalizeCompileError(err, { source, framework }),
@@ -348,9 +334,7 @@ export async function renderMdx(args: RenderArgs): Promise<RenderResult> {
   const theme = args.theme ?? 'light';
   const mode: RenderMode = args.mode ?? 'safe';
 
-  // lint first — catches syntax errors, unknown components, prop mismatches,
-  // frontmatter gaps BEFORE we pay for the compile + headless render. a fatal
-  // lint result short-circuits as a structured error.
+  // lint before compile/render to surface structured diagnostics early
   const lint = await lintMdxSource(args.source, framework);
   if (lint.fatal) {
     throw new RenderDiagnosticError(lint.fatal, lint.diagnostics);

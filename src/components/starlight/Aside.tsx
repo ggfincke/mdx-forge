@@ -1,7 +1,5 @@
 // src/components/starlight/Aside.tsx
-// Starlight Aside component shim for MDX Preview
-// provide preview-compatible version of @astrojs/starlight/components Aside
-// note: this is the JSX alternative to ::: directive syntax
+// Starlight Aside shim for JSX callouts
 
 import { ReactElement } from 'react';
 import { createCallout, type BaseCalloutProps } from '../base/BaseCallout';

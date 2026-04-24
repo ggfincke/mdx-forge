@@ -1,7 +1,6 @@
 // src/internal/errors.ts
 // shared error utilities
-// ! cross-repo duplicate: vsc-mdx-preview/packages/runtime-utils/src/errors/normalize.ts
-// ! changes here must be mirrored (GPL licensing prevents shared dependency)
+// ! cross-repo duplicate: mirror runtime-utils normalization behavior
 
 export function isError(value: unknown): value is Error {
   return value instanceof Error;

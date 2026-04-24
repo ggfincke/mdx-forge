@@ -1,5 +1,5 @@
-// Smoke test for Trusted Mode: compile + render MDX with framework shims,
-// then drive the live preview with Playwright to verify true interactivity.
+// plugins/render/scripts/smoke-trusted.mjs
+// smoke test Trusted Mode compile, render & browser interactivity
 
 import { renderMdx, shutdownBrowser } from '../dist/render.js';
 import { stopPreviewServer } from '../dist/preview-server.js';
@@ -69,20 +69,23 @@ console.log('  html.length:', out.html.length);
 console.log('  fullHtml.length:', out.fullHtml.length);
 console.log('  previewUrl:', out.previewUrl);
 
-check('snapshot callout class', out.html.includes('mdx-preview-generic-callout'));
+check(
+  'snapshot callout class',
+  out.html.includes('mdx-preview-generic-callout')
+);
 check('snapshot callout title rendered', out.html.includes('Hello'));
 check('snapshot tabs class', out.html.includes('mdx-preview-generic-tabs'));
 check(
   'snapshot code block shiki',
-  out.html.includes('shiki') && out.html.includes('console.log'),
+  out.html.includes('shiki') && out.html.includes('console.log')
 );
 check(
   'fullHtml inlines harness bundle',
-  out.fullHtml.includes('__mdxForgeMount') && out.fullHtml.length > 500_000,
+  out.fullHtml.includes('__mdxForgeMount') && out.fullHtml.length > 500_000
 );
 check(
   'fullHtml inlines compiled MDX',
-  out.fullHtml.includes('__MDX_FORGE_CODE__'),
+  out.fullHtml.includes('__MDX_FORGE_CODE__')
 );
 
 console.log('\nDriving the live preview to verify interactivity...');
@@ -95,17 +98,17 @@ page.on('pageerror', (err) => {
 await page.goto(out.previewUrl);
 await page.waitForSelector('.mdx-preview-generic-tabs');
 
-// Assert the initial state: first tab active, second hidden
+// verify first tab starts active & second tab hidden
 const firstActiveInitial = await page.evaluate(
   () =>
     !!document
       .querySelector('.mdx-preview-generic-tabs-button.active')
       ?.textContent?.trim()
-      ?.includes('first'),
+      ?.includes('first')
 );
 check('initial: first tab active', firstActiveInitial);
 
-// Click the second tab button and confirm React updated the DOM
+// click second tab & confirm React updates DOM
 await page.getByRole('tab', { name: 'second' }).click();
 await page.waitForTimeout(150);
 const secondActiveAfterClick = await page.evaluate(
@@ -113,16 +116,16 @@ const secondActiveAfterClick = await page.evaluate(
     !!document
       .querySelector('.mdx-preview-generic-tabs-button.active')
       ?.textContent?.trim()
-      ?.includes('second'),
+      ?.includes('second')
 );
 check('after click: second tab active', secondActiveAfterClick);
 
-// And the panel content should swap
+// verify active panel content changed
 const panelText = await page.evaluate(
   () =>
     document
       .querySelector('.mdx-preview-generic-tabs-panel.active')
-      ?.textContent?.trim() ?? '',
+      ?.textContent?.trim() ?? ''
 );
 check('after click: second panel shown', panelText.includes('Second'));
 
@@ -138,7 +141,10 @@ const out2 = await renderMdx({
 check('docusaurus tabs class', out2.html.includes('docusaurus-tabs'));
 check('details element', out2.html.includes('<details'));
 const trustedShot = out2.screenshots?.[0]?.png;
-check('screenshot has bytes', typeof trustedShot?.length === 'number' && trustedShot.length > 1000);
+check(
+  'screenshot has bytes',
+  typeof trustedShot?.length === 'number' && trustedShot.length > 1000
+);
 if (trustedShot) {
   await writeFile('scripts/smoke-trusted-output.png', trustedShot);
   console.log('  wrote scripts/smoke-trusted-output.png');

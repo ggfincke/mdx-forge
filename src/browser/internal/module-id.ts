@@ -1,7 +1,6 @@
 // src/browser/internal/module-id.ts
 // module specifier parsing & npm URL utilities
-// ! cross-repo duplicate: vsc-mdx-preview/packages/runtime-utils/src/module-id/module-id.ts
-// ! changes here must be mirrored (GPL licensing prevents shared dependency)
+// ! cross-repo duplicate: mirror runtime-utils module-id behavior
 
 const NPM_MODULE_PREFIX = 'npm://';
 

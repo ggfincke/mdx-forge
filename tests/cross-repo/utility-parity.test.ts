@@ -1,7 +1,6 @@
 // tests/cross-repo/utility-parity.test.ts
 // verify cross-repo utility behavioral parity between mdx-forge & vsc-mdx-preview
-// ! cross-repo parity: mirror test in vsc-mdx-preview/tests/shared/utility-parity.test.ts
-// ! changes to shared behavior must update BOTH test files
+// ! cross-repo parity: mirror vsc utility-parity behavior
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { cn } from '../../src/components/internal/cn';

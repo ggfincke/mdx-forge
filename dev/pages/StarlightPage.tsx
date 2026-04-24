@@ -26,13 +26,15 @@ export function StarlightPage() {
           <strong>Note</strong> — A helpful piece of additional information.
         </Aside>
         <Aside type="tip">
-          <strong>Tip</strong> — An optional suggestion to improve your workflow.
+          <strong>Tip</strong> — An optional suggestion to improve your
+          workflow.
         </Aside>
         <Aside type="caution">
           <strong>Caution</strong> — Something to be aware of before proceeding.
         </Aside>
         <Aside type="danger">
-          <strong>Danger</strong> — Critical warning about a potential breaking change.
+          <strong>Danger</strong> — Critical warning about a potential breaking
+          change.
         </Aside>
       </Section>
 
@@ -56,13 +58,22 @@ export function StarlightPage() {
 
       <Section title="CardGrid" description="Responsive card grid layout">
         <CardGrid>
-          <Card title="Fast" icon="rocket">Lightning-fast build times.</Card>
-          <Card title="Flexible" icon="star">Works with any framework.</Card>
-          <Card title="Secure" icon="document">Built-in security features.</Card>
+          <Card title="Fast" icon="rocket">
+            Lightning-fast build times.
+          </Card>
+          <Card title="Flexible" icon="star">
+            Works with any framework.
+          </Card>
+          <Card title="Secure" icon="document">
+            Built-in security features.
+          </Card>
         </CardGrid>
       </Section>
 
-      <Section title="CardGrid w/ stagger" description="Staggered animation variant">
+      <Section
+        title="CardGrid w/ stagger"
+        description="Staggered animation variant"
+      >
         <CardGrid stagger>
           <Card title="Step 1">Install the package.</Card>
           <Card title="Step 2">Configure your project.</Card>
@@ -86,8 +97,7 @@ export function StarlightPage() {
 
       <Section title="Badge" description="Inline badge variants & sizes">
         <p>
-          Variants:{' '}
-          <Badge text="Default" variant="default" />{' '}
+          Variants: <Badge text="Default" variant="default" />{' '}
           <Badge text="Note" variant="note" />{' '}
           <Badge text="Tip" variant="tip" />{' '}
           <Badge text="Caution" variant="caution" />{' '}
@@ -95,8 +105,7 @@ export function StarlightPage() {
           <Badge text="Success" variant="success" />
         </p>
         <p>
-          Sizes:{' '}
-          <Badge text="Small" size="small" variant="note" />{' '}
+          Sizes: <Badge text="Small" size="small" variant="note" />{' '}
           <Badge text="Medium" size="medium" variant="tip" />{' '}
           <Badge text="Large" size="large" variant="caution" />
         </p>
@@ -107,7 +116,9 @@ export function StarlightPage() {
           <ol>
             <li>
               <strong>Install dependencies</strong>
-              <p>Run <code>npm install</code> in your project directory.</p>
+              <p>
+                Run <code>npm install</code> in your project directory.
+              </p>
             </li>
             <li>
               <strong>Configure the project</strong>
@@ -115,7 +126,9 @@ export function StarlightPage() {
             </li>
             <li>
               <strong>Start development</strong>
-              <p>Run <code>npm run dev</code> to start the dev server.</p>
+              <p>
+                Run <code>npm run dev</code> to start the dev server.
+              </p>
             </li>
             <li>
               <strong>Deploy</strong>
@@ -134,7 +147,9 @@ export function StarlightPage() {
                 <li>
                   components/
                   <ul>
-                    <li><strong>App.tsx</strong></li>
+                    <li>
+                      <strong>App.tsx</strong>
+                    </li>
                     <li>Header.tsx</li>
                     <li>Footer.tsx</li>
                   </ul>
@@ -176,13 +191,19 @@ export function StarlightPage() {
       <Section title="Tabs" description="Starlight tab component">
         <Tabs>
           <TabItem label="npm" value="npm">
-            <pre><code>npm install mdx-forge</code></pre>
+            <pre>
+              <code>npm install mdx-forge</code>
+            </pre>
           </TabItem>
           <TabItem label="pnpm" value="pnpm">
-            <pre><code>pnpm add mdx-forge</code></pre>
+            <pre>
+              <code>pnpm add mdx-forge</code>
+            </pre>
           </TabItem>
           <TabItem label="Yarn" value="yarn">
-            <pre><code>yarn add mdx-forge</code></pre>
+            <pre>
+              <code>yarn add mdx-forge</code>
+            </pre>
           </TabItem>
         </Tabs>
       </Section>

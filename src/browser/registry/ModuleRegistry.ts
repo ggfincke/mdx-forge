@@ -9,10 +9,9 @@ import { DependencyTracker } from './DependencyTracker';
 // lru configuration options
 export interface LRUConfig extends ModuleCacheConfig, StyleCacheConfig {}
 
-// coordinate module cache, style cache & dependency tracker subsystems
-// - ModuleCache: lru cache w/ memory tracking & pending fetches
-// - StyleCache: reference-counted style tracking w/ dual-map lru
-// - DependencyTracker: dependency graph & resolution map
+// coordinate module cache, style cache & dependency tracker
+// ModuleCache owns modules; StyleCache owns CSS refs
+// DependencyTracker owns dependency graph & resolution map
 export class ModuleRegistry {
   private moduleCache = new ModuleCache();
   private styleCache = new StyleCache();

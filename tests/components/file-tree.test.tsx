@@ -10,11 +10,7 @@ import { FileTree } from '../../src/components/starlight/FileTree';
 
 // helper: create <ul><li>...</li></ul> structure for FileTree children
 function makeList(...items: React.ReactNode[]): React.ReactElement {
-  return React.createElement(
-    'ul',
-    null,
-    ...items
-  );
+  return React.createElement('ul', null, ...items);
 }
 
 function makeLi(...children: React.ReactNode[]): React.ReactElement {
@@ -24,11 +20,7 @@ function makeLi(...children: React.ReactNode[]): React.ReactElement {
 describe('Starlight FileTree', () => {
   it('renders a basic file entry', () => {
     const { container } = render(
-      React.createElement(
-        FileTree,
-        null,
-        makeList(makeLi('README.md'))
-      )
+      React.createElement(FileTree, null, makeList(makeLi('README.md')))
     );
     expect(container.textContent).toContain('README.md');
     expect(
@@ -38,11 +30,7 @@ describe('Starlight FileTree', () => {
 
   it('renders a directory entry (trailing slash)', () => {
     const { container } = render(
-      React.createElement(
-        FileTree,
-        null,
-        makeList(makeLi('src/'))
-      )
+      React.createElement(FileTree, null, makeList(makeLi('src/')))
     );
     expect(container.textContent).toContain('src');
     expect(
@@ -78,9 +66,7 @@ describe('Starlight FileTree', () => {
       React.createElement(
         FileTree,
         null,
-        makeList(
-          makeLi(React.createElement('strong', null, 'important.ts'))
-        )
+        makeList(makeLi(React.createElement('strong', null, 'important.ts')))
       )
     );
     expect(container.textContent).toContain('important.ts');
@@ -89,16 +75,10 @@ describe('Starlight FileTree', () => {
 
   it('renders placeholder (...) entries', () => {
     const { container } = render(
-      React.createElement(
-        FileTree,
-        null,
-        makeList(makeLi('...'))
-      )
+      React.createElement(FileTree, null, makeList(makeLi('...')))
     );
     expect(
-      container.querySelector(
-        '.mdx-preview-starlight-file-tree-placeholder'
-      )
+      container.querySelector('.mdx-preview-starlight-file-tree-placeholder')
     ).toBeTruthy();
   });
 
@@ -122,11 +102,7 @@ describe('Starlight FileTree', () => {
         null,
         makeList(
           makeLi('lib/'),
-          React.createElement(
-            'ul',
-            null,
-            makeLi('helper.ts')
-          )
+          React.createElement('ul', null, makeLi('helper.ts'))
         )
       )
     );

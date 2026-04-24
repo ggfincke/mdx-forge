@@ -15,8 +15,8 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const PLUGIN_ROOT = resolve(dirname(__filename), '..');
 
-// valid framework path segment for /harness/:framework/bundle.js routing.
-// keep aligned w/ Framework type in css.ts.
+// validate framework path segment for /harness/:framework/bundle.js routing
+// keep aligned w/ Framework type in css.ts
 const HARNESS_FRAMEWORKS = new Set([
   'generic',
   'docusaurus',
@@ -207,8 +207,7 @@ export async function stopPreviewServer(): Promise<void> {
   });
 }
 
-// Open a URL in the user's default browser. Detached so the child process
-// keeps running after this handler returns.
+// open URL in default browser as a detached child process
 export function openInBrowser(url: string): void {
   let command: string;
   let args: string[];
@@ -231,12 +230,11 @@ export function openInBrowser(url: string): void {
     });
     child.unref();
   } catch {
-    // ignore — auto-open is best-effort
+    // ignore auto-open failures
   }
 }
 
-// Open once per server lifetime. Live reload handles subsequent renders,
-// so we don't steal focus on every call.
+// open once per server lifetime; live reload handles later renders
 export function autoOpenOnce(url: string): void {
   if (hasAutoOpened) {
     return;

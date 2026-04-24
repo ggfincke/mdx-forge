@@ -55,9 +55,8 @@ export async function compileTrustedModule(
   source: string,
   framework: Framework
 ): Promise<TrustedCompiledModule> {
-  // disable builtin imports so the only remaining deps are react +
-  // jsx-runtime + @mdx-js/react (all preloaded in the harness). framework
-  // shims are supplied at render time via MDXProvider components.
+  // disable builtin imports; harness preloads React, jsx-runtime & MDXProvider
+  // shims are supplied at render time via MDXProvider components
   const compiled = await compileTrusted(source, true, {
     documentPath: '/virtual/render.mdx',
     componentsBuiltins: false,
@@ -75,8 +74,7 @@ export async function compileTrustedModule(
   };
 }
 
-// render the compiled module in the headless harness to produce the initial
-// innerHTML snapshot. used for the MCP `html` field + PNG screenshot source.
+// render compiled module in harness for initial HTML & screenshot source
 export async function snapshotTrustedModule(
   compiled: TrustedCompiledModule
 ): Promise<string> {
@@ -113,9 +111,7 @@ export async function snapshotTrustedModule(
 
 const bundleCache = new Map<Framework, Promise<string>>();
 
-// read the per-framework IIFE bundle from disk. interactive preview documents
-// embed this directly (for claude.ai artifact self-containment) or reference
-// it via the preview server at /harness/:framework/bundle.js.
+// read per-framework IIFE bundle for inline artifacts or preview server refs
 export function readHarnessBundle(framework: Framework): Promise<string> {
   const cached = bundleCache.get(framework);
   if (cached) {
