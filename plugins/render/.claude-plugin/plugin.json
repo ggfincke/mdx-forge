@@ -1,0 +1,13 @@
+{
+  "name": "mdx-forge-render",
+  "version": "0.1.0",
+  "description": "Render MDX to HTML plus an optional headless Chromium screenshot. Exposes an MCP tool (render_mdx) backed by mdx-forge's Safe Mode compiler.",
+  "author": {
+    "name": "Garrett Fincke",
+    "email": "garrettfincke@gmail.com"
+  },
+  "homepage": "https://github.com/ggfincke/mdx-forge#readme",
+  "repository": "https://github.com/ggfincke/mdx-forge",
+  "license": "MIT",
+  "keywords": ["mdx", "mcp", "render", "playwright", "mdx-forge"]
+}

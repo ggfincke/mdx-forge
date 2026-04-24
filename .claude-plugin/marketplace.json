@@ -1,0 +1,24 @@
+{
+  "name": "mdx-forge",
+  "owner": {
+    "name": "Garrett Fincke",
+    "email": "garrettfincke@gmail.com"
+  },
+  "metadata": {
+    "description": "Claude Code plugins for the mdx-forge MDX runtime toolkit."
+  },
+  "plugins": [
+    {
+      "name": "mdx-forge",
+      "source": "./",
+      "description": "Skill for the mdx-forge MDX runtime toolkit. Teaches Claude how to use compileSafe / compileTrusted, the browser module loader, and framework component shims correctly.",
+      "version": "0.1.0"
+    },
+    {
+      "name": "mdx-forge-render",
+      "source": "./plugins/render/",
+      "description": "MCP server that compiles MDX to HTML via mdx-forge Safe Mode with an optional headless-Chromium screenshot. Ships one tool: render_mdx.",
+      "version": "0.1.0"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "name": "@mdx-forge/render-plugin",
+  "private": true,
+  "version": "0.2.0",
+  "description": "MCP server that renders MDX to HTML plus optional headless Chromium screenshot. Exposes list_components & render_mdx w/ structured diagnostics (prop lint, frontmatter validation, did-you-mean suggestions).",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/build-harness.mjs",
+    "build:harness": "node scripts/build-harness.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/server.js",
+    "smoke": "npm run build && npm run smoke:diagnostics && npm run smoke:trusted-errors && npm run smoke:safe && npm run smoke:trusted",
+    "smoke:diagnostics": "node scripts/smoke-diagnostics.mjs",
+    "smoke:trusted-errors": "node scripts/smoke-trusted-errors.mjs",
+    "smoke:safe": "node scripts/smoke.mjs",
+    "smoke:trusted": "node scripts/smoke-trusted.mjs"
+  },
+  "dependencies": {
+    "@mdx-js/react": "^3.0.0",
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "hast-util-from-html-isomorphic": "^2.0.0",
+    "hast-util-to-html": "^9.0.5",
+    "mdx-forge": "^0.3.1",
+    "playwright": "^1.48.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "unified": "^11.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.6.3"
+  }
+}
