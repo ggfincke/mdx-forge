@@ -28,7 +28,7 @@ async function loadCss(subpath: string): Promise<string> {
 
 async function loadCssFile(
   filePath: string,
-  stack: Set<string>,
+  stack: Set<string>
 ): Promise<string> {
   const cached = cache.get(filePath);
   if (cached !== undefined) {
@@ -52,7 +52,7 @@ async function loadCssFile(
 async function inlineCssImports(
   css: string,
   importerPath: string,
-  stack: Set<string>,
+  stack: Set<string>
 ): Promise<string> {
   const chunks: string[] = [];
   let lastIndex = 0;
@@ -70,7 +70,7 @@ async function inlineCssImports(
     if (specifier && !modifiers && shouldInlineImport(specifier)) {
       const importedCss = await loadCssFile(
         resolveCssImport(specifier, importerPath),
-        stack,
+        stack
       );
       chunks.push(importedCss);
     } else {
@@ -105,7 +105,9 @@ export async function tokensCss(): Promise<string> {
 }
 
 // Next.js has no bundled CSS — consumers bring their own
-export async function resolveFrameworkCss(framework: Framework): Promise<string> {
+export async function resolveFrameworkCss(
+  framework: Framework
+): Promise<string> {
   if (framework === 'nextjs') {
     return '';
   }

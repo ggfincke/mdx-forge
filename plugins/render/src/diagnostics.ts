@@ -2,7 +2,11 @@
 // parse errors, runtime crashes, prop lint warnings, frontmatter gaps —
 // funnels through this shape so the MCP response is uniform.
 
-import type { FrameworkId, ComponentSpec, FrontmatterSchema } from './registry.js';
+import type {
+  FrameworkId,
+  ComponentSpec,
+  FrontmatterSchema,
+} from './registry.js';
 import {
   allComponentNamesForFramework,
   findComponent,
@@ -71,11 +75,7 @@ function levenshtein(a: string, b: string): number {
     curr[0] = i;
     for (let j = 1; j <= b.length; j++) {
       const cost = a[i - 1].toLowerCase() === b[j - 1].toLowerCase() ? 0 : 1;
-      curr[j] = Math.min(
-        prev[j] + 1,
-        curr[j - 1] + 1,
-        prev[j - 1] + cost,
-      );
+      curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
     }
     for (let j = 0; j <= b.length; j++) {
       prev[j] = curr[j];
@@ -90,7 +90,7 @@ function levenshtein(a: string, b: string): number {
 export function suggestMatch(
   candidate: string,
   vocabulary: readonly string[],
-  maxDistance = 3,
+  maxDistance = 3
 ): string | undefined {
   if (!candidate || vocabulary.length === 0) {
     return undefined;
@@ -116,28 +116,28 @@ export function suggestMatch(
 
 export function suggestComponent(
   name: string,
-  framework: FrameworkId,
+  framework: FrameworkId
 ): string | undefined {
   return suggestMatch(name, allComponentNamesForFramework(framework));
 }
 
 export function suggestProp(
   name: string,
-  component: ComponentSpec,
+  component: ComponentSpec
 ): string | undefined {
   return suggestMatch(
     name,
-    component.props.map((p) => p.name),
+    component.props.map((p) => p.name)
   );
 }
 
 export function suggestFrontmatterField(
   name: string,
-  schema: FrontmatterSchema,
+  schema: FrontmatterSchema
 ): string | undefined {
   return suggestMatch(
     name,
-    schema.fields.map((f) => f.name),
+    schema.fields.map((f) => f.name)
   );
 }
 
@@ -147,15 +147,13 @@ export function suggestFrontmatterField(
 // embed in their messages. best-effort — not every error has a position.
 const POSITION_PATTERN = /(\d+):(\d+)/;
 
-function extractPosition(
-  err: unknown,
-): { line?: number; column?: number } {
+function extractPosition(err: unknown): { line?: number; column?: number } {
   if (err && typeof err === 'object') {
-    const vfilePosition = (err as {
+    const vfilePosition = err as {
       line?: number;
       column?: number;
       position?: { start?: { line?: number; column?: number } };
-    });
+    };
     if (typeof vfilePosition.line === 'number') {
       return {
         line: vfilePosition.line,
@@ -198,7 +196,7 @@ export interface CompileErrorContext {
 
 export function normalizeCompileError(
   err: unknown,
-  ctx: CompileErrorContext,
+  ctx: CompileErrorContext
 ): Diagnostic {
   const msg = errorMessage(err);
   const { line, column } = extractPosition(err);
@@ -247,8 +245,14 @@ export function normalizeCompileError(
 
 // flatten an accumulated diagnostics bundle into MCP-compatible content blocks
 export function formatDiagnostic(d: Diagnostic): string {
-  const where = d.line ? ` (line ${d.line}${d.column ? `:${d.column}` : ''})` : '';
-  const scope = d.component ? ` <${d.component}>` : d.field ? ` ${d.field}` : '';
+  const where = d.line
+    ? ` (line ${d.line}${d.column ? `:${d.column}` : ''})`
+    : '';
+  const scope = d.component
+    ? ` <${d.component}>`
+    : d.field
+      ? ` ${d.field}`
+      : '';
   const suggestion = d.suggestion ? ` — did you mean "${d.suggestion}"?` : '';
   return `[${d.severity} ${d.kind}]${scope}${where} ${d.message}${suggestion}`;
 }
@@ -258,7 +262,7 @@ export function formatDiagnostic(d: Diagnostic): string {
 export function buildUnknownComponentDiagnostic(
   name: string,
   framework: FrameworkId,
-  position?: { line?: number; column?: number },
+  position?: { line?: number; column?: number }
 ): Diagnostic {
   return {
     kind: 'unknown-component',
@@ -275,7 +279,7 @@ export function buildUnknownComponentDiagnostic(
 // a missing required field surfaces but doesn't block the render.
 export function buildMissingFrontmatterDiagnostic(
   field: string,
-  framework: FrameworkId,
+  framework: FrameworkId
 ): Diagnostic {
   return {
     kind: 'missing-frontmatter',

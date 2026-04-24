@@ -192,7 +192,7 @@ function buildSafeDocument(
   bodyHtml: string,
   tokens: string,
   frameworkCss: string,
-  theme: 'light' | 'dark',
+  theme: 'light' | 'dark'
 ): string {
   return `<!doctype html>
 <html lang="en" data-theme="${theme}">
@@ -271,7 +271,7 @@ async function buildModeDocs(
   tokens: string,
   frameworkCss: string,
   theme: 'light' | 'dark',
-  warnings: readonly Diagnostic[],
+  warnings: readonly Diagnostic[]
 ): Promise<ModeDocs> {
   if (mode === 'trusted') {
     let compiled: TrustedCompiledModule;
@@ -280,7 +280,7 @@ async function buildModeDocs(
     } catch (err) {
       throw new RenderDiagnosticError(
         normalizeCompileError(err, { source, framework }),
-        warnings,
+        warnings
       );
     }
 
@@ -290,7 +290,7 @@ async function buildModeDocs(
     const snapshotPromise = snapshotTrustedModule(compiled).catch((err) => {
       throw new RenderDiagnosticError(
         normalizeCompileError(err, { source, framework }),
-        warnings,
+        warnings
       );
     });
     const [bodyHtml, bundleSource] = await Promise.all([
@@ -314,7 +314,12 @@ async function buildModeDocs(
       bundle: { kind: 'inline', code: bundleSource },
     });
 
-    return { bodyHtml, frontmatter: compiled.frontmatter, previewHtml, fullHtml };
+    return {
+      bodyHtml,
+      frontmatter: compiled.frontmatter,
+      previewHtml,
+      fullHtml,
+    };
   }
 
   let compiled: Awaited<ReturnType<typeof compileSafe>>;
@@ -325,7 +330,7 @@ async function buildModeDocs(
   } catch (err) {
     throw new RenderDiagnosticError(
       normalizeCompileError(err, { source, framework }),
-      warnings,
+      warnings
     );
   }
   const bodyHtml = sanitizeScreenshotHtml(compiled.html);
@@ -365,7 +370,7 @@ export async function renderMdx(args: RenderArgs): Promise<RenderResult> {
     tokens,
     frameworkCss,
     theme,
-    warnings,
+    warnings
   );
 
   const previewPath = await writePreviewFile(docs.fullHtml);
@@ -411,7 +416,7 @@ interface CapturePlan {
 function buildCapturePlan(
   args: RenderArgs,
   defaultTheme: Theme,
-  diagnostics: Diagnostic[],
+  diagnostics: Diagnostic[]
 ): CapturePlan {
   const hasMatrix = args.screenshots !== undefined;
   const hasLegacy = args.screenshot === true;
@@ -427,9 +432,7 @@ function buildCapturePlan(
 
   if (hasMatrix) {
     const matrix = args.screenshots as ScreenshotsMatrix;
-    const themeInput = matrix.themes?.length
-      ? matrix.themes
-      : [defaultTheme];
+    const themeInput = matrix.themes?.length ? matrix.themes : [defaultTheme];
     const themes = dedupeThemes(themeInput);
     const viewportInput: ResolvedViewport[] = matrix.viewports?.length
       ? matrix.viewports.map((p) => resolveViewport(p))
@@ -449,7 +452,7 @@ function buildCapturePlan(
           message: `screenshots matrix produced ${variants.length} variants; cap is ${MAX_SCREENSHOT_VARIANTS}.`,
           prop: 'screenshots',
         },
-        diagnostics,
+        diagnostics
       );
     }
     return { variants, fullPage: matrix.fullPage ?? true };
@@ -480,7 +483,7 @@ function dedupeThemes(themes: readonly Theme[]): Theme[] {
 }
 
 function dedupeViewports(
-  viewports: readonly ResolvedViewport[],
+  viewports: readonly ResolvedViewport[]
 ): ResolvedViewport[] {
   const seen = new Set<string>();
   const out: ResolvedViewport[] = [];
@@ -496,7 +499,7 @@ function dedupeViewports(
 
 async function captureVariants(
   screenshotDoc: string,
-  plan: CapturePlan,
+  plan: CapturePlan
 ): Promise<CaptureVariant[]> {
   const browser = await getBrowser();
   const byViewport = new Map<string, CapturePlanVariant[]>();

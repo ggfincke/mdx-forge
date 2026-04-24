@@ -8,9 +8,7 @@ import remarkMdx from 'remark-mdx';
 import matter from 'gray-matter';
 import { visit } from 'unist-util-visit';
 import type { Root } from 'mdast';
-import type {
-  Diagnostic,
-} from './diagnostics.js';
+import type { Diagnostic } from './diagnostics.js';
 import {
   buildMissingFrontmatterDiagnostic,
   buildUnknownComponentDiagnostic,
@@ -82,9 +80,7 @@ function nodePosition(node: JsxElementNode): Position {
 
 // build a lookup from attribute name -> node so we can iterate both
 // the declared attrs (for type checks) and the required props (for missing)
-function attributesByName(
-  node: JsxElementNode,
-): Map<string, JsxAttributeNode> {
+function attributesByName(node: JsxElementNode): Map<string, JsxAttributeNode> {
   const map = new Map<string, JsxAttributeNode>();
   for (const attr of node.attributes) {
     if (attr.type === 'mdxJsxAttribute' && typeof attr.name === 'string') {
@@ -96,9 +92,7 @@ function attributesByName(
 
 // attribute value shape -> resolvable string for enum checks. expressions
 // ({foo}) aren't statically analyzable — skip enum validation in that case.
-function literalStringValue(
-  attr: JsxAttributeNode,
-): string | undefined {
+function literalStringValue(attr: JsxAttributeNode): string | undefined {
   const value = attr.value;
   if (value === null || value === undefined) {
     return undefined;
@@ -135,7 +129,7 @@ function validatePropValue(
   attr: JsxAttributeNode,
   prop: PropSpec,
   componentName: string,
-  position: Position,
+  position: Position
 ): Diagnostic | undefined {
   // boolean shorthand is always valid for boolean props, invalid for others
   if (isBooleanAttribute(attr)) {
@@ -206,7 +200,11 @@ function validatePropValue(
 
   if (prop.type === 'boolean') {
     const expr = expressionValue(attr);
-    if (expr !== undefined && expr.trim() !== 'true' && expr.trim() !== 'false') {
+    if (
+      expr !== undefined &&
+      expr.trim() !== 'true' &&
+      expr.trim() !== 'false'
+    ) {
       return {
         kind: 'invalid-prop-value',
         severity: 'warning',
@@ -239,7 +237,7 @@ function validatePropValue(
 function lintComponent(
   node: JsxElementNode,
   spec: ComponentSpec,
-  effectiveName: string,
+  effectiveName: string
 ): Diagnostic[] {
   const position = nodePosition(node);
   const attrs = attributesByName(node);
@@ -337,7 +335,7 @@ function isUniversallyAllowedProp(name: string): boolean {
 
 function lintJsxElement(
   node: JsxElementNode,
-  framework: FrameworkId,
+  framework: FrameworkId
 ): Diagnostic[] {
   const name = node.name;
   if (!name) {
@@ -385,7 +383,7 @@ function typeOfFrontmatterValue(value: unknown): FrontmatterField['type'] {
 
 export function lintFrontmatter(
   frontmatter: Record<string, unknown>,
-  framework: FrameworkId,
+  framework: FrameworkId
 ): Diagnostic[] {
   const schema = getFrontmatterSchema(framework);
   const fieldsByName = new Map(schema.fields.map((f) => [f.name, f]));
@@ -409,7 +407,7 @@ export function lintFrontmatter(
           field: name,
           suggestion: suggestMatch(
             name,
-            schema.fields.map((f) => f.name),
+            schema.fields.map((f) => f.name)
           ),
         });
       }
@@ -425,7 +423,11 @@ export function lintFrontmatter(
       });
       continue;
     }
-    if (field.values && typeof value === 'string' && !field.values.includes(value)) {
+    if (
+      field.values &&
+      typeof value === 'string' &&
+      !field.values.includes(value)
+    ) {
       out.push({
         kind: 'invalid-frontmatter-type',
         severity: 'warning',
@@ -443,7 +445,7 @@ export function lintFrontmatter(
 
 export async function lintMdxSource(
   source: string,
-  framework: FrameworkId,
+  framework: FrameworkId
 ): Promise<LintResult> {
   // frontmatter first — if gray-matter blows up on the YAML block we still
   // want to try parsing the MDX body.
@@ -489,7 +491,10 @@ export async function lintMdxSource(
       node.type === 'mdxJsxFlowElement' ||
       node.type === 'mdxJsxTextElement'
     ) {
-      const diags = lintJsxElement(node as unknown as JsxElementNode, framework);
+      const diags = lintJsxElement(
+        node as unknown as JsxElementNode,
+        framework
+      );
       componentDiagnostics.push(...diags);
     }
   });

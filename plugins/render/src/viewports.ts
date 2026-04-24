@@ -32,7 +32,7 @@ export const DEFAULT_VIEWPORT: ResolvedViewport = {
 };
 
 export function resolveViewport(
-  input: ViewportPreset | { width?: number; height?: number } | undefined,
+  input: ViewportPreset | { width?: number; height?: number } | undefined
 ): ResolvedViewport {
   if (input === undefined) {
     return { ...DEFAULT_VIEWPORT };

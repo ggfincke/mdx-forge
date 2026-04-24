@@ -27,7 +27,13 @@ import {
 import { startPreviewServer, stopPreviewServer } from './preview-server.js';
 import { VIEWPORT_PRESET_NAMES } from './viewports.js';
 
-const FRAMEWORKS = ['generic', 'docusaurus', 'starlight', 'nextra', 'nextjs'] as const;
+const FRAMEWORKS = [
+  'generic',
+  'docusaurus',
+  'starlight',
+  'nextra',
+  'nextjs',
+] as const;
 const THEMES = ['light', 'dark'] as const;
 
 const server = new McpServer({
@@ -41,24 +47,28 @@ server.tool(
   'render_mdx',
   'Compile MDX via mdx-forge (Safe or Trusted Mode), publish it to a local live-reload HTTP server (stable URL across calls, auto-refreshes open tabs), & save a self-contained HTML file on disk. Returns a preview URL for the browser plus the full HTML for claude.ai artifact rendering. Also surfaces structured diagnostics (unknown components, prop lint, frontmatter schema mismatches) so the model can self-correct. Pass `screenshot: true` for a single PNG; pass `screenshots: { themes, viewports }` to capture a matrix of named-preset variants in one call (cap: 8).',
   {
-    source: z.string().describe('MDX source text (inline). Frontmatter is parsed automatically.'),
+    source: z
+      .string()
+      .describe(
+        'MDX source text (inline). Frontmatter is parsed automatically.'
+      ),
     framework: z
       .enum(FRAMEWORKS)
       .optional()
       .describe(
-        "Framework CSS bundle to apply — one of 'generic', 'docusaurus', 'starlight', 'nextra', 'nextjs'. Default: 'generic'.",
+        "Framework CSS bundle to apply — one of 'generic', 'docusaurus', 'starlight', 'nextra', 'nextjs'. Default: 'generic'."
       ),
     mode: z
       .enum(['safe', 'trusted'])
       .optional()
       .describe(
-        "Rendering mode. 'safe' compiles MDX to sanitized static HTML (no JS execution). 'trusted' executes the compiled MDX as React in a sandboxed, network-blocked Chromium context, giving full fidelity for JSX tags like <Tabs>, <Callout>, <Steps>, etc. Use 'trusted' when the MDX relies on framework components. Default: 'safe'.",
+        "Rendering mode. 'safe' compiles MDX to sanitized static HTML (no JS execution). 'trusted' executes the compiled MDX as React in a sandboxed, network-blocked Chromium context, giving full fidelity for JSX tags like <Tabs>, <Callout>, <Steps>, etc. Use 'trusted' when the MDX relies on framework components. Default: 'safe'."
       ),
     screenshot: z
       .boolean()
       .optional()
       .describe(
-        'Single-shot PNG screenshot via headless Chromium using top-level `theme` & `viewport`. Ignored when `screenshots` matrix is also supplied. Default: false.',
+        'Single-shot PNG screenshot via headless Chromium using top-level `theme` & `viewport`. Ignored when `screenshots` matrix is also supplied. Default: false.'
       ),
     screenshots: z
       .object({
@@ -67,34 +77,40 @@ server.tool(
           .min(1)
           .max(THEMES.length)
           .optional()
-          .describe("Themes to capture. Default: [top-level `theme` or 'light']."),
+          .describe(
+            "Themes to capture. Default: [top-level `theme` or 'light']."
+          ),
         viewports: z
           .array(z.enum(VIEWPORT_PRESET_NAMES))
           .min(1)
           .max(VIEWPORT_PRESET_NAMES.length)
           .optional()
           .describe(
-            'Named viewport presets: mobile (375x667), tablet (768x1024), desktop (1280x800), wide (1920x1080). Default: [top-level `viewport` or 1024x768].',
+            'Named viewport presets: mobile (375x667), tablet (768x1024), desktop (1280x800), wide (1920x1080). Default: [top-level `viewport` or 1024x768].'
           ),
         fullPage: z
           .boolean()
           .optional()
-          .describe('Capture full page height vs viewport-clipped. Default: true.'),
+          .describe(
+            'Capture full page height vs viewport-clipped. Default: true.'
+          ),
       })
       .refine(
         (v) =>
           (v.themes?.length ?? 1) * (v.viewports?.length ?? 1) <=
           MAX_SCREENSHOT_VARIANTS,
-        `themes x viewports must not exceed ${MAX_SCREENSHOT_VARIANTS}`,
+        `themes x viewports must not exceed ${MAX_SCREENSHOT_VARIANTS}`
       )
       .optional()
       .describe(
-        'Matrix screenshot capture — cross-product of themes & viewports. Returns one labeled PNG per variant. Wins over `screenshot` when both are set.',
+        'Matrix screenshot capture — cross-product of themes & viewports. Returns one labeled PNG per variant. Wins over `screenshot` when both are set.'
       ),
     theme: z
       .enum(['light', 'dark'])
       .optional()
-      .describe("Preferred color scheme for the preview & screenshot. Default: 'light'."),
+      .describe(
+        "Preferred color scheme for the preview & screenshot. Default: 'light'."
+      ),
     viewport: z
       .object({
         width: z.number().int().positive().optional(),
@@ -106,7 +122,7 @@ server.tool(
       .boolean()
       .optional()
       .describe(
-        'Auto-open the preview URL in the default browser on the first render this session. Subsequent renders rely on live reload (no focus-stealing). Default: false.',
+        'Auto-open the preview URL in the default browser on the first render this session. Subsequent renders rely on live reload (no focus-stealing). Default: false.'
       ),
   },
   async (args) => {
@@ -159,7 +175,7 @@ server.tool(
         '',
         '3. If a "### Warnings" section is present above, surface the issues to the user (or fix them yourself before showing the render) — they include unknown components, invalid props, and frontmatter gaps with line numbers and did-you-mean suggestions.',
         '',
-        '4. Keep the rest of your reply concise. Do not dump the HTML body verbatim unless the user asked.',
+        '4. Keep the rest of your reply concise. Do not dump the HTML body verbatim unless the user asked.'
       );
       const trailing = trailingSections.join('\n');
 
@@ -178,26 +194,26 @@ server.tool(
     } catch (err) {
       return buildErrorResponse(err);
     }
-  },
+  }
 );
 
 // --- list_components ---------------------------------------------------------
 
 server.tool(
   'list_components',
-  'Return the MDX component registry for a framework — names, props, required vs optional, enum values, examples. Call this BEFORE writing MDX that uses framework-specific components so you don\'t guess at prop names or enum values. When `name` is supplied, returns the full detail for that one component; otherwise returns the summary list for the entire framework.',
+  "Return the MDX component registry for a framework — names, props, required vs optional, enum values, examples. Call this BEFORE writing MDX that uses framework-specific components so you don't guess at prop names or enum values. When `name` is supplied, returns the full detail for that one component; otherwise returns the summary list for the entire framework.",
   {
     framework: z
       .enum(FRAMEWORKS)
       .optional()
       .describe(
-        "Framework whose shim registry to list. Default: 'generic'. Note: the 'generic' components are ALSO available when any other framework is selected — framework-specific components augment the generic set.",
+        "Framework whose shim registry to list. Default: 'generic'. Each framework is scoped to its own shim barrel; generic components are listed separately."
       ),
     name: z
       .string()
       .optional()
       .describe(
-        'Look up a single component by name (or alias). If omitted, returns all components for the framework.',
+        'Look up a single component by name (or alias). If omitted, returns all components for the framework.'
       ),
   },
   async (args) => {
@@ -221,7 +237,7 @@ server.tool(
                   },
                 },
                 null,
-                2,
+                2
               ),
             },
           ],
@@ -237,7 +253,8 @@ server.tool(
       };
     }
 
-    const frameworkComponents = listComponentsForFramework(framework).map(describeComponent);
+    const frameworkComponents =
+      listComponentsForFramework(framework).map(describeComponent);
     const frontmatterSchema = getFrontmatterSchema(framework);
 
     return {
@@ -255,12 +272,12 @@ server.tool(
               },
             },
             null,
-            2,
+            2
           ),
         },
       ],
     };
-  },
+  }
 );
 
 // --- helpers ----------------------------------------------------------------
@@ -297,6 +314,7 @@ function describeComponent(spec: ComponentSpec): Record<string, unknown> {
     name: spec.name,
     aliases: spec.aliases ?? [],
     importSpecifier: spec.importSpecifier,
+    importSpecifiers: spec.importSpecifiers,
     summary: spec.summary,
     example: spec.example,
     childrenKind: spec.childrenKind ?? 'block',
@@ -309,7 +327,7 @@ type ContentBlock =
   | { type: 'image'; data: string; mimeType: string };
 
 function buildScreenshotBlocks(
-  variants: readonly CaptureVariant[],
+  variants: readonly CaptureVariant[]
 ): ContentBlock[] {
   if (variants.length === 1) {
     return [
@@ -353,7 +371,10 @@ function buildErrorResponse(err: unknown): {
       `render_mdx failed: ${formatDiagnostic(err.diagnostic)}`,
       '',
       err.warnings.length > 0
-        ? ['Additional warnings:', ...err.warnings.map((d) => `- ${formatDiagnostic(d)}`)].join('\n')
+        ? [
+            'Additional warnings:',
+            ...err.warnings.map((d) => `- ${formatDiagnostic(d)}`),
+          ].join('\n')
         : '',
       '',
       '```json',
