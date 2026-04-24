@@ -117,7 +117,7 @@ describe('render_mdx matrix screenshots', () => {
         'dark-mobile-375x667',
         'light-desktop-1280x800',
         'light-mobile-375x667',
-      ].sort(),
+      ].sort()
     );
 
     for (const variant of variants!) {
@@ -132,9 +132,7 @@ describe('render_mdx matrix screenshots', () => {
     const darkMobile = byLabel.get('dark-mobile-375x667')!;
     const darkDesktop = byLabel.get('dark-desktop-1280x800')!;
 
-    expect(pngWidth(lightMobile.png)).toBeLessThan(
-      pngWidth(lightDesktop.png),
-    );
+    expect(pngWidth(lightMobile.png)).toBeLessThan(pngWidth(lightDesktop.png));
     expect(pngWidth(darkMobile.png)).toBeLessThan(pngWidth(darkDesktop.png));
 
     expect(lightMobile.png.equals(darkMobile.png)).toBe(false);
@@ -154,7 +152,7 @@ describe('render_mdx matrix screenshots', () => {
     expect(only.viewport.width).toBe(DEFAULT_VIEWPORT.width);
     expect(only.viewport.height).toBe(DEFAULT_VIEWPORT.height);
     expect(only.label).toBe(
-      `light-custom-${DEFAULT_VIEWPORT.width}x${DEFAULT_VIEWPORT.height}`,
+      `light-custom-${DEFAULT_VIEWPORT.width}x${DEFAULT_VIEWPORT.height}`
     );
     expect(isPng(only.png)).toBe(true);
   }, 30_000);
@@ -171,8 +169,8 @@ describe('render_mdx matrix screenshots', () => {
     expect(result.screenshots![0].viewport.preset).toBe('mobile');
     expect(
       result.diagnostics.some(
-        (d) => d.kind === 'deprecated-alias' && /screenshots/.test(d.message),
-      ),
+        (d) => d.kind === 'deprecated-alias' && /screenshots/.test(d.message)
+      )
     ).toBe(true);
   }, 30_000);
 });

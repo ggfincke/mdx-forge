@@ -1,12 +1,5 @@
-// Trusted Mode compiler + harness orchestration.
-//
-// split into:
-//   compileTrustedModule   MDX -> ESM -> CJS + dep extraction (Node-side only)
-//   snapshotTrustedModule  run the CJS through the headless harness, return
-//                          the initial innerHTML (used for the `html` field
-//                          of the MCP response + screenshot source)
-//   readHarnessBundle      read the per-framework IIFE bundle from disk so the
-//                          interactive preview doc can reference or inline it
+// plugins/render/src/trusted.ts
+// Trusted Mode compile, snapshot & harness bundle helpers
 
 import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
@@ -22,8 +15,7 @@ const PLUGIN_ROOT = resolve(dirname(__filename), '..');
 
 const IMPORT_SPECIFIER_PATTERN =
   /^\s*import\s+(?:[^'"]+?\s+from\s+)?['"]([^'"\n]+)['"]\s*;?\s*$/gm;
-const DYNAMIC_IMPORT_PATTERN =
-  /\bimport\s*\(\s*['"]([^'"\n]+)['"]\s*\)/g;
+const DYNAMIC_IMPORT_PATTERN = /\bimport\s*\(\s*['"]([^'"\n]+)['"]\s*\)/g;
 
 export interface TrustedCompiledModule {
   cjsCode: string;
@@ -61,7 +53,7 @@ function uniqueEntryId(): string {
 
 export async function compileTrustedModule(
   source: string,
-  framework: Framework,
+  framework: Framework
 ): Promise<TrustedCompiledModule> {
   // disable builtin imports so the only remaining deps are react +
   // jsx-runtime + @mdx-js/react (all preloaded in the harness). framework
@@ -86,19 +78,21 @@ export async function compileTrustedModule(
 // render the compiled module in the headless harness to produce the initial
 // innerHTML snapshot. used for the MCP `html` field + PNG screenshot source.
 export async function snapshotTrustedModule(
-  compiled: TrustedCompiledModule,
+  compiled: TrustedCompiledModule
 ): Promise<string> {
   const page = await getHarnessPage(compiled.framework);
 
   const result = await page.evaluate(
     async ({ code, deps, entryId }) => {
-      const api = (window as unknown as {
-        __mdxForgeRender?: (
-          code: string,
-          deps: string[],
-          entryId: string,
-        ) => Promise<{ html: string } | { error: string }>;
-      }).__mdxForgeRender;
+      const api = (
+        window as unknown as {
+          __mdxForgeRender?: (
+            code: string,
+            deps: string[],
+            entryId: string
+          ) => Promise<{ html: string } | { error: string }>;
+        }
+      ).__mdxForgeRender;
       if (!api) {
         return { error: 'harness __mdxForgeRender not installed' };
       }
@@ -108,7 +102,7 @@ export async function snapshotTrustedModule(
       code: compiled.cjsCode,
       deps: compiled.dependencies,
       entryId: compiled.entryId,
-    },
+    }
   );
 
   if ('error' in result) {
@@ -132,9 +126,12 @@ export function readHarnessBundle(framework: Framework): Promise<string> {
     'dist',
     'harness',
     framework,
-    'bundle.js',
+    'bundle.js'
   );
-  const pending = readFile(filePath, 'utf8');
+  const pending = readFile(filePath, 'utf8').catch((err: unknown) => {
+    bundleCache.delete(framework);
+    throw err;
+  });
   bundleCache.set(framework, pending);
   return pending;
 }

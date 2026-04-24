@@ -1,8 +1,12 @@
-// Local HTTP preview server — serves the latest render at a stable URL on
-// 127.0.0.1, live-reloads open tabs via SSE, and statically serves the
-// Trusted Mode harness bundles so the browser tab can mount React directly.
+// plugins/render/src/preview-server.ts
+// local HTTP preview server w/ live reload & harness bundle routing
 
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import {
+  createServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from 'node:http';
 import { spawn } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
@@ -33,9 +37,12 @@ function readHarnessBundle(framework: string): Promise<Buffer> {
     'dist',
     'harness',
     framework,
-    'bundle.js',
+    'bundle.js'
   );
-  const pending = readFile(filePath);
+  const pending = readFile(filePath).catch((err: unknown) => {
+    harnessBundleCache.delete(framework);
+    throw err;
+  });
   harnessBundleCache.set(framework, pending);
   return pending;
 }
@@ -118,7 +125,7 @@ function handleRequest(req: IncomingMessage, res: ServerResponse): void {
       (err) => {
         res.writeHead(500, { 'Content-Type': 'text/plain' });
         res.end(`harness bundle missing: ${err.message}`);
-      },
+      }
     );
     return;
   }
@@ -160,6 +167,9 @@ export async function startPreviewServer(): Promise<string> {
       serverPort = address.port;
       resolve(`http://127.0.0.1:${address.port}/preview`);
     });
+  }).catch((err: unknown) => {
+    startPromise = undefined;
+    throw err;
   });
 
   return startPromise;

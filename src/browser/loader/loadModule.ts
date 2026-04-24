@@ -9,6 +9,7 @@ import { evaluateModule } from '../eval/evaluateModule';
 import { injectStyles } from '../styles/injectStyles';
 import { createSyncRequire } from '../runtime/require';
 import {
+  createCircularDependencyError,
   createModuleNotFoundError,
   createModuleDepthExceededError,
 } from '../errors';
@@ -26,6 +27,14 @@ const inFlightFetches = new Map<string, Promise<FetchResult | undefined>>();
 
 function makeInFlightKey(parentId: string, dep: string): string {
   return `${parentId}\0${dep}`;
+}
+
+function createCycleChain(id: string, importChain: string[]): string[] {
+  const cycleStart = importChain.indexOf(id);
+  if (cycleStart === -1) {
+    return [...importChain, id];
+  }
+  return [...importChain.slice(cycleStart), id];
 }
 
 function getPreloadAliasMap(): Record<string, string> {
@@ -53,7 +62,8 @@ export async function loadModule(
   code: string,
   dependencies: string[],
   fetcher: ModuleFetcher,
-  depth: number = 0
+  depth: number = 0,
+  importChain: string[] = []
 ): Promise<Module> {
   const config = getModuleLoaderConfig();
 
@@ -72,11 +82,25 @@ export async function loadModule(
   // if this module is already being loaded, return the in-flight promise
   const pending = registry.getPending(id);
   if (pending) {
+    if (importChain.includes(id)) {
+      throw createCircularDependencyError(
+        id,
+        importChain.at(-1),
+        createCycleChain(id, importChain)
+      );
+    }
     return pending;
   }
 
   // create promise for this module
-  const modulePromise = loadModuleAsync(id, code, dependencies, fetcher, depth);
+  const modulePromise = loadModuleAsync(
+    id,
+    code,
+    dependencies,
+    fetcher,
+    depth,
+    [...importChain, id]
+  );
 
   // register as pending for circular dependency detection
   registry.setPending(id, modulePromise);
@@ -95,7 +119,8 @@ async function loadModuleAsync(
   code: string,
   dependencies: string[],
   fetcher: ModuleFetcher,
-  depth: number
+  depth: number,
+  importChain: string[]
 ): Promise<Module> {
   // phase 1: categorize dependencies (cached vs needs fetching)
   interface ToFetch {
@@ -142,21 +167,17 @@ async function loadModuleAsync(
       // check for in-flight fetch w/ same (parent, dep) pair
       let fetchPromise = inFlightFetches.get(inFlightKey);
       if (!fetchPromise) {
-        // acquire semaphore permit (limits concurrent fetches)
         const semaphore = getFetchSemaphore();
-        await semaphore.acquire();
-        try {
-          fetchPromise = fetcher(dep, isBare, id);
-          inFlightFetches.set(inFlightKey, fetchPromise);
-          // clean up on completion (success or failure)
-          fetchPromise.finally(() => {
+        fetchPromise = (async () => {
+          await semaphore.acquire();
+          try {
+            return await fetcher(dep, isBare, id);
+          } finally {
             inFlightFetches.delete(inFlightKey);
             semaphore.release();
-          });
-        } catch (e) {
-          semaphore.release();
-          throw e;
-        }
+          }
+        })();
+        inFlightFetches.set(inFlightKey, fetchPromise);
       }
 
       const result = await fetchPromise;
@@ -217,7 +238,8 @@ async function loadModuleAsync(
         result.code,
         result.dependencies,
         fetcher,
-        depth + 1
+        depth + 1,
+        importChain
       ).then(() => {
         registry.addDependency(id, result.fsPath);
       })

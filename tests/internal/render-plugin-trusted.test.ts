@@ -25,15 +25,19 @@ describe('render plugin trusted compile pipeline', () => {
 
     const deps = extractDependencies(result.code);
     expect(new Set(deps)).toEqual(
-      new Set(['react', 'react/jsx-runtime', '@mdx-js/react']),
+      new Set(['react', 'react/jsx-runtime', '@mdx-js/react'])
     );
   });
 
   it('leaves JSX-tag references unresolved so MDXProvider can supply them at render time', async () => {
-    const result = await compileTrusted('<Tabs><TabItem>x</TabItem></Tabs>', true, {
-      documentPath: '/virtual/x.mdx',
-      componentsBuiltins: false,
-    });
+    const result = await compileTrusted(
+      '<Tabs><TabItem>x</TabItem></Tabs>',
+      true,
+      {
+        documentPath: '/virtual/x.mdx',
+        componentsBuiltins: false,
+      }
+    );
 
     // when builtins are off, MDX generates runtime lookups via _components
     // rather than bare imports like `import _builtin_Tabs from 'Tabs'`
