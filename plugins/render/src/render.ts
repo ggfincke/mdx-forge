@@ -18,7 +18,13 @@ import { join } from 'node:path';
 import { compileSafe } from 'mdx-forge/compiler';
 import { chromium, type Browser } from 'playwright';
 import { resolveFrameworkCss, tokensCss, type Framework } from './css.js';
+import {
+  normalizeCompileError,
+  RenderDiagnosticError,
+  type Diagnostic,
+} from './diagnostics.js';
 import { sanitizeScreenshotHtml } from './html.js';
+import { lintMdxSource } from './lint.js';
 import {
   autoOpenOnce,
   getPreviewUrl,
@@ -52,6 +58,8 @@ export interface RenderResult {
   previewPath: string;
   previewUrl: string;
   screenshot?: Buffer;
+  // lint + runtime diagnostics. empty array on a clean render.
+  diagnostics: Diagnostic[];
 }
 
 let browserPromise: Promise<Browser> | undefined;
@@ -246,12 +254,30 @@ async function buildModeDocs(
   tokens: string,
   frameworkCss: string,
   theme: 'light' | 'dark',
+  warnings: readonly Diagnostic[],
 ): Promise<ModeDocs> {
   if (mode === 'trusted') {
-    const compiled = await compileTrustedModule(source, framework);
-    // snapshot + harness bundle read happen in parallel (both are slow)
+    let compiled: TrustedCompiledModule;
+    try {
+      compiled = await compileTrustedModule(source, framework);
+    } catch (err) {
+      throw new RenderDiagnosticError(
+        normalizeCompileError(err, { source, framework }),
+        warnings,
+      );
+    }
+
+    // snapshot failures stem from the user's MDX (component threw, missing
+    // shim, etc.) — normalize. harness-bundle failures are infrastructure
+    // (build never ran, file missing) — let them propagate raw.
+    const snapshotPromise = snapshotTrustedModule(compiled).catch((err) => {
+      throw new RenderDiagnosticError(
+        normalizeCompileError(err, { source, framework }),
+        warnings,
+      );
+    });
     const [bodyHtml, bundleSource] = await Promise.all([
-      snapshotTrustedModule(compiled),
+      snapshotPromise,
       readHarnessBundle(framework),
     ]);
 
@@ -274,9 +300,17 @@ async function buildModeDocs(
     return { bodyHtml, frontmatter: compiled.frontmatter, previewHtml, fullHtml };
   }
 
-  const compiled = await compileSafe(source, {
-    documentPath: '/virtual/render.mdx',
-  });
+  let compiled: Awaited<ReturnType<typeof compileSafe>>;
+  try {
+    compiled = await compileSafe(source, {
+      documentPath: '/virtual/render.mdx',
+    });
+  } catch (err) {
+    throw new RenderDiagnosticError(
+      normalizeCompileError(err, { source, framework }),
+      warnings,
+    );
+  }
   const bodyHtml = sanitizeScreenshotHtml(compiled.html);
   const doc = buildSafeDocument(bodyHtml, tokens, frameworkCss, theme);
   return {
@@ -292,6 +326,15 @@ export async function renderMdx(args: RenderArgs): Promise<RenderResult> {
   const theme = args.theme ?? 'light';
   const mode: RenderMode = args.mode ?? 'safe';
 
+  // lint first — catches syntax errors, unknown components, prop mismatches,
+  // frontmatter gaps BEFORE we pay for the compile + headless render. a fatal
+  // lint result short-circuits as a structured error.
+  const lint = await lintMdxSource(args.source, framework);
+  if (lint.fatal) {
+    throw new RenderDiagnosticError(lint.fatal, lint.diagnostics);
+  }
+  const warnings = lint.diagnostics;
+
   const [tokens, frameworkCss, previewUrl] = await Promise.all([
     tokensCss(),
     resolveFrameworkCss(framework),
@@ -305,6 +348,7 @@ export async function renderMdx(args: RenderArgs): Promise<RenderResult> {
     tokens,
     frameworkCss,
     theme,
+    warnings,
   );
 
   const previewPath = await writePreviewFile(docs.fullHtml);
@@ -320,6 +364,7 @@ export async function renderMdx(args: RenderArgs): Promise<RenderResult> {
     frontmatter: docs.frontmatter,
     previewPath,
     previewUrl,
+    diagnostics: [...warnings],
   };
 
   if (!args.screenshot) {

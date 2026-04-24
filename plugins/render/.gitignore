@@ -1,4 +1,4 @@
 node_modules/
 dist/
 *.log
-scripts/smoke-output.png
+scripts/*.png

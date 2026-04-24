@@ -1,8 +1,14 @@
 # mdx-forge-render
 
-Claude Code plugin that exposes a single MCP tool, `render_mdx`, for
-compiling MDX to HTML (via `mdx-forge` Safe Mode) with an optional
-headless-Chromium screenshot.
+Claude Code plugin that exposes two MCP tools for authoring MDX with
+structured feedback:
+
+- `render_mdx` — compile MDX to HTML (Safe or Trusted Mode), publish a
+  live-reloading preview, optionally screenshot, and return structured
+  diagnostics (unknown components, invalid props, frontmatter gaps) with
+  line numbers and did-you-mean suggestions.
+- `list_components` — look up the framework's component registry (names,
+  required/optional props, enum values, examples) before writing MDX.
 
 ## Install
 
@@ -35,14 +41,80 @@ npm run build
 | `viewport`  | `{ width?, height? }`                                             | `1024 x 768`  |
 
 Returns three content blocks:
-1. **Lead-in text** with a `file://` URL to a self-contained HTML preview
-   saved in your tmp directory — click to open in your default browser for
-   the full-fidelity render (real CSS, Shiki colors, framework shims).
-2. **PNG screenshot** (only when `screenshot: true`) — useful as a fallback
-   in chat surfaces that don't render `file://` links.
-3. **Trailing text** with the compiled HTML body (fenced), parsed
-   frontmatter (JSON), and agent directives so the model surfaces the
-   preview URL in its reply.
+1. **Lead-in text** with a live preview URL + `file://` fallback.
+2. **PNG screenshot** (only when `screenshot: true`).
+3. **Trailing text** with a `### Warnings` section (plain-text
+   diagnostics), a `### Diagnostics (structured)` JSON block, the
+   frontmatter (JSON), compiled HTML body, and self-contained HTML for
+   claude.ai artifacts.
+
+When MDX fails to compile or render, the tool returns `isError: true`
+with a structured payload:
+```json
+{
+  "error": {
+    "kind": "unknown-component",
+    "component": "Tab",
+    "suggestion": "TabItem",
+    "line": 12,
+    "column": 1,
+    "message": "Component <Tab> is not in the \"generic\" shim registry."
+  },
+  "warnings": [ /* any diagnostics accumulated before the failure */ ]
+}
+```
+
+## Tool: `list_components`
+
+| Param       | Type                                                              | Default       |
+| ----------- | ----------------------------------------------------------------- | ------------- |
+| `framework` | `'generic' \| 'docusaurus' \| 'starlight' \| 'nextra' \| 'nextjs'` | `'generic'`   |
+| `name`      | string (component name or alias)                                  | all           |
+
+Returns the shim registry as JSON. When `name` is supplied, responds
+with the full spec for that one component (props, required flags, enum
+values, description, example). Otherwise responds with every component
+the framework exposes plus the generic set it inherits, plus the
+framework's frontmatter schema.
+
+**Why call it:** so you write correct MDX without guessing at prop
+names or enum values. Instead of shipping `<Callout type="danger">`
+and only discovering a framework accepts `info | warning | error`
+after a failed render, look up the contract first.
+
+## Diagnostics
+
+Both tools produce diagnostics with a stable shape:
+
+```ts
+interface Diagnostic {
+  kind:
+    | 'mdx-syntax'
+    | 'unknown-component'
+    | 'invalid-prop'
+    | 'missing-required-prop'
+    | 'invalid-prop-value'
+    | 'deprecated-alias'
+    | 'missing-frontmatter'
+    | 'unknown-frontmatter'
+    | 'invalid-frontmatter-type'
+    | 'runtime-error';
+  severity: 'error' | 'warning';
+  message: string;
+  line?: number;
+  column?: number;
+  component?: string;
+  prop?: string;
+  field?: string;
+  suggestion?: string;
+}
+```
+
+The lint pass walks the MDX AST before compiling, so unknown
+components and malformed props are caught cheaply and reported with
+positions. Frontmatter is validated against per-framework schemas
+(e.g., Starlight requires `title`, Docusaurus accepts
+`sidebar_position: number`).
 
 Chat-surface compatibility:
 - **Claude Code (CLI)**: click the `file://` URL to open in your browser.

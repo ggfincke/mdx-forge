@@ -1,8 +1,8 @@
 {
   "name": "@mdx-forge/render-plugin",
   "private": true,
-  "version": "0.1.0",
-  "description": "MCP server that renders MDX to HTML plus optional headless Chromium screenshot.",
+  "version": "0.2.0",
+  "description": "MCP server that renders MDX to HTML plus optional headless Chromium screenshot. Exposes list_components & render_mdx w/ structured diagnostics (prop lint, frontmatter validation, did-you-mean suggestions).",
   "type": "module",
   "license": "MIT",
   "engines": {
@@ -12,7 +12,12 @@
     "build": "tsc -p tsconfig.json && node scripts/build-harness.mjs",
     "build:harness": "node scripts/build-harness.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "smoke": "npm run build && npm run smoke:diagnostics && npm run smoke:trusted-errors && npm run smoke:safe && npm run smoke:trusted",
+    "smoke:diagnostics": "node scripts/smoke-diagnostics.mjs",
+    "smoke:trusted-errors": "node scripts/smoke-trusted-errors.mjs",
+    "smoke:safe": "node scripts/smoke.mjs",
+    "smoke:trusted": "node scripts/smoke-trusted.mjs"
   },
   "dependencies": {
     "@mdx-js/react": "^3.0.0",
