@@ -1,6 +1,6 @@
 // src/browser/internal/lru-cache.ts
-// generic LRU cache w/ count & memory-based eviction
-// ! cross-repo duplicate: mirror runtime-utils LRU behavior
+// MIT browser LRU cache; shared subset mirrors vsc runtime-utils LRU
+// ! cross-repo duplicate: keep common behavior covered by parity tests
 
 export interface LRUCacheOptions<K, V> {
   maxEntries: number;
