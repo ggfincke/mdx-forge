@@ -26,6 +26,12 @@ import {
 import { sanitizeScreenshotHtml } from './html.js';
 import { lintMdxSource } from './lint.js';
 import {
+  resolveViewport,
+  viewportLabelFragment,
+  type ResolvedViewport,
+  type ViewportPreset,
+} from './viewports.js';
+import {
   autoOpenOnce,
   getPreviewUrl,
   startPreviewServer,
@@ -40,15 +46,30 @@ import {
 } from './trusted.js';
 
 export type RenderMode = 'safe' | 'trusted';
+export type Theme = 'light' | 'dark';
+
+export interface ScreenshotsMatrix {
+  themes?: Theme[];
+  viewports?: ViewportPreset[];
+  fullPage?: boolean;
+}
 
 export interface RenderArgs {
   source: string;
   framework?: Framework;
   mode?: RenderMode;
   screenshot?: boolean;
-  theme?: 'light' | 'dark';
+  screenshots?: ScreenshotsMatrix;
+  theme?: Theme;
   viewport?: { width?: number; height?: number };
   autoOpen?: boolean;
+}
+
+export interface CaptureVariant {
+  label: string;
+  theme: Theme;
+  viewport: ResolvedViewport;
+  png: Buffer;
 }
 
 export interface RenderResult {
@@ -57,10 +78,11 @@ export interface RenderResult {
   frontmatter: Record<string, unknown>;
   previewPath: string;
   previewUrl: string;
-  screenshot?: Buffer;
-  // lint + runtime diagnostics. empty array on a clean render.
+  screenshots?: CaptureVariant[];
   diagnostics: Diagnostic[];
 }
+
+export const MAX_SCREENSHOT_VARIANTS = 8;
 
 let browserPromise: Promise<Browser> | undefined;
 
@@ -139,35 +161,30 @@ const SHIKI_DEFAULTS = `
 }
 `;
 
-function baseStyles(theme: 'light' | 'dark'): string {
-  const bg = theme === 'dark' ? '#1e1e1e' : '#ffffff';
-  const fg = theme === 'dark' ? '#e6e6e6' : '#1a1a1a';
+function baseStyles(): string {
   return `
-    :root { color-scheme: ${theme}; }
+    [data-theme="light"] { color-scheme: light; }
+    [data-theme="dark"] { color-scheme: dark; }
     body {
       margin: 0;
       padding: 2rem;
-      background: ${bg};
-      color: ${fg};
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       line-height: 1.6;
     }
+    [data-theme="light"] body { background: #ffffff; color: #1a1a1a; }
+    [data-theme="dark"] body { background: #1e1e1e; color: #e6e6e6; }
     pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
   `;
 }
 
-function documentHead(
-  tokens: string,
-  frameworkCss: string,
-  theme: 'light' | 'dark',
-): string {
+function documentHead(tokens: string, frameworkCss: string): string {
   return `<head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>${tokens}</style>
   <style>${frameworkCss}</style>
   <style>${SHIKI_DEFAULTS}</style>
-  <style>${baseStyles(theme)}</style>
+  <style>${baseStyles()}</style>
 </head>`;
 }
 
@@ -179,7 +196,7 @@ function buildSafeDocument(
 ): string {
   return `<!doctype html>
 <html lang="en" data-theme="${theme}">
-${documentHead(tokens, frameworkCss, theme)}
+${documentHead(tokens, frameworkCss)}
 <body>${bodyHtml}</body>
 </html>`;
 }
@@ -224,7 +241,7 @@ function buildTrustedDocument(opts: TrustedDocumentOptions): string {
 
   return `<!doctype html>
 <html lang="en" data-theme="${theme}">
-${documentHead(tokens, frameworkCss, theme)}
+${documentHead(tokens, frameworkCss)}
 <body>
   <div id="mdx-root"></div>
   <script>${globals}</script>
@@ -358,40 +375,170 @@ export async function renderMdx(args: RenderArgs): Promise<RenderResult> {
     autoOpenOnce(getPreviewUrl() ?? previewUrl);
   }
 
+  const diagnostics = [...warnings];
+  const plan = buildCapturePlan(args, theme, diagnostics);
   const base: RenderResult = {
     html: docs.bodyHtml,
     fullHtml: docs.fullHtml,
     frontmatter: docs.frontmatter,
     previewPath,
     previewUrl,
-    diagnostics: [...warnings],
+    diagnostics,
   };
 
-  if (!args.screenshot) {
+  if (plan.variants.length === 0) {
     return base;
   }
 
-  // screenshots always use the headless snapshot doc so even interactive
-  // trusted renders yield a predictable PNG without waiting for React mount.
   const screenshotDoc =
     mode === 'trusted'
       ? buildSafeDocument(docs.bodyHtml, tokens, frameworkCss, theme)
       : docs.fullHtml;
+  const screenshots = await captureVariants(screenshotDoc, plan);
+  return { ...base, screenshots };
+}
 
-  const browser = await getBrowser();
-  const context = await browser.newContext({
-    viewport: {
-      width: args.viewport?.width ?? 1024,
-      height: args.viewport?.height ?? 768,
-    },
-    colorScheme: theme,
-  });
-  try {
-    const page = await context.newPage();
-    await page.setContent(screenshotDoc, { waitUntil: 'networkidle' });
-    const png = await page.screenshot({ type: 'png', fullPage: true });
-    return { ...base, screenshot: png };
-  } finally {
-    await context.close();
+interface CapturePlanVariant {
+  theme: Theme;
+  viewport: ResolvedViewport;
+}
+
+interface CapturePlan {
+  variants: CapturePlanVariant[];
+  fullPage: boolean;
+}
+
+function buildCapturePlan(
+  args: RenderArgs,
+  defaultTheme: Theme,
+  diagnostics: Diagnostic[],
+): CapturePlan {
+  const hasMatrix = args.screenshots !== undefined;
+  const hasLegacy = args.screenshot === true;
+
+  if (hasMatrix && hasLegacy) {
+    diagnostics.push({
+      kind: 'deprecated-alias',
+      severity: 'warning',
+      message:
+        '`screenshot: true` ignored because `screenshots` matrix was supplied.',
+    });
   }
+
+  if (hasMatrix) {
+    const matrix = args.screenshots as ScreenshotsMatrix;
+    const themeInput = matrix.themes?.length
+      ? matrix.themes
+      : [defaultTheme];
+    const themes = dedupeThemes(themeInput);
+    const viewportInput: ResolvedViewport[] = matrix.viewports?.length
+      ? matrix.viewports.map((p) => resolveViewport(p))
+      : [resolveViewport(args.viewport)];
+    const viewports = dedupeViewports(viewportInput);
+    const variants: CapturePlanVariant[] = [];
+    for (const viewport of viewports) {
+      for (const t of themes) {
+        variants.push({ theme: t, viewport });
+      }
+    }
+    if (variants.length > MAX_SCREENSHOT_VARIANTS) {
+      throw new RenderDiagnosticError(
+        {
+          kind: 'invalid-prop-value',
+          severity: 'error',
+          message: `screenshots matrix produced ${variants.length} variants; cap is ${MAX_SCREENSHOT_VARIANTS}.`,
+          prop: 'screenshots',
+        },
+        diagnostics,
+      );
+    }
+    return { variants, fullPage: matrix.fullPage ?? true };
+  }
+
+  if (hasLegacy) {
+    return {
+      variants: [
+        { theme: defaultTheme, viewport: resolveViewport(args.viewport) },
+      ],
+      fullPage: true,
+    };
+  }
+
+  return { variants: [], fullPage: true };
+}
+
+function dedupeThemes(themes: readonly Theme[]): Theme[] {
+  const seen = new Set<Theme>();
+  const out: Theme[] = [];
+  for (const t of themes) {
+    if (!seen.has(t)) {
+      seen.add(t);
+      out.push(t);
+    }
+  }
+  return out;
+}
+
+function dedupeViewports(
+  viewports: readonly ResolvedViewport[],
+): ResolvedViewport[] {
+  const seen = new Set<string>();
+  const out: ResolvedViewport[] = [];
+  for (const v of viewports) {
+    const key = `${v.preset ?? ''}:${v.width}x${v.height}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      out.push(v);
+    }
+  }
+  return out;
+}
+
+async function captureVariants(
+  screenshotDoc: string,
+  plan: CapturePlan,
+): Promise<CaptureVariant[]> {
+  const browser = await getBrowser();
+  const byViewport = new Map<string, CapturePlanVariant[]>();
+  for (const variant of plan.variants) {
+    const key = `${variant.viewport.preset ?? ''}:${variant.viewport.width}x${variant.viewport.height}`;
+    const bucket = byViewport.get(key);
+    if (bucket) {
+      bucket.push(variant);
+    } else {
+      byViewport.set(key, [variant]);
+    }
+  }
+
+  const results: CaptureVariant[] = [];
+  for (const bucket of byViewport.values()) {
+    const viewport = bucket[0].viewport;
+    const context = await browser.newContext({
+      viewport: { width: viewport.width, height: viewport.height },
+      colorScheme: bucket[0].theme,
+    });
+    try {
+      const page = await context.newPage();
+      await page.setContent(screenshotDoc, { waitUntil: 'networkidle' });
+      for (const variant of bucket) {
+        await page.emulateMedia({ colorScheme: variant.theme });
+        await page.evaluate((t) => {
+          document.documentElement.dataset.theme = t;
+        }, variant.theme);
+        const png = await page.screenshot({
+          type: 'png',
+          fullPage: plan.fullPage,
+        });
+        results.push({
+          label: `${variant.theme}-${viewportLabelFragment(viewport)}`,
+          theme: variant.theme,
+          viewport,
+          png,
+        });
+      }
+    } finally {
+      await context.close();
+    }
+  }
+  return results;
 }

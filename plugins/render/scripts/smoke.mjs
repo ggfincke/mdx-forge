@@ -27,15 +27,16 @@ console.log('  frontmatter:', htmlOnly.frontmatter);
 console.log('  html.length:', htmlOnly.html.length);
 console.log('  previewPath:', htmlOnly.previewPath);
 console.log('  previewUrl:', htmlOnly.previewUrl);
-console.log('  has screenshot:', !!htmlOnly.screenshot);
+console.log('  screenshots:', htmlOnly.screenshots?.length ?? 0);
 
 console.log('\nRendering with screenshot (framework=generic)...');
 const withShot = await renderMdx({ source, screenshot: true, framework: 'generic' });
-console.log('  screenshot bytes:', withShot.screenshot?.length);
+const singleShot = withShot.screenshots?.[0]?.png;
+console.log('  screenshot bytes:', singleShot?.length);
 console.log('  previewPath:', withShot.previewPath);
 console.log('  previewUrl:', withShot.previewUrl);
-if (withShot.screenshot) {
-  await writeFile('scripts/smoke-output.png', withShot.screenshot);
+if (singleShot) {
+  await writeFile('scripts/smoke-output.png', singleShot);
   console.log('  wrote scripts/smoke-output.png');
 }
 

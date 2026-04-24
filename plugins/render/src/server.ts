@@ -9,7 +9,12 @@ import {
   RenderDiagnosticError,
   type Diagnostic,
 } from './diagnostics.js';
-import { renderMdx, shutdownBrowser } from './render.js';
+import {
+  MAX_SCREENSHOT_VARIANTS,
+  renderMdx,
+  shutdownBrowser,
+  type CaptureVariant,
+} from './render.js';
 import {
   findComponent,
   getFrontmatterSchema,
@@ -20,8 +25,10 @@ import {
   type PropSpec,
 } from './registry.js';
 import { startPreviewServer, stopPreviewServer } from './preview-server.js';
+import { VIEWPORT_PRESET_NAMES } from './viewports.js';
 
 const FRAMEWORKS = ['generic', 'docusaurus', 'starlight', 'nextra', 'nextjs'] as const;
+const THEMES = ['light', 'dark'] as const;
 
 const server = new McpServer({
   name: 'mdx-forge-render',
@@ -32,7 +39,7 @@ const server = new McpServer({
 
 server.tool(
   'render_mdx',
-  'Compile MDX via mdx-forge (Safe or Trusted Mode), publish it to a local live-reload HTTP server (stable URL across calls, auto-refreshes open tabs), & save a self-contained HTML file on disk. Returns a preview URL for the browser plus the full HTML for claude.ai artifact rendering. Also surfaces structured diagnostics (unknown components, prop lint, frontmatter schema mismatches) so the model can self-correct. Optional PNG screenshot for chat surfaces that collapse tool output.',
+  'Compile MDX via mdx-forge (Safe or Trusted Mode), publish it to a local live-reload HTTP server (stable URL across calls, auto-refreshes open tabs), & save a self-contained HTML file on disk. Returns a preview URL for the browser plus the full HTML for claude.ai artifact rendering. Also surfaces structured diagnostics (unknown components, prop lint, frontmatter schema mismatches) so the model can self-correct. Pass `screenshot: true` for a single PNG; pass `screenshots: { themes, viewports }` to capture a matrix of named-preset variants in one call (cap: 8).',
   {
     source: z.string().describe('MDX source text (inline). Frontmatter is parsed automatically.'),
     framework: z
@@ -50,7 +57,40 @@ server.tool(
     screenshot: z
       .boolean()
       .optional()
-      .describe('Also render a PNG screenshot via headless Chromium. Default: false.'),
+      .describe(
+        'Single-shot PNG screenshot via headless Chromium using top-level `theme` & `viewport`. Ignored when `screenshots` matrix is also supplied. Default: false.',
+      ),
+    screenshots: z
+      .object({
+        themes: z
+          .array(z.enum(THEMES))
+          .min(1)
+          .max(THEMES.length)
+          .optional()
+          .describe("Themes to capture. Default: [top-level `theme` or 'light']."),
+        viewports: z
+          .array(z.enum(VIEWPORT_PRESET_NAMES))
+          .min(1)
+          .max(VIEWPORT_PRESET_NAMES.length)
+          .optional()
+          .describe(
+            'Named viewport presets: mobile (375x667), tablet (768x1024), desktop (1280x800), wide (1920x1080). Default: [top-level `viewport` or 1024x768].',
+          ),
+        fullPage: z
+          .boolean()
+          .optional()
+          .describe('Capture full page height vs viewport-clipped. Default: true.'),
+      })
+      .refine(
+        (v) =>
+          (v.themes?.length ?? 1) * (v.viewports?.length ?? 1) <=
+          MAX_SCREENSHOT_VARIANTS,
+        `themes x viewports must not exceed ${MAX_SCREENSHOT_VARIANTS}`,
+      )
+      .optional()
+      .describe(
+        'Matrix screenshot capture — cross-product of themes & viewports. Returns one labeled PNG per variant. Wins over `screenshot` when both are set.',
+      ),
     theme: z
       .enum(['light', 'dark'])
       .optional()
@@ -61,7 +101,7 @@ server.tool(
         height: z.number().int().positive().optional(),
       })
       .optional()
-      .describe('Viewport size for the screenshot. Default: 1024x768.'),
+      .describe('Viewport size for single-shot screenshot. Default: 1024x768.'),
     autoOpen: z
       .boolean()
       .optional()
@@ -128,12 +168,8 @@ server.tool(
         | { type: 'image'; data: string; mimeType: string }
       > = [{ type: 'text', text: leadIn }];
 
-      if (result.screenshot) {
-        content.push({
-          type: 'image',
-          data: result.screenshot.toString('base64'),
-          mimeType: 'image/png',
-        });
+      if (result.screenshots && result.screenshots.length > 0) {
+        content.push(...buildScreenshotBlocks(result.screenshots));
       }
 
       content.push({ type: 'text', text: trailing });
@@ -266,6 +302,34 @@ function describeComponent(spec: ComponentSpec): Record<string, unknown> {
     childrenKind: spec.childrenKind ?? 'block',
     props: spec.props.map(describeProp),
   };
+}
+
+type ContentBlock =
+  | { type: 'text'; text: string }
+  | { type: 'image'; data: string; mimeType: string };
+
+function buildScreenshotBlocks(
+  variants: readonly CaptureVariant[],
+): ContentBlock[] {
+  if (variants.length === 1) {
+    return [
+      {
+        type: 'image',
+        data: variants[0].png.toString('base64'),
+        mimeType: 'image/png',
+      },
+    ];
+  }
+  const blocks: ContentBlock[] = [];
+  for (const v of variants) {
+    blocks.push({ type: 'text', text: `### ${v.label}` });
+    blocks.push({
+      type: 'image',
+      data: v.png.toString('base64'),
+      mimeType: 'image/png',
+    });
+  }
+  return blocks;
 }
 
 function renderWarningsBlock(diagnostics: readonly Diagnostic[]): string {

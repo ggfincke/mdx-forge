@@ -137,9 +137,10 @@ const out2 = await renderMdx({
 });
 check('docusaurus tabs class', out2.html.includes('docusaurus-tabs'));
 check('details element', out2.html.includes('<details'));
-check('screenshot has bytes', typeof out2.screenshot?.length === 'number' && out2.screenshot.length > 1000);
-if (out2.screenshot) {
-  await writeFile('scripts/smoke-trusted-output.png', out2.screenshot);
+const trustedShot = out2.screenshots?.[0]?.png;
+check('screenshot has bytes', typeof trustedShot?.length === 'number' && trustedShot.length > 1000);
+if (trustedShot) {
+  await writeFile('scripts/smoke-trusted-output.png', trustedShot);
   console.log('  wrote scripts/smoke-trusted-output.png');
 }
 
