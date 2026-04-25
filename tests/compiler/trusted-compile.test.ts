@@ -87,4 +87,23 @@ describe('compileTrusted()', () => {
 
     expect(result.code).toContain('data-source-line');
   });
+
+  it('compiles rich GitHub alert content to JSX', async () => {
+    const result = await compileTrusted(
+      `> [!NOTE]
+> Visit [docs](https://example.com) with \`code\` and **strong**.`,
+      true,
+      createConfig()
+    );
+
+    expect(result.code).toContain(
+      'className: "github-alert github-alert-note"'
+    );
+    expect(result.code).toContain('className: "github-alert-content"');
+    expect(result.code).toContain('href: "https://example.com"');
+    expect(result.code).toContain('children: "docs"');
+    expect(result.code).toContain('children: "code"');
+    expect(result.code).toContain('children: "strong"');
+    expect(result.code).not.toContain('[!NOTE]');
+  });
 });

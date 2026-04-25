@@ -114,7 +114,11 @@ describe('Starlight shims [smoke]', () => {
       React.createElement(
         StarlightSteps,
         null,
-        React.createElement('ol', null, React.createElement('li', null, 'Step 1'))
+        React.createElement(
+          'ol',
+          null,
+          React.createElement('li', null, 'Step 1')
+        )
       )
     );
     expect(container.textContent).toContain('Step 1');
@@ -125,11 +129,7 @@ describe('Starlight shims [smoke]', () => {
       React.createElement(
         StarlightTabs,
         null,
-        React.createElement(
-          StarlightTabItem,
-          { label: 'Tab1' },
-          'Tab content'
-        )
+        React.createElement(StarlightTabItem, { label: 'Tab1' }, 'Tab content')
       )
     );
     expect(container.textContent).toContain('Tab1');

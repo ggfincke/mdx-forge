@@ -1,6 +1,5 @@
-// Confirm Trusted Mode runtime errors ("Expected component 'X' to be defined")
-// are normalized into a structured unknown-component diagnostic instead of a
-// raw stack trace. a real end-to-end check for §1.2.
+// plugins/render/scripts/smoke-trusted-errors.mjs
+// smoke test Trusted Mode unknown-component diagnostics
 
 import { renderMdx, shutdownBrowser } from '../dist/render.js';
 import { stopPreviewServer } from '../dist/preview-server.js';
@@ -10,15 +9,15 @@ let failed = 0;
 let checked = 0;
 function check(name, ok, detail) {
   checked += 1;
-  console.log(`  ${ok ? 'OK  ' : 'FAIL'} ${name}${detail ? ` — ${detail}` : ''}`);
+  console.log(
+    `  ${ok ? 'OK  ' : 'FAIL'} ${name}${detail ? ` — ${detail}` : ''}`
+  );
   if (!ok) {
     failed += 1;
   }
 }
 
-// docusaurus shim barrel does NOT export Callout. lint resolves component names
-// per-framework (no generic fallback), so this is caught before the trusted
-// render even runs.
+// docusaurus lacks Callout; lint rejects it before Trusted render
 try {
   await renderMdx({
     source: '<Callout type="tip">this should fail in docusaurus</Callout>',
@@ -30,14 +29,12 @@ try {
   check('is RenderDiagnosticError', err instanceof RenderDiagnosticError);
   check(
     'kind is unknown-component',
-    err.diagnostic.kind === 'unknown-component',
+    err.diagnostic.kind === 'unknown-component'
   );
   check('component captured', err.diagnostic.component === 'Callout');
 }
 
-// nextjs framework w/ JSX tag that simply doesn't exist anywhere -> trusted
-// mode runtime error -> "Expected component 'Foo' to be defined". lint sees
-// this first because it's not in any registry.
+// nextjs unknown tag is rejected before Trusted render
 try {
   await renderMdx({
     source: '<NotAThing foo="bar">body</NotAThing>',
@@ -46,10 +43,13 @@ try {
   });
   check('nextjs unknown component rejected', false, 'expected throw');
 } catch (err) {
-  check('is RenderDiagnosticError (nextjs)', err instanceof RenderDiagnosticError);
+  check(
+    'is RenderDiagnosticError (nextjs)',
+    err instanceof RenderDiagnosticError
+  );
   check(
     'kind is unknown-component (nextjs)',
-    err.diagnostic.kind === 'unknown-component',
+    err.diagnostic.kind === 'unknown-component'
   );
   check('component = NotAThing', err.diagnostic.component === 'NotAThing');
 }

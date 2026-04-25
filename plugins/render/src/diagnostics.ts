@@ -1,8 +1,11 @@
-// structured diagnostics for the render plugin. every failure mode — mdx
-// parse errors, runtime crashes, prop lint warnings, frontmatter gaps —
-// funnels through this shape so the MCP response is uniform.
+// plugins/render/src/diagnostics.ts
+// structured diagnostics for lint, compile & runtime failures
 
-import type { FrameworkId, ComponentSpec, FrontmatterSchema } from './registry.js';
+import type {
+  FrameworkId,
+  ComponentSpec,
+  FrontmatterSchema,
+} from './registry.js';
 import {
   allComponentNamesForFramework,
   findComponent,
@@ -35,8 +38,7 @@ export interface Diagnostic {
   suggestion?: string;
 }
 
-// render-failing diagnostics throw this. the server catches it & emits a
-// structured MCP error instead of a stack trace.
+// throw render-failing diagnostics for structured MCP errors
 export class RenderDiagnosticError extends Error {
   readonly diagnostic: Diagnostic;
   // additional non-fatal diagnostics that accumulated before the failure
@@ -71,11 +73,7 @@ function levenshtein(a: string, b: string): number {
     curr[0] = i;
     for (let j = 1; j <= b.length; j++) {
       const cost = a[i - 1].toLowerCase() === b[j - 1].toLowerCase() ? 0 : 1;
-      curr[j] = Math.min(
-        prev[j] + 1,
-        curr[j - 1] + 1,
-        prev[j - 1] + cost,
-      );
+      curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
     }
     for (let j = 0; j <= b.length; j++) {
       prev[j] = curr[j];
@@ -84,13 +82,11 @@ function levenshtein(a: string, b: string): number {
   return prev[b.length];
 }
 
-// fuzzy-match a candidate against a fixed vocabulary; return the best match
-// within `maxDistance` if any, else undefined. honours length-based weighting
-// to avoid suggesting short garbage for long inputs.
+// fuzzy-match candidate against vocabulary w/ length-weighted cutoff
 export function suggestMatch(
   candidate: string,
   vocabulary: readonly string[],
-  maxDistance = 3,
+  maxDistance = 3
 ): string | undefined {
   if (!candidate || vocabulary.length === 0) {
     return undefined;
@@ -116,46 +112,43 @@ export function suggestMatch(
 
 export function suggestComponent(
   name: string,
-  framework: FrameworkId,
+  framework: FrameworkId
 ): string | undefined {
   return suggestMatch(name, allComponentNamesForFramework(framework));
 }
 
 export function suggestProp(
   name: string,
-  component: ComponentSpec,
+  component: ComponentSpec
 ): string | undefined {
   return suggestMatch(
     name,
-    component.props.map((p) => p.name),
+    component.props.map((p) => p.name)
   );
 }
 
 export function suggestFrontmatterField(
   name: string,
-  schema: FrontmatterSchema,
+  schema: FrontmatterSchema
 ): string | undefined {
   return suggestMatch(
     name,
-    schema.fields.map((f) => f.name),
+    schema.fields.map((f) => f.name)
   );
 }
 
 // --- error normalization ----------------------------------------------------
 
-// extract `{ line, column }` from the "1:5:" prefix that MDX/unified errors
-// embed in their messages. best-effort — not every error has a position.
+// extract line/column from MDX/unified error messages when available
 const POSITION_PATTERN = /(\d+):(\d+)/;
 
-function extractPosition(
-  err: unknown,
-): { line?: number; column?: number } {
+function extractPosition(err: unknown): { line?: number; column?: number } {
   if (err && typeof err === 'object') {
-    const vfilePosition = (err as {
+    const vfilePosition = err as {
       line?: number;
       column?: number;
       position?: { start?: { line?: number; column?: number } };
-    });
+    };
     if (typeof vfilePosition.line === 'number') {
       return {
         line: vfilePosition.line,
@@ -186,8 +179,7 @@ function errorMessage(err: unknown): string {
   return String(err);
 }
 
-// patterns that identify common Trusted Mode runtime failures so we can
-// re-tag them from the generic `runtime-error` bucket to a more specific kind.
+// re-tag common Trusted Mode runtime failures from generic runtime-error
 const EXPECTED_COMPONENT_PATTERN =
   /Expected component `?([A-Za-z_$][A-Za-z0-9_$]*)`? to be defined/;
 
@@ -198,13 +190,12 @@ export interface CompileErrorContext {
 
 export function normalizeCompileError(
   err: unknown,
-  ctx: CompileErrorContext,
+  ctx: CompileErrorContext
 ): Diagnostic {
   const msg = errorMessage(err);
   const { line, column } = extractPosition(err);
 
-  // "Expected component 'X' to be defined" — Trusted Mode threw during mount
-  // because the MDX referenced a component the shim barrel doesn't export.
+  // map Trusted Mode missing components to unknown-component diagnostics
   const componentMatch = EXPECTED_COMPONENT_PATTERN.exec(msg);
   if (componentMatch) {
     const component = componentMatch[1];
@@ -219,8 +210,7 @@ export function normalizeCompileError(
     };
   }
 
-  // "Could not parse import/exports" / "Unexpected character" etc. come from
-  // micromark-extension-mdx-*. Position is usually embedded in the message.
+  // map MDX parser errors to syntax diagnostics w/ source positions
   if (
     msg.includes('Could not parse') ||
     msg.includes('Unexpected') ||
@@ -247,8 +237,14 @@ export function normalizeCompileError(
 
 // flatten an accumulated diagnostics bundle into MCP-compatible content blocks
 export function formatDiagnostic(d: Diagnostic): string {
-  const where = d.line ? ` (line ${d.line}${d.column ? `:${d.column}` : ''})` : '';
-  const scope = d.component ? ` <${d.component}>` : d.field ? ` ${d.field}` : '';
+  const where = d.line
+    ? ` (line ${d.line}${d.column ? `:${d.column}` : ''})`
+    : '';
+  const scope = d.component
+    ? ` <${d.component}>`
+    : d.field
+      ? ` ${d.field}`
+      : '';
   const suggestion = d.suggestion ? ` — did you mean "${d.suggestion}"?` : '';
   return `[${d.severity} ${d.kind}]${scope}${where} ${d.message}${suggestion}`;
 }
@@ -258,7 +254,7 @@ export function formatDiagnostic(d: Diagnostic): string {
 export function buildUnknownComponentDiagnostic(
   name: string,
   framework: FrameworkId,
-  position?: { line?: number; column?: number },
+  position?: { line?: number; column?: number }
 ): Diagnostic {
   return {
     kind: 'unknown-component',
@@ -271,11 +267,10 @@ export function buildUnknownComponentDiagnostic(
   };
 }
 
-// severity is 'warning' because lintMdxSource never treats this as fatal —
-// a missing required field surfaces but doesn't block the render.
+// warn on missing required frontmatter fields without blocking render
 export function buildMissingFrontmatterDiagnostic(
   field: string,
-  framework: FrameworkId,
+  framework: FrameworkId
 ): Diagnostic {
   return {
     kind: 'missing-frontmatter',

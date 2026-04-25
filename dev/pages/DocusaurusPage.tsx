@@ -1,7 +1,12 @@
 // dev/pages/DocusaurusPage.tsx
 // Showcase for Docusaurus @theme component shims
 
-import { Tabs, TabItem, CodeBlock, Details } from '@forge/components/docusaurus';
+import {
+  Tabs,
+  TabItem,
+  CodeBlock,
+  Details,
+} from '@forge/components/docusaurus';
 import '@forge/components/styles/docusaurus.css';
 import { Section } from '../components/Section';
 
@@ -13,13 +18,19 @@ export function DocusaurusPage() {
       <Section title="Basic Tabs">
         <Tabs>
           <TabItem value="javascript" label="JavaScript" default>
-            <pre><code>{`function greet(name) {\n  return \`Hello, \${name}!\`;\n}`}</code></pre>
+            <pre>
+              <code>{`function greet(name) {\n  return \`Hello, \${name}!\`;\n}`}</code>
+            </pre>
           </TabItem>
           <TabItem value="typescript" label="TypeScript">
-            <pre><code>{`function greet(name: string): string {\n  return \`Hello, \${name}!\`;\n}`}</code></pre>
+            <pre>
+              <code>{`function greet(name: string): string {\n  return \`Hello, \${name}!\`;\n}`}</code>
+            </pre>
           </TabItem>
           <TabItem value="python" label="Python">
-            <pre><code>{`def greet(name):\n    return f"Hello, {name}!"`}</code></pre>
+            <pre>
+              <code>{`def greet(name):\n    return f"Hello, {name}!"`}</code>
+            </pre>
           </TabItem>
         </Tabs>
       </Section>
@@ -28,29 +39,45 @@ export function DocusaurusPage() {
         title="Synchronized Tabs (groupId)"
         description="Tabs w/ the same groupId stay in sync"
       >
-        <p><strong>Install:</strong></p>
+        <p>
+          <strong>Install:</strong>
+        </p>
         <Tabs groupId="pkg-manager">
           <TabItem value="npm" label="npm">
-            <pre><code>npm install my-package</code></pre>
+            <pre>
+              <code>npm install my-package</code>
+            </pre>
           </TabItem>
           <TabItem value="yarn" label="Yarn">
-            <pre><code>yarn add my-package</code></pre>
+            <pre>
+              <code>yarn add my-package</code>
+            </pre>
           </TabItem>
           <TabItem value="pnpm" label="pnpm">
-            <pre><code>pnpm add my-package</code></pre>
+            <pre>
+              <code>pnpm add my-package</code>
+            </pre>
           </TabItem>
         </Tabs>
 
-        <p><strong>Build (same groupId):</strong></p>
+        <p>
+          <strong>Build (same groupId):</strong>
+        </p>
         <Tabs groupId="pkg-manager">
           <TabItem value="npm" label="npm">
-            <pre><code>npm run build</code></pre>
+            <pre>
+              <code>npm run build</code>
+            </pre>
           </TabItem>
           <TabItem value="yarn" label="Yarn">
-            <pre><code>yarn build</code></pre>
+            <pre>
+              <code>yarn build</code>
+            </pre>
           </TabItem>
           <TabItem value="pnpm" label="pnpm">
-            <pre><code>pnpm build</code></pre>
+            <pre>
+              <code>pnpm build</code>
+            </pre>
           </TabItem>
         </Tabs>
       </Section>
@@ -70,7 +97,10 @@ export function DocusaurusPage() {
         </Tabs>
       </Section>
 
-      <Section title="CodeBlock" description="Enhanced code rendering w/ title & line numbers">
+      <Section
+        title="CodeBlock"
+        description="Enhanced code rendering w/ title & line numbers"
+      >
         <CodeBlock language="javascript">
           {`function fibonacci(n) {\n  if (n <= 1) return n;\n  return fibonacci(n - 1) + fibonacci(n - 2);\n}\n\nfor (let i = 0; i < 10; i++) {\n  console.log(fibonacci(i));\n}`}
         </CodeBlock>
@@ -88,15 +118,22 @@ export function DocusaurusPage() {
         </CodeBlock>
       </Section>
 
-      <Section title="Details" description="Collapsible sections using native details element">
+      <Section
+        title="Details"
+        description="Collapsible sections using native details element"
+      >
         <Details summary="Click to expand this section">
           <p>
             This content is hidden by default. Click the summary to reveal it!
           </p>
           <ul>
             <li>Bullet points</li>
-            <li><strong>Bold text</strong> and <em>italic text</em></li>
-            <li><code>inline code</code></li>
+            <li>
+              <strong>Bold text</strong> and <em>italic text</em>
+            </li>
+            <li>
+              <code>inline code</code>
+            </li>
           </ul>
         </Details>
       </Section>
@@ -121,7 +158,9 @@ export function DocusaurusPage() {
         </Details>
         <Details summary="Section 2: Advanced Configuration">
           <h3>Advanced Configuration</h3>
-          <pre><code>{`{\n  "advanced": true,\n  "experimentalFeatures": ["feature1", "feature2"]\n}`}</code></pre>
+          <pre>
+            <code>{`{\n  "advanced": true,\n  "experimentalFeatures": ["feature1", "feature2"]\n}`}</code>
+          </pre>
         </Details>
         <Details summary="Section 3: Troubleshooting">
           <h3>Troubleshooting</h3>

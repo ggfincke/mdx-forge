@@ -1,7 +1,6 @@
 // tests/cross-repo/metadata-contract.test.ts
 // verify metadata constants match expected contract values
-// ! cross-repo parity: mirror test in vsc-mdx-preview/tests/shared/metadata-parity.test.ts
-// ! changes to callout metadata must update BOTH test files
+// ! cross-repo parity: mirror vsc metadata-parity behavior
 
 import { describe, it, expect } from 'vitest';
 import {

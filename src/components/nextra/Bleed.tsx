@@ -1,7 +1,5 @@
 // src/components/nextra/Bleed.tsx
-// Nextra Bleed component shim for MDX Preview
-// provide preview-compatible version of nextra/components Bleed
-// allow content to overflow beyond the container width
+// Nextra Bleed shim for overflow layout previews
 
 import { ReactNode, ReactElement, HTMLAttributes } from 'react';
 import { cn } from '../internal/cn';

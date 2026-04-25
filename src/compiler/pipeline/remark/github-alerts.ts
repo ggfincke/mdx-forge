@@ -2,10 +2,10 @@
 // custom remark plugin for GitHub-style blockquote alerts ([!NOTE], [!WARNING], etc.)
 
 import { visit } from 'unist-util-visit';
-import type { Root, Blockquote, Paragraph, Text, Html } from 'mdast';
+import type { Root, Blockquote, Paragraph, Text, RootContent } from 'mdast';
 import type { Parent } from 'unist';
 import { GITHUB_ALERT_ICONS } from '../../../internal/icons';
-import { escapeHtml } from '../transforms/utils';
+import { createNode } from '../transforms/utils';
 import { type CalloutStyleConfig } from '../../../internal/callout';
 import {
   GITHUB_ALERT,
@@ -99,60 +99,40 @@ export default function remarkGithubAlerts() {
         node.children.shift();
       }
 
-      // build the alert HTML structure (raw HTML is simpler than MDAST manipulation)
-      const alertHtml: Html = {
-        type: 'html',
-        value: buildAlertHtml(config, node),
-      };
-
-      // replace the blockquote w/ our alert HTML
-      (parent as Parent).children[index] = alertHtml;
+      // replace the blockquote w/ a child-preserving alert node
+      (parent as Parent).children[index] = createAlertNode(config, node);
     });
   };
 }
 
-// build HTML string for alert (cleaner than complex MDAST manipulation)
-function buildAlertHtml(config: CalloutStyleConfig, node: Blockquote): string {
-  // extract text from remaining children (simplified approach)
-  const contentParts: string[] = [];
-
-  for (const child of node.children) {
-    if (child.type === 'paragraph') {
-      const textContent = extractTextContent(child);
-      if (textContent) {
-        contentParts.push(`<p>${escapeHtml(textContent)}</p>`);
-      }
-    }
-  }
-
-  const content = contentParts.join('\n');
-
-  return `<div class="${GITHUB_ALERT} ${GITHUB_ALERT}-${config.className}" role="note">
-<p class="${GITHUB_ALERT_TITLE}">${config.icon}<span>${config.label}</span></p>
-<div class="${GITHUB_ALERT_CONTENT}">
-${content}
-</div>
-</div>`;
-}
-
-// extract text content from paragraph (simplified - handle basic text nodes)
-function extractTextContent(paragraph: Paragraph): string {
-  const parts: string[] = [];
-
-  for (const child of paragraph.children) {
-    if (child.type === 'text') {
-      parts.push(child.value);
-    } else if (child.type === 'strong' || child.type === 'emphasis') {
-      // recursively get text from formatted nodes
-      const innerText = child.children
-        .filter((c): c is Text => c.type === 'text')
-        .map((c) => c.value)
-        .join('');
-      parts.push(innerText);
-    } else if (child.type === 'inlineCode') {
-      parts.push(child.value);
-    }
-  }
-
-  return parts.join('');
+// create an alert wrapper while preserving parsed markdown children
+function createAlertNode(
+  config: CalloutStyleConfig,
+  node: Blockquote
+): RootContent {
+  return createNode({
+    type: 'githubAlert',
+    hName: 'div',
+    className: [GITHUB_ALERT, `${GITHUB_ALERT}-${config.className}`],
+    additionalProps: { role: 'note' },
+    children: [
+      createNode({
+        type: 'githubAlertTitle',
+        hName: 'p',
+        className: GITHUB_ALERT_TITLE,
+        children: [
+          {
+            type: 'html',
+            value: `${config.icon}<span>${config.label}</span>`,
+          },
+        ],
+      }),
+      createNode({
+        type: 'githubAlertContent',
+        hName: 'div',
+        className: GITHUB_ALERT_CONTENT,
+        children: node.children as RootContent[],
+      }),
+    ],
+  });
 }

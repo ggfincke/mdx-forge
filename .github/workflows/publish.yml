@@ -20,6 +20,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
       - run: npm i -g npm@^11.5.1
       - run: npm ci
+      - run: npx playwright install --with-deps chromium
       - run: npm test
       - run: npm run build
       - run: npm run check:esm-specifiers

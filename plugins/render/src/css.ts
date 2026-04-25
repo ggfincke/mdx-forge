@@ -1,6 +1,7 @@
-// Resolve mdx-forge component CSS bundles from the installed package
+// plugins/render/src/css.ts
+// resolve mdx-forge component CSS bundles for package & repo runs
 
-import { readFile } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -12,11 +13,14 @@ export type Framework =
   | 'nextjs';
 
 const cache = new Map<string, string>();
+const __filename = fileURLToPath(import.meta.url);
+const REPO_ROOT = resolve(dirname(__filename), '..', '..', '..');
+const CSS_SUBPATH_PREFIX = 'mdx-forge/components/styles/';
 const CSS_IMPORT_PATTERN =
   /@import\s+(?:url\(\s*)?(?:(['"])([^'"]+)\1|([^'")\s]+))(?:\s*\))?\s*([^;]*);/g;
 
 async function loadCss(subpath: string): Promise<string> {
-  const filePath = fileURLToPath(import.meta.resolve(subpath));
+  const filePath = await resolveCssPath(subpath);
   const cached = cache.get(filePath);
   if (cached !== undefined) {
     return cached;
@@ -26,9 +30,39 @@ async function loadCss(subpath: string): Promise<string> {
   return css;
 }
 
+async function resolveCssPath(subpath: string): Promise<string> {
+  const sourcePath = sourceCssPath(subpath);
+  if (sourcePath && (await fileExists(sourcePath))) {
+    return sourcePath;
+  }
+  return fileURLToPath(import.meta.resolve(subpath));
+}
+
+function sourceCssPath(subpath: string): string | undefined {
+  if (!subpath.startsWith(CSS_SUBPATH_PREFIX)) {
+    return undefined;
+  }
+  return resolve(
+    REPO_ROOT,
+    'src',
+    'components',
+    'styles',
+    subpath.slice(CSS_SUBPATH_PREFIX.length)
+  );
+}
+
+async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function loadCssFile(
   filePath: string,
-  stack: Set<string>,
+  stack: Set<string>
 ): Promise<string> {
   const cached = cache.get(filePath);
   if (cached !== undefined) {
@@ -52,7 +86,7 @@ async function loadCssFile(
 async function inlineCssImports(
   css: string,
   importerPath: string,
-  stack: Set<string>,
+  stack: Set<string>
 ): Promise<string> {
   const chunks: string[] = [];
   let lastIndex = 0;
@@ -70,7 +104,7 @@ async function inlineCssImports(
     if (specifier && !modifiers && shouldInlineImport(specifier)) {
       const importedCss = await loadCssFile(
         resolveCssImport(specifier, importerPath),
-        stack,
+        stack
       );
       chunks.push(importedCss);
     } else {
@@ -105,7 +139,9 @@ export async function tokensCss(): Promise<string> {
 }
 
 // Next.js has no bundled CSS — consumers bring their own
-export async function resolveFrameworkCss(framework: Framework): Promise<string> {
+export async function resolveFrameworkCss(
+  framework: Framework
+): Promise<string> {
   if (framework === 'nextjs') {
     return '';
   }

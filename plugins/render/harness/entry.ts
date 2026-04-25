@@ -1,4 +1,4 @@
-// harness/entry.ts
+// plugins/render/harness/entry.ts
 // browser-side runtime for Trusted Mode: preload core modules + expose render API
 
 import React from 'react';
@@ -28,13 +28,13 @@ interface HarnessWindow extends Window {
   __mdxForgeRender?: (
     code: string,
     dependencies: string[],
-    entryId: string,
+    entryId: string
   ) => Promise<{ html: string } | { error: string }>;
   // interactive mount API: renders, stays mounted so event handlers fire
   __mdxForgeMount?: (
     code: string,
     dependencies: string[],
-    entryId: string,
+    entryId: string
   ) => Promise<{ ok: true } | { error: string }>;
   __mdxForgeReady?: Promise<void>;
   // inline bootstrap can set these for auto-mount on load
@@ -89,30 +89,27 @@ function installPreloads(): void {
   });
 }
 
-// the render plugin does not fetch user modules; any unknown import is an
-// error. this fetcher surfaces that clearly instead of hanging.
-function rejectFetcher(request: string, _isBare: boolean, parentId: string):
-  Promise<FetchResult | undefined> {
+// reject custom module fetches so unknown imports surface immediately
+function rejectFetcher(
+  request: string,
+  _isBare: boolean,
+  parentId: string
+): Promise<FetchResult | undefined> {
   return Promise.reject(
     new Error(
       `unsupported import "${request}" from ${parentId}: render plugin does not ` +
         `resolve custom modules. Use JSX tags (<Tabs>, <Callout>, ...) for framework ` +
-        `components instead of \`import\` statements.`,
-    ),
+        `components instead of \`import\` statements.`
+    )
   );
 }
 
 async function waitForRenderToSettle(container: HTMLElement): Promise<void> {
-  // flush two animation frames + a microtask tick; covers most React 19
-  // sync + effect passes without taking a full setTimeout(500) hit.
-  await new Promise<void>((resolve) =>
-    requestAnimationFrame(() => resolve()),
-  );
+  // flush two animation frames + a microtask tick for React 19 settle
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
   await new Promise<void>((resolve) => setTimeout(resolve, 0));
-  await new Promise<void>((resolve) =>
-    requestAnimationFrame(() => resolve()),
-  );
-  // serialize a read to force layout; keeps innerHTML stable.
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  // serialize a read to force stable innerHTML
   void container.offsetHeight;
 }
 
@@ -126,7 +123,7 @@ async function buildMountContext(
   code: string,
   dependencies: string[],
   entryId: string,
-  onCapture: (err: Error) => void,
+  onCapture: (err: Error) => void
 ): Promise<MountContext | { error: string }> {
   const container = document.getElementById('mdx-root');
   if (!container) {
@@ -154,8 +151,8 @@ async function buildMountContext(
     MDXProvider,
     { components: SHIM_EXPORTS as Record<string, React.ComponentType> },
     React.createElement(
-      Component as React.ComponentType<Record<string, unknown>>,
-    ),
+      Component as React.ComponentType<Record<string, unknown>>
+    )
   );
 
   return { container, tree, onCapture };
@@ -163,7 +160,7 @@ async function buildMountContext(
 
 function createRootWithErrorCapture(
   container: HTMLElement,
-  onCapture: (err: Error) => void,
+  onCapture: (err: Error) => void
 ) {
   return ReactDOMClient.createRoot(container, {
     onUncaughtError: (error) => {
@@ -178,12 +175,11 @@ function createRootWithErrorCapture(
   });
 }
 
-// headless snapshot: render, capture innerHTML, unmount. for the MCP response
-// html field + PNG screenshot.
+// render snapshot for MCP html field & PNG screenshot source
 async function renderMdx(
   code: string,
   dependencies: string[],
-  entryId: string,
+  entryId: string
 ): Promise<{ html: string } | { error: string }> {
   try {
     let captured: Error | undefined;
@@ -211,13 +207,11 @@ async function renderMdx(
   }
 }
 
-// interactive mount: render into #mdx-root and KEEP React mounted so the
-// browser tab gets a real interactive component tree (Tabs switch, inputs
-// accept typing, hooks re-render, etc).
+// mount interactive tree so event handlers & hooks keep running
 async function mountMdx(
   code: string,
   dependencies: string[],
-  entryId: string,
+  entryId: string
 ): Promise<{ ok: true } | { error: string }> {
   try {
     // tear down any previous interactive mount before starting a new one
@@ -257,9 +251,7 @@ harnessWindow.__mdxForgeRender = renderMdx;
 harnessWindow.__mdxForgeMount = mountMdx;
 harnessWindow.__mdxForgeReady = Promise.resolve();
 
-// auto-mount if the page embedded code/deps/entryId as globals (the interactive
-// preview served by the preview server does this). safe to call before
-// DOMContentLoaded because the bundle script is placed after #mdx-root.
+// auto-mount preview server globals when bundle loads after #mdx-root
 const autoCode = harnessWindow.__MDX_FORGE_CODE__;
 const autoDeps = harnessWindow.__MDX_FORGE_DEPS__;
 const autoEntry = harnessWindow.__MDX_FORGE_ENTRY__;

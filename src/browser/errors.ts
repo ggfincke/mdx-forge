@@ -14,6 +14,7 @@ export interface ModuleErrorData {
   request?: string;
   parentId?: string;
   depth?: number;
+  importChain?: string[];
 }
 
 export class ModuleError extends Error {
@@ -46,12 +47,19 @@ export function createModuleNotFoundError(
 
 export function createCircularDependencyError(
   moduleId: string,
-  parentId?: string
+  parentId?: string,
+  importChain?: string[]
 ): ModuleError {
-  return new ModuleError(`Circular dependency detected for "${moduleId}"`, {
+  const chainText = importChain?.map((id) => `"${id}"`).join(' -> ');
+  const message = chainText
+    ? `Circular dependency detected: ${chainText}`
+    : `Circular dependency detected for "${moduleId}"`;
+
+  return new ModuleError(message, {
     code: 'CIRCULAR_DEPENDENCY',
     moduleId,
     parentId,
+    importChain,
   });
 }
 

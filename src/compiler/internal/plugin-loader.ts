@@ -14,12 +14,11 @@ function resolvePluginPath(specifier: string, fromDir: string): string {
 }
 
 async function loadPluginModule(resolvedPath: string): Promise<unknown> {
-  // prefer dynamic import for ESM support; fall back to require for older CJS packages
+  // prefer dynamic import for ESM support; fall back to require for CJS
   try {
     return await import(pathToFileURL(resolvedPath).href);
   } catch {
-    // in CJS context (e.g., bundled by esbuild), use native require;
-    // in standalone ESM context, create require from import.meta.url
+    // in CJS bundles use native require; otherwise create require
     const req =
       typeof require === 'function' ? require : createRequire(import.meta.url);
     return req(resolvedPath);

@@ -4,14 +4,9 @@
 import { registry } from '../registry/ModuleRegistry';
 import { getModuleLoaderConfig } from '../internal/runtime-config';
 
-// create a synchronous require function bound to a parent module
-// use during module evaluation to resolve already-loaded dependencies
-//
-// resolution order
-// 1. direct cache hit on the request string
-// 2. resolution map lookup (for relative imports resolved from parent)
-// 3. preload alias map lookup
-// 4. throw error if not found
+// create sync require bound to a parent module
+// resolve direct cache, relative resolution map, then preload aliases
+// throw when dependency was not prefetched
 export function createSyncRequire(
   parentId: string
 ): (request: string) => unknown {

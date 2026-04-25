@@ -1,3 +1,4 @@
+// plugins/render/src/harness-page.ts
 // per-framework Playwright page cache for Trusted Mode rendering
 
 import { dirname, resolve } from 'node:path';
@@ -13,17 +14,30 @@ interface HarnessEntry {
   ready: Promise<void>;
 }
 
+type BrowserLauncher = () => Promise<Browser>;
+
+const defaultBrowserLauncher: BrowserLauncher = () =>
+  chromium.launch({ headless: true });
+
 let browserPromise: Promise<Browser> | undefined;
+let browserLauncher: BrowserLauncher = defaultBrowserLauncher;
 const pages = new Map<Framework, HarnessEntry>();
 
 async function getBrowser(): Promise<Browser> {
   if (!browserPromise) {
-    browserPromise = chromium.launch({ headless: true }).catch((err) => {
+    browserPromise = browserLauncher().catch((err) => {
       browserPromise = undefined;
       throw err;
     });
   }
   return browserPromise;
+}
+
+export function configureHarnessBrowserLauncher(
+  launcher?: BrowserLauncher
+): void {
+  browserLauncher = launcher ?? defaultBrowserLauncher;
+  browserPromise = undefined;
 }
 
 function harnessUrl(framework: Framework): string {
@@ -32,7 +46,7 @@ function harnessUrl(framework: Framework): string {
     'dist',
     'harness',
     framework,
-    'index.html',
+    'index.html'
   );
   return pathToFileURL(htmlPath).href;
 }
@@ -69,15 +83,26 @@ async function openHarnessPage(framework: Framework): Promise<HarnessEntry> {
   const ready = (async () => {
     await page.goto(harnessUrl(framework), { waitUntil: 'load' });
     // bundle sets window.__mdxForgeReady once preloads register
-    await page.waitForFunction(() => {
-      const api = (window as unknown as {
-        __mdxForgeRender?: unknown;
-      }).__mdxForgeRender;
-      return typeof api === 'function';
-    }, { timeout: 15000 });
+    await page.waitForFunction(
+      () => {
+        const api = (
+          window as unknown as {
+            __mdxForgeRender?: unknown;
+          }
+        ).__mdxForgeRender;
+        return typeof api === 'function';
+      },
+      { timeout: 15000 }
+    );
   })();
 
   return { page, ready };
+}
+
+async function closeHarnessEntry(entry: HarnessEntry): Promise<void> {
+  const context = entry.page.context();
+  await entry.page.close().catch(() => undefined);
+  await context.close().catch(() => undefined);
 }
 
 export async function getHarnessPage(framework: Framework): Promise<Page> {
@@ -86,20 +111,23 @@ export async function getHarnessPage(framework: Framework): Promise<Page> {
     entry = await openHarnessPage(framework);
     pages.set(framework, entry);
   }
-  await entry.ready;
-  return entry.page;
+
+  try {
+    await entry.ready;
+    return entry.page;
+  } catch (error: unknown) {
+    if (pages.get(framework) === entry) {
+      pages.delete(framework);
+    }
+    await closeHarnessEntry(entry);
+    throw error;
+  }
 }
 
 export async function shutdownHarnessPages(): Promise<void> {
   const entries = Array.from(pages.values());
   pages.clear();
-  await Promise.allSettled(
-    entries.map(async (entry) => {
-      const context = entry.page.context();
-      await entry.page.close().catch(() => undefined);
-      await context.close().catch(() => undefined);
-    }),
-  );
+  await Promise.allSettled(entries.map(closeHarnessEntry));
 
   const pending = browserPromise;
   browserPromise = undefined;

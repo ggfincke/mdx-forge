@@ -42,11 +42,7 @@ describe('Next.js Link shim', () => {
 
   it('sets target=_blank for external https links', () => {
     const { container } = render(
-      React.createElement(
-        Link,
-        { href: 'https://example.com' },
-        'External'
-      )
+      React.createElement(Link, { href: 'https://example.com' }, 'External')
     );
     const anchor = container.querySelector('a');
     expect(anchor?.getAttribute('target')).toBe('_blank');
@@ -63,11 +59,7 @@ describe('Next.js Link shim', () => {
 
   it('sets target=_blank for protocol-relative links', () => {
     const { container } = render(
-      React.createElement(
-        Link,
-        { href: '//cdn.example.com/file' },
-        'CDN'
-      )
+      React.createElement(Link, { href: '//cdn.example.com/file' }, 'CDN')
     );
     const anchor = container.querySelector('a');
     expect(anchor?.getAttribute('target')).toBe('_blank');

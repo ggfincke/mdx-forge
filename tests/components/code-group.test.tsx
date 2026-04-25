@@ -10,7 +10,11 @@ import { CodeGroup } from '../../src/components/generic/CodeGroup';
 
 // helper: create a mock code block child w/ given props
 function codeBlock(props: Record<string, unknown> = {}): React.ReactElement {
-  return React.createElement('pre', props, React.createElement('code', null, 'x'));
+  return React.createElement(
+    'pre',
+    props,
+    React.createElement('code', null, 'x')
+  );
 }
 
 describe('CodeGroup', () => {
@@ -60,9 +64,7 @@ describe('CodeGroup', () => {
 
   describe('rendering', () => {
     it('renders empty wrapper for 0 children', () => {
-      const { container } = render(
-        React.createElement(CodeGroup, null)
-      );
+      const { container } = render(React.createElement(CodeGroup, null));
       expect(
         container.querySelector('.mdx-preview-generic-code-group-empty')
       ).toBeTruthy();

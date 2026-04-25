@@ -1,7 +1,6 @@
 // src/browser/internal/semaphore.ts
-// async semaphore for concurrency limiting
-// ! cross-repo duplicate: vsc-mdx-preview/packages/runtime-utils/src/async/semaphore.ts
-// ! changes here must be mirrored (GPL licensing prevents shared dependency)
+// MIT browser semaphore; shared surface mirrors vsc runtime-utils semaphore
+// ! cross-repo duplicate: keep common behavior covered by parity tests
 
 export class Semaphore {
   private permits: number;
@@ -26,5 +25,13 @@ export class Semaphore {
     } else {
       this.permits++;
     }
+  }
+
+  get available(): number {
+    return this.permits;
+  }
+
+  get waiting(): number {
+    return this.waitQueue.length;
   }
 }

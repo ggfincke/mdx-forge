@@ -7,19 +7,12 @@ import type { UnknownBehavior } from './compiler';
 // pipeline mode determines which plugins are included
 export type PipelineMode = 'trusted' | 'safe';
 
-// phase annotations for plugin ordering
-// pre: runs before MDX-specific processing (e.g., directive parsing)
-// mdx: MDX-specific transforms (Safe Mode only: generic components, strip)
-// shared: shared plugins that run in both modes
-// custom: user-defined plugins from config (Trusted Mode only)
+// remark phase annotations for plugin ordering
+// pre/mdx/shared/custom map parser, builtins, shared, & user plugins
 export type RemarkPhase = 'pre' | 'mdx' | 'shared' | 'custom';
 
-// phase annotations for rehype plugins
-// raw: rehype-raw for HTML passthrough
-// preMath: plugins that run before KaTeX
-// math: KaTeX for math rendering
-// postMath: plugins that run after KaTeX (shiki, slug, autolink, lazy)
-// custom: user-defined plugins from config (Trusted Mode only)
+// rehype phase annotations for plugin ordering
+// raw/preMath/math/postMath/custom map HTML, math, post-math, & user plugins
 export type RehypePhase = 'raw' | 'preMath' | 'math' | 'postMath' | 'custom';
 
 // pipeline configuration input

@@ -141,4 +141,89 @@ digraph G { A -> B }
     expect(result.html).not.toContain('<script>');
     expect(result.html).not.toContain('</script>');
   });
+
+  it('preserves rich inline markdown inside GitHub alerts', async () => {
+    const result = await compileSafe(
+      `> [!NOTE]
+> Visit [docs](https://example.com) with \`code\`, **strong**, and _emphasis_.`,
+      createConfig()
+    );
+
+    expect(result.html).toContain('class="github-alert github-alert-note"');
+    expect(result.html).toMatch(
+      /<a href="https:\/\/example\.com"[^>]*>docs<\/a>/
+    );
+    expect(result.html).toMatch(/<code[^>]*>code<\/code>/);
+    expect(result.html).toMatch(/<strong[^>]*>strong<\/strong>/);
+    expect(result.html).toMatch(/<em[^>]*>emphasis<\/em>/);
+    expect(result.html).not.toContain('[!NOTE]');
+  });
+
+  it('keeps same-line GitHub alert text in the alert body', async () => {
+    const result = await compileSafe(
+      `> [!WARNING] Same-line **warning** message.`,
+      createConfig()
+    );
+
+    expect(result.html).toContain('class="github-alert github-alert-warning"');
+    expect(result.html).toMatch(/<p[^>]*>Same-line/);
+    expect(result.html).toMatch(/<strong[^>]*>warning<\/strong>/);
+    expect(result.html).not.toContain('[!WARNING]');
+  });
+
+  it('preserves multiple paragraphs inside GitHub alerts', async () => {
+    const result = await compileSafe(
+      `> [!TIP]
+> First paragraph.
+>
+> Second paragraph with [link](https://example.com/two).`,
+      createConfig()
+    );
+
+    expect(result.html).toContain('class="github-alert github-alert-tip"');
+    expect(result.html).toMatch(/<p[^>]*>First paragraph\.<\/p>/);
+    expect(result.html).toMatch(
+      /<p[^>]*>Second paragraph with <a href="https:\/\/example\.com\/two"[^>]*>link<\/a>\.<\/p>/
+    );
+  });
+
+  it('preserves block content inside GitHub alerts', async () => {
+    const result = await compileSafe(
+      `> [!CAUTION]
+> - item **one**
+> - item two
+>
+> \`\`\`ts
+> const ok = true;
+> \`\`\``,
+      createConfig()
+    );
+
+    expect(result.html).toContain('class="github-alert github-alert-caution"');
+    expect(result.html).toMatch(/<ul[^>]*>/);
+    expect(result.html).toMatch(
+      /<li[^>]*>item <strong[^>]*>one<\/strong><\/li>/
+    );
+    expect(result.html).toContain('<pre');
+    expect(result.html).toContain('const');
+    expect(result.html).toContain('ok');
+  });
+
+  it('preserves nested blockquotes inside GitHub alerts', async () => {
+    const result = await compileSafe(
+      `> [!IMPORTANT]
+> Parent content.
+>
+> > Nested quote with [link](https://example.com/nested).`,
+      createConfig()
+    );
+
+    expect(result.html).toContain(
+      'class="github-alert github-alert-important"'
+    );
+    expect(result.html).toMatch(/<blockquote[^>]*>/);
+    expect(result.html).toMatch(
+      /Nested quote with <a href="https:\/\/example\.com\/nested"[^>]*>link<\/a>\./
+    );
+  });
 });

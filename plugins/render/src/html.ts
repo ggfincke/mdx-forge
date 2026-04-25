@@ -1,4 +1,5 @@
-// Strip executable HTML from screenshot-mode Safe Mode output
+// plugins/render/src/html.ts
+// strip executable HTML from screenshot-mode Safe Mode output
 
 import { fromHtmlIsomorphic } from 'hast-util-from-html-isomorphic';
 import { toHtml } from 'hast-util-to-html';
