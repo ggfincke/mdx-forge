@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-24
+
+### Added
+
+- **Plugin (mdx-forge-render)**: New MCP server plugin under `plugins/render/` exposing `render_mdx` & `list_components` tools — compiles MDX via Safe or Trusted Mode & captures Playwright screenshots of the result
+- **Plugin (mdx-forge-render)**: Live-reload preview server on a stable per-session port w/ SSE-driven auto-refresh, optional `autoOpen` browser launch & self-contained HTML output for claude.ai artifacts
+- **Plugin (mdx-forge-render)**: Trusted Mode rendering — sandboxed headless harness for snapshots plus per-framework esbuild IIFE bundles under `dist/harness/` so live previews mount real React (Tabs, hooks & `onClick` handlers all work)
+- **Plugin (mdx-forge-render)**: Pre-compile MDX lint surfacing unknown components, invalid props & frontmatter gaps w/ line numbers & did-you-mean suggestions
+- **Plugin (mdx-forge-render)**: Default Shiki CSS-variable theme so code blocks render colored out of the box; sanitizer strips `<script>`/`<iframe>`/`<meta>`, inline event handlers & `javascript:` URLs from Safe-Mode output before injection
+- **Claude Plugin**: `.claude-plugin/marketplace.json` & `.claude-plugin/plugin.json` shipping `mdx-forge` skill alongside the `mdx-forge-render` plugin
+- **Skill (mdx-forge)**: `skills/mdx-forge/SKILL.md` w/ reference files (compiler, browser-runtime, components, plugins) & 4 compile-checkable examples (safe-compile, trusted-compile, browser-setup, framework-shim)
+- **Browser**: Circular dependency detection in module loader; `Semaphore.available` & `Semaphore.waiting` now exposed
+- **Compiler**: GitHub alerts preserve rich markdown content (links, inline code, formatting) instead of flattening to plain text
+- **Tooling**: `check-comment-style.mjs` & `check-legacy-path-prefixes.mjs` guardrails wired into `npm run lint` via `check:guardrails`
+- **Dev**: Screenshot matrix w/ themed & viewport-specific captures across Docusaurus, Generic, Nextjs, Nextra & Starlight showcase pages
+- **Testing**: `render-plugin-cache` & `render-plugin-registry` suites; expanded `render-plugin`, `render-plugin-trusted`, `load-module`, `safe-compile` & `trusted-compile` coverage
+
+### Changed
+
+- **Plugin (mdx-forge-render)**: Split `registry.ts` into a thin facade over mdx-forge core component identity; extract frontmatter schema & component metadata into separate modules instead of duplicating prop shapes
+- **Browser**: Tighten `isBareImport()` to reject arbitrary URL schemes & Windows absolute paths
+- **Dependencies**: Bump `@types/node` to ^25.6.0, `eslint` to ^10.2.1, `globals` to ^17.5.0, `jsdom` to ^29.0.2, `prettier` to ^3.8.3, `react`/`react-dom` to ^19.2.5, `typescript-eslint` to ^8.59.0, `vite` to ^8.0.10 & `vitest` to ^4.1.4
+- **CI**: Bump `softprops/action-gh-release` from v2 to v3
+
 ## [0.3.1] - 2026-03-31
 
 ### Removed
