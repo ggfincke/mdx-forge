@@ -18,6 +18,13 @@ jobs:
           node-version: '22.14.0'
           cache: 'npm'
           registry-url: 'https://registry.npmjs.org'
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+      - name: Check publish version
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: node scripts/check-publish-version.mjs
       - run: npm i -g npm@^11.5.1
       - run: npm ci
       - run: npx playwright install --with-deps chromium
@@ -26,13 +33,9 @@ jobs:
       - run: npm run check:esm-specifiers
       - run: npm publish --access=public
 
-      - name: Get version from tag
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
       - name: Extract release notes from changelog
         run: |
-          VERSION="${GITHUB_REF#refs/tags/v}"
+          VERSION="${{ steps.version.outputs.VERSION }}"
           awk "/^## \\[$VERSION\\]/{found=1; next} /^## \\[/{if(found) exit} found{print}" CHANGELOG.md > release-notes.md
           echo "" >> release-notes.md
           echo "**Full Changelog**: https://github.com/ggfincke/mdx-forge/commits/v$VERSION" >> release-notes.md
