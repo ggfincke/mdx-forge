@@ -81,6 +81,31 @@ npm run typecheck
 npm test
 ```
 
+## Claude Code Integration
+
+`mdx-forge` ships two add-ons for [Claude Code](https://claude.com/claude-code), distributed via the marketplace defined in [`.claude-plugin/marketplace.json`](./.claude-plugin/marketplace.json):
+
+### `mdx-forge` skill
+
+A skill that teaches Claude how to use `compileSafe` / `compileTrusted`, the browser module loader (`loadModule`, `setModuleFetcher`, `evaluateModuleToComponent`), and the framework component shims correctly. Lives in [`skills/mdx-forge/`](./skills/mdx-forge/) — `SKILL.md`, four reference docs (`compiler.md`, `browser-runtime.md`, `components.md`, `plugins.md`), and four compile-checkable TypeScript examples.
+
+### `mdx-forge-render` plugin
+
+An MCP server that compiles MDX (Safe or Trusted Mode), publishes a live-reloading preview, optionally captures Playwright screenshots, and returns structured diagnostics (unknown components, invalid props, frontmatter gaps) with line numbers and did-you-mean suggestions. Two tools:
+
+- `render_mdx` — compile + render + lint
+- `list_components` — look up a framework's component contract before writing MDX
+
+Lives in [`plugins/render/`](./plugins/render/). See [`plugins/render/README.md`](./plugins/render/README.md) for install instructions, tool parameters, and the diagnostic schema.
+
+### Install both
+
+```bash
+/plugin marketplace add ggfincke/mdx-forge
+/plugin install mdx-forge@mdx-forge          # the skill
+/plugin install mdx-forge-render@mdx-forge   # the MCP server
+```
+
 ## License
 
 MIT. See `LICENSE`.
