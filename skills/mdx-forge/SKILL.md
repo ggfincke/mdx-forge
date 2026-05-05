@@ -1,6 +1,6 @@
 ---
 name: mdx-forge
-description: Use when working with the mdx-forge npm package — compiling MDX with compileSafe (HTML output) or compileTrusted (executable JavaScript), wiring up the browser-side module loader (loadModule, evaluateModuleToComponent, setModuleFetcher, registerPreloadEntries), using framework component shims for Docusaurus, Starlight, Nextra, Next.js, or generic, picking between safe vs trusted compile mode for a security boundary, configuring remark/rehype plugins via .mdx-previewrc.json, or working with mdx-forge subpath exports in a TypeScript project.
+description: Use when working with the mdx-forge npm package — compiling MDX with compileSafe (HTML output) or compileTrusted (executable JavaScript), wiring up the browser-side module loader (loadModule, evaluateModuleToComponent, setModuleFetcher, registerPreloadEntries), using framework component shims for Docusaurus, Starlight, Nextra, Next.js, or generic, picking between safe vs trusted compile mode for a security boundary, configuring remark/rehype plugins via the CompilerConfig plugin pipeline, or working with mdx-forge subpath exports in a TypeScript project.
 ---
 
 # mdx-forge

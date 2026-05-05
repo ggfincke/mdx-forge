@@ -17,7 +17,7 @@
     {
       "name": "mdx-forge-render",
       "source": "./plugins/render/",
-      "description": "MCP server that compiles MDX to HTML via mdx-forge Safe Mode with an optional headless-Chromium screenshot. Ships one tool: render_mdx.",
+      "description": "MCP server that compiles MDX (Safe or Trusted Mode), publishes a live-reloading preview, and optionally captures Playwright screenshots. Ships two tools: render_mdx (compile + render + lint) and list_components (look up framework component contracts).",
       "version": "0.1.0"
     }
   ]
