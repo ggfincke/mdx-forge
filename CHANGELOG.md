@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-05-05
+
+### Changed
+
+- **Docs**: Surface Claude Code skill & render plugin install details in the README, including marketplace commands and links to bundled plugin assets
+- **Claude Plugin**: Refresh marketplace and skill metadata copy for the `mdx-forge` skill and `mdx-forge-render` plugin
+- **Dependencies**: Bump May 2026 dependency set, including `@types/node`, `eslint`, `globals`, `jsdom`, `prettier`, `typescript`, `typescript-eslint`, `vite` & `vitest`
+
 ## [0.4.1] - 2026-04-25
 
 ### Added
