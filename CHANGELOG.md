@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-05-14
+
+### Changed
+
+- **Dependencies**: Bump patch dependency set, including `@types/node`, `eslint`, `globals`, `playwright`, `react`, `react-dom`, `typescript-eslint`, `vite` & `vitest`
+
 ## [0.4.2] - 2026-05-05
 
 ### Changed
