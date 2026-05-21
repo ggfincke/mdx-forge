@@ -127,7 +127,7 @@
     "@types/node": "^25.7.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.0.0",
-    "@vitejs/plugin-react": "^5.1.4",
+    "@vitejs/plugin-react": "^6.0.2",
     "esbuild": "^0.28.0",
     "eslint": "^10.3.0",
     "globals": "^17.6.0",
