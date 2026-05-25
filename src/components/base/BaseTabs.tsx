@@ -90,7 +90,7 @@ export function createTabs(config: BaseTabsConfig): CreateTabsResult {
     const handleKeyDown = useCallback(
       (e: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
         const tabCount = tabs.length;
-        let newIndex = currentIndex;
+        let newIndex: number;
 
         switch (e.key) {
           case 'ArrowLeft':
