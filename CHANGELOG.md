@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Dependencies**: Bump `@types/node` to ^25.9.1, `@types/react` to ^19.2.15, `eslint` to ^10.4.0, `shiki` to ^4.1.0, `typescript-eslint` to ^8.60.0, `vite` to ^8.0.14 & `vitest` to ^4.1.7
+
 ## [0.4.3] - 2026-05-14
 
 ### Changed
