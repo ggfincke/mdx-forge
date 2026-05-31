@@ -3,6 +3,8 @@
 
 import { describe, it, expect } from 'vitest';
 import {
+  getComponentMetadata,
+  getFrameworkComponentEntries,
   getAllGenericComponentNames,
   getGenericComponentSet,
   getPrimaryGenericComponentNames,
@@ -66,6 +68,21 @@ describe('registry queries', () => {
     expect(docusaurus).toContain('CodeBlock');
     expect(starlight).toContain('Card');
     expect(starlight).toContain('FileTree');
+  });
+
+  it('returns framework component entries w/ metadata', () => {
+    const entries = getFrameworkComponentEntries('nextjs');
+
+    expect(entries.map((entry) => entry.name)).toEqual(['Image', 'Link']);
+    expect(entries[0].metadata.summary).toContain('Next.js image');
+  });
+
+  it('finds component metadata by primary name and alias', () => {
+    const callout = getComponentMetadata('generic', 'Callout');
+    const alert = getComponentMetadata('generic', 'Alert');
+
+    expect(callout?.summary).toContain('Callout box');
+    expect(alert).toBe(callout);
   });
 
   it('builds expected shim paths', () => {
