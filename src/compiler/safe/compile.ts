@@ -16,6 +16,7 @@ import type {
   PhrasingContent,
 } from 'mdast';
 import { extractFrontmatter } from '../pipeline/common/mdx-common';
+import { resolveDocumentFormat } from '../internal/format';
 import {
   getSafeRemarkPlugins,
   getSafeRehypePluginSets,
@@ -373,21 +374,25 @@ export async function compileSafe(
   // build unified pipeline w/ shared plugins via plugin-builder
   const remarkPlugins = getSafeRemarkPlugins();
 
-  // stage 1: parse MDX & apply remark plugins
-  const remarkProcessor = applyPlugins(
-    unified()
-      .use(remarkParse)
-      .use(remarkMdx)
-      // transform known generic components to semantic HTML (before stripping)
-      .use(remarkGenericComponents, { enabled: builtinsEnabled })
-      // strip unknown JSX elements based on configured behavior
-      .use(remarkStripMdx, {
-        unknownBehavior,
-        builtinsEnabled,
-        componentNameResolver: config.componentNameResolver,
-      }),
-    remarkPlugins
-  );
+  // .md compiles as lenient CommonMark (no remark-mdx); .mdx parses JSX/ESM
+  const isMdx = resolveDocumentFormat(config) === 'mdx';
+
+  // stage 1: parse markdown/MDX & apply remark plugins
+  // remark-mdx is only added for MDX so plain markdown (e.g. `<1`) stays literal
+  const baseProcessor = unified().use(remarkParse);
+  if (isMdx) {
+    baseProcessor.use(remarkMdx);
+  }
+  baseProcessor
+    // transform known generic components to semantic HTML (before stripping)
+    .use(remarkGenericComponents, { enabled: builtinsEnabled })
+    // strip unknown JSX elements based on configured behavior (no-op for md)
+    .use(remarkStripMdx, {
+      unknownBehavior,
+      builtinsEnabled,
+      componentNameResolver: config.componentNameResolver,
+    });
+  const remarkProcessor = applyPlugins(baseProcessor, remarkPlugins);
 
   // stage 2: convert to rehype & apply rehype plugins
   // rehype-raw parses raw HTML nodes into proper HAST elements
