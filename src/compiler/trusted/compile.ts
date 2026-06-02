@@ -11,6 +11,7 @@ import { loadPluginsFromConfig } from '../plugins/loader';
 import { generateComponentImports } from './component-mapper';
 import { getLogger } from '../internal/logging';
 import { getDocumentDir } from '../internal/path';
+import { resolveDocumentFormat } from '../internal/format';
 
 import type { CompilerConfig, MdxTranspileResult } from '../types';
 
@@ -86,6 +87,72 @@ ${compiledMDX}
 `;
 };
 
+// resolve the layout import statement & expression for markdown wrapping
+// mirrors injectMDXStyles, but emitted at the compiled-JS level (markdown
+// source cannot carry the ESM that injectMDXStyles relies on)
+const resolveMarkdownLayout = (
+  config: CompilerConfig
+): { layoutImport: string; layoutExpr: string } | null => {
+  const log = getLogger(config.logger);
+  const { customLayoutFilePath, useHostMarkdownStyles, useWhiteBackground } =
+    config;
+
+  if (customLayoutFilePath) {
+    try {
+      const dir = getDocumentDir(config);
+      const rel = path.relative(dir, customLayoutFilePath);
+      return {
+        layoutImport: `import _MDXLayoutComponent from '.${path.sep}${rel}';`,
+        layoutExpr: '_MDXLayoutComponent',
+      };
+    } catch (err) {
+      log.warn(`Failed to resolve custom layout ${customLayoutFilePath}: ${err}`);
+      return null;
+    }
+  }
+  if (useHostMarkdownStyles) {
+    const opts = useWhiteBackground ? '{ forceLightTheme: true }' : '{}';
+    return {
+      layoutImport: `import { createLayout } from 'vscode-markdown-layout';`,
+      layoutExpr: `createLayout(${opts})`,
+    };
+  }
+  return null;
+};
+
+// wrap compiled markdown output, re-attaching the layout at the JS level
+// (markdown is parsed as CommonMark so the layout cannot be injected as source)
+const wrapCompiledMd = (compiledMDX: string, config: CompilerConfig): string => {
+  const layout = resolveMarkdownLayout(config);
+  if (!layout) {
+    return `
+// markdown compiled output (no layout)
+import React from 'react';
+${compiledMDX}
+`;
+  }
+
+  // strip the default export so the content component can be wrapped
+  const strippedMDX = compiledMDX
+    .replace(/export default function MDXContent/g, 'function MDXContent')
+    .replace(/export default MDXContent/g, '');
+
+  return `
+// markdown compiled output w/ layout
+import React from 'react';
+${layout.layoutImport}
+${strippedMDX}
+
+const _MDXLayout = ${layout.layoutExpr};
+const _MDXInner = MDXContent;
+export default function MDXContentWithLayout(props) {
+  return React.createElement(_MDXLayout, props,
+    React.createElement(_MDXInner, props)
+  );
+}
+`;
+};
+
 // transpile MDX to JavaScript & inject layout if no default export
 export async function compileTrusted(
   mdxText: string,
@@ -97,8 +164,13 @@ export async function compileTrusted(
   // extract frontmatter before compilation
   const { content, frontmatter } = extractFrontmatter(mdxText);
 
+  // .md compiles as lenient CommonMark; .mdx parses JSX/ESM
+  // markdown mode cannot use ESM, so layout & component injection are mdx-only
+  const documentFormat = resolveDocumentFormat(config);
+  const isMdx = documentFormat === 'mdx';
+
   let mdxTextToCompile: string;
-  if (!hasDefaultExport(content)) {
+  if (isMdx && !hasDefaultExport(content)) {
     mdxTextToCompile = injectMDXStyles(content, config);
   } else {
     mdxTextToCompile = content;
@@ -117,7 +189,8 @@ export async function compileTrusted(
     );
   }
 
-  // generate component imports from config & built-in shims
+  // generate component imports from config & built-in shims (mdx only)
+  // plain markdown has no JSX components & cannot carry ESM imports
   const documentDir = getDocumentDir(config);
   const builtinsEnabled = config.componentsBuiltins ?? true;
 
@@ -126,13 +199,13 @@ export async function compileTrusted(
   );
   log.debug(`documentDir: ${documentDir}`);
   log.debug(`builtinsEnabled: ${builtinsEnabled}`);
+  log.debug(`documentFormat: ${documentFormat}`);
 
-  const componentImports = generateComponentImports(
-    config.configFile ?? undefined,
-    documentDir,
-    config,
-    { builtinsEnabled }
-  );
+  const componentImports = isMdx
+    ? generateComponentImports(config.configFile ?? undefined, documentDir, config, {
+        builtinsEnabled,
+      })
+    : { hasComponents: false, imports: '', componentsObject: '{}' };
 
   log.debug(
     `componentImports.hasComponents: ${componentImports.hasComponents}`
@@ -149,6 +222,8 @@ export async function compileTrusted(
     buildTrustedPluginPipeline(customPlugins);
 
   const compiled = await compile(mdxTextToCompile, {
+    // lenient CommonMark for .md, strict MDX for .mdx
+    format: documentFormat,
     outputFormat: 'program',
     development: false,
     jsx: false,
@@ -162,13 +237,18 @@ export async function compileTrusted(
     rehypePlugins,
   });
 
+  // markdown re-attaches the layout at the JS level; mdx wraps as before
+  const code = isMdx
+    ? wrapCompiledMdx(
+        compiled.toString(),
+        componentImports.hasComponents
+          ? componentImports.componentsObject
+          : undefined
+      )
+    : wrapCompiledMd(compiled.toString(), config);
+
   return {
-    code: wrapCompiledMdx(
-      compiled.toString(),
-      componentImports.hasComponents
-        ? componentImports.componentsObject
-        : undefined
-    ),
+    code,
     frontmatter: frontmatter as Record<string, unknown>,
   };
 }
