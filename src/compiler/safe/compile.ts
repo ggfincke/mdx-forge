@@ -21,7 +21,10 @@ import {
   getSafeRemarkPlugins,
   getSafeRehypePluginSets,
 } from '../plugins/builder';
-import { warnIgnoredSafeModeConfig } from '../pipeline/common/pipeline-warnings';
+import {
+  warnIgnoredSafeModeConfig,
+  warnMarkdownModeIgnoredConfig,
+} from '../pipeline/common/pipeline-warnings';
 import remarkGenericComponents, {
   KNOWN_GENERIC_COMPONENTS,
 } from '../pipeline/remark/generic-components';
@@ -376,6 +379,20 @@ export async function compileSafe(
 
   // .md compiles as lenient CommonMark (no remark-mdx); .mdx parses JSX/ESM
   const isMdx = resolveDocumentFormat(config) === 'mdx';
+
+  // for plain markdown (.md) the MDX unknown-component handling is inert, so a
+  // host relying on it for containment isn't silently left unprotected; pass the
+  // effective behavior (placeholder by default) so the default case still warns
+  if (!isMdx) {
+    warnMarkdownModeIgnoredConfig(
+      {
+        componentsUnknownBehavior:
+          config.componentsUnknownBehavior ?? 'placeholder',
+        componentNameResolver: config.componentNameResolver,
+      },
+      log
+    );
+  }
 
   // stage 1: parse markdown/MDX & apply remark plugins
   // remark-mdx is only added for MDX so plain markdown (e.g. `<1`) stays literal

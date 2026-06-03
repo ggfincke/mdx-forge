@@ -29,7 +29,10 @@ describe('format detection (.md vs .mdx)', () => {
 
     it('.mdx still rejects `<1` (strict MDX preserved)', async () => {
       await expect(
-        compileSafe(PROSE_WITH_LT, config({ documentPath: '/workspace/doc.mdx' }))
+        compileSafe(
+          PROSE_WITH_LT,
+          config({ documentPath: '/workspace/doc.mdx' })
+        )
       ).rejects.toThrow();
     });
 

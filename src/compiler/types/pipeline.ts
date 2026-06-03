@@ -70,6 +70,9 @@ export enum PipelineWarningCode {
   // configuration warnings
   INVALID_CONFIG_VALUE = 'MDX007',
   CONFIG_FILE_NOT_FOUND = 'MDX008',
+
+  // plain-markdown (.md) format warnings
+  MARKDOWN_CONFIG_IGNORED = 'MDX009',
 }
 
 // structured warning object

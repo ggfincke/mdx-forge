@@ -118,6 +118,21 @@ export function createUnknownComponentWarning(
   };
 }
 
+// create warning for component-containment config not applying to plain markdown
+export function createMarkdownConfigIgnoredWarning(
+  ignoredSettings: string[]
+): PipelineWarning {
+  return {
+    code: PipelineWarningCode.MARKDOWN_CONFIG_IGNORED,
+    message:
+      `Document compiles as plain CommonMark (.md), so MDX component handling ` +
+      `is not applied: ${ignoredSettings.join(', ')} ignored & raw HTML passes ` +
+      `through verbatim. Use format:'mdx' for strict parsing or sanitize downstream.`,
+    severity: 'warning',
+    context: { ignoredSettings },
+  };
+}
+
 // emit warning to the logging system
 export function emitWarning(
   warning: PipelineWarning,
@@ -164,6 +179,37 @@ export function warnIgnoredSafeModeConfig(
   if (hasComponents) {
     emitWarning(createIgnoredComponentsWarning(componentNames), logger);
   }
+}
+
+// warn when component handling is active but inert for a plain-markdown (.md)
+// document; covers safe-mode unknown handling (incl. the default), the name
+// resolver, trusted-mode component maps & builtin shims
+export function warnMarkdownModeIgnoredConfig(
+  settings: {
+    componentsUnknownBehavior?: unknown;
+    componentNameResolver?: unknown;
+    components?: Record<string, string>;
+    builtinComponents?: boolean;
+  },
+  logger?: CompilerLogger
+): void {
+  const ignored: string[] = [];
+  if (settings.componentsUnknownBehavior !== undefined) {
+    ignored.push('componentsUnknownBehavior');
+  }
+  if (settings.componentNameResolver !== undefined) {
+    ignored.push('componentNameResolver');
+  }
+  if (settings.components && Object.keys(settings.components).length > 0) {
+    ignored.push('component mappings');
+  }
+  if (settings.builtinComponents) {
+    ignored.push('builtin component shims');
+  }
+  if (ignored.length === 0) {
+    return;
+  }
+  emitWarning(createMarkdownConfigIgnoredWarning(ignored), logger);
 }
 
 // log debug information about plugin loading

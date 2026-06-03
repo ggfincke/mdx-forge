@@ -7,9 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Document format detection**: New `format` compiler option (`'detect' | 'md' | 'mdx'`, default `'detect'`). `.md`/`.markdown`/`.mdown`/`.mkd` compile as lenient CommonMark (so prose like `<1 day` or `{...}` no longer errors) while `.mdx` stays strict MDX. `format: 'mdx'` forces strict parsing for any document; `format: 'md'` forces lenient.
+
+### Changed
+
+- **`.md` parsing**: By default `.md` documents now compile as CommonMark instead of strict MDX. Callers that relied on strict MDX parsing of `.md` (e.g. unknown-component stripping) should pass `format: 'mdx'`.
+
 ### Security
 
 - **Frontmatter eval (RCE)**: Disable gray-matter's default `javascript` engine so `---js` / `---javascript` frontmatter is no longer evaluated via `eval()`. Previously any MDX passed to `compileSafe()`, `compileTrusted()`, `extractFrontmatter()` or `hasDefaultExport()` could execute arbitrary code in the host process (CWE-94). YAML & JSON frontmatter are unaffected.
+- **Plain-markdown (`.md`) raw HTML**: `.md` compiles as CommonMark, so raw HTML — including event-handler attributes and elements that strict MDX would reject — passes through verbatim in Safe Mode. Safe Mode is a compile mode, not a sanitizer; hosts rendering untrusted `.md` must sanitize downstream or apply a CSP. Use `format: 'mdx'` to keep strict parsing. MDX component handling (`componentsUnknownBehavior`, `componentNameResolver`, component maps) does not apply to `.md`; the compiler now emits warning `MDX009` when such config is set for a `.md` document.
+- **Layout import hardening**: `customLayoutFilePath` is JSON-quoted when emitted into generated Trusted Mode modules, so a crafted path can no longer break out of the import string to inject `import` statements. Applies to both the markdown and MDX layout paths.
+- **Format-detection hardening**: Document paths containing control characters (e.g. embedded NUL) fail closed to strict MDX, preventing extension-confusion downgrades to the lenient parser.
 
 ## [0.4.4] - 2026-05-26
 

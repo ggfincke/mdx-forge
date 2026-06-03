@@ -3,15 +3,15 @@
 
 import { compile } from '@mdx-js/mdx';
 import hasDefaultExport from './hasDefaultExport';
-import * as path from 'path';
 
 import { extractFrontmatter } from '../pipeline/common/mdx-common';
 import { buildTrustedPluginPipeline } from '../plugins/builder';
 import { loadPluginsFromConfig } from '../plugins/loader';
 import { generateComponentImports } from './component-mapper';
 import { getLogger } from '../internal/logging';
-import { getDocumentDir } from '../internal/path';
+import { getDocumentDir, toImportSpecifierLiteral } from '../internal/path';
 import { resolveDocumentFormat } from '../internal/format';
+import { warnMarkdownModeIgnoredConfig } from '../pipeline/common/pipeline-warnings';
 
 import type { CompilerConfig, MdxTranspileResult } from '../types';
 
@@ -24,11 +24,11 @@ const injectMDXStyles = (mdxText: string, config: CompilerConfig): string => {
   if (customLayoutFilePath) {
     try {
       const currentPreviewDirname = getDocumentDir(config);
-      const relativeCustomLayoutPath = path.relative(
-        currentPreviewDirname,
-        customLayoutFilePath
+      const layoutSpecifier = toImportSpecifierLiteral(
+        customLayoutFilePath,
+        currentPreviewDirname
       );
-      return `import Layout from '.${path.sep}${relativeCustomLayoutPath}';
+      return `import Layout from ${layoutSpecifier};
 
 export default Layout;
 
@@ -60,9 +60,10 @@ const wrapCompiledMdx = (
 ): string => {
   if (componentsObject && componentsObject !== '{}') {
     // remove original "export default" to avoid duplicate exports (MDX 3 output)
+    // ! anchor to line start so the phrase inside content/string literals is untouched
     const strippedMDX = compiledMDX
-      .replace(/export default function MDXContent/g, 'function MDXContent')
-      .replace(/export default MDXContent/g, '');
+      .replace(/^export default function MDXContent/m, 'function MDXContent')
+      .replace(/^export default MDXContent;?$/m, '');
 
     // wrap w/ MDXProvider to make custom components available as shortcodes
     return `
@@ -100,13 +101,18 @@ const resolveMarkdownLayout = (
   if (customLayoutFilePath) {
     try {
       const dir = getDocumentDir(config);
-      const rel = path.relative(dir, customLayoutFilePath);
+      const layoutSpecifier = toImportSpecifierLiteral(
+        customLayoutFilePath,
+        dir
+      );
       return {
-        layoutImport: `import _MDXLayoutComponent from '.${path.sep}${rel}';`,
+        layoutImport: `import _MDXLayoutComponent from ${layoutSpecifier};`,
         layoutExpr: '_MDXLayoutComponent',
       };
     } catch (err) {
-      log.warn(`Failed to resolve custom layout ${customLayoutFilePath}: ${err}`);
+      log.warn(
+        `Failed to resolve custom layout ${customLayoutFilePath}: ${err}`
+      );
       return null;
     }
   }
@@ -122,7 +128,10 @@ const resolveMarkdownLayout = (
 
 // wrap compiled markdown output, re-attaching the layout at the JS level
 // (markdown is parsed as CommonMark so the layout cannot be injected as source)
-const wrapCompiledMd = (compiledMDX: string, config: CompilerConfig): string => {
+const wrapCompiledMd = (
+  compiledMDX: string,
+  config: CompilerConfig
+): string => {
   const layout = resolveMarkdownLayout(config);
   if (!layout) {
     return `
@@ -133,9 +142,10 @@ ${compiledMDX}
   }
 
   // strip the default export so the content component can be wrapped
+  // ! anchor to line start so the phrase inside markdown content is untouched
   const strippedMDX = compiledMDX
-    .replace(/export default function MDXContent/g, 'function MDXContent')
-    .replace(/export default MDXContent/g, '');
+    .replace(/^export default function MDXContent/m, 'function MDXContent')
+    .replace(/^export default MDXContent;?$/m, '');
 
   return `
 // markdown compiled output w/ layout
@@ -168,6 +178,18 @@ export async function compileTrusted(
   // markdown mode cannot use ESM, so layout & component injection are mdx-only
   const documentFormat = resolveDocumentFormat(config);
   const isMdx = documentFormat === 'mdx';
+
+  // plain markdown (.md) can't carry JSX components or ESM imports, so the
+  // configured component map & builtin shims do not apply; warn if any are set
+  if (!isMdx) {
+    warnMarkdownModeIgnoredConfig(
+      {
+        components: config.configFile?.config?.components,
+        builtinComponents: config.componentsBuiltins ?? true,
+      },
+      log
+    );
+  }
 
   let mdxTextToCompile: string;
   if (isMdx && !hasDefaultExport(content)) {
@@ -202,9 +224,14 @@ export async function compileTrusted(
   log.debug(`documentFormat: ${documentFormat}`);
 
   const componentImports = isMdx
-    ? generateComponentImports(config.configFile ?? undefined, documentDir, config, {
-        builtinsEnabled,
-      })
+    ? generateComponentImports(
+        config.configFile ?? undefined,
+        documentDir,
+        config,
+        {
+          builtinsEnabled,
+        }
+      )
     : { hasComponents: false, imports: '', componentsObject: '{}' };
 
   log.debug(
