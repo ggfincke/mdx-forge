@@ -20,7 +20,9 @@ describe('frontmatter eval hardening', () => {
 
   it('does not eval ---javascript frontmatter (safeMatter)', () => {
     probe[PWNED] = undefined;
-    safeMatter(`---javascript\n((globalThis['${PWNED}'] = true), {})\n---\nbody`);
+    safeMatter(
+      `---javascript\n((globalThis['${PWNED}'] = true), {})\n---\nbody`
+    );
     expect(probe[PWNED]).toBeUndefined();
   });
 

@@ -26,6 +26,16 @@ export function toRelativeImportPath(
   return normalizePathSeparators(relativePath);
 }
 
+// build a JSON-quoted ESM import specifier for a target path
+// ! quote/escape via JSON.stringify so a crafted path can't break out of the
+// generated import string & inject statements into emitted modules
+export function toImportSpecifierLiteral(
+  absolutePath: string,
+  fromDir: string
+): string {
+  return JSON.stringify(toRelativeImportPath(absolutePath, fromDir));
+}
+
 // get canonical document filesystem path
 export function getDocumentPath(config: CompilerConfig): string {
   return config.documentPath ?? '';

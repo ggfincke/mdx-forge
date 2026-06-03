@@ -68,6 +68,10 @@ export interface ErrorReporter {
   reportPluginError(error: PluginLoadError): void;
 }
 
+// how a document is parsed: lenient CommonMark, strict MDX, or auto-detect
+// from the documentPath extension (.md -> md, otherwise mdx)
+export type DocumentFormat = 'detect' | 'md' | 'mdx';
+
 // compiler configuration
 export interface CompilerConfig {
   // canonical document path used for relative import generation
@@ -76,6 +80,9 @@ export interface CompilerConfig {
   documentDir?: string;
   // optional document URI for host-specific trust policies
   documentUri?: string;
+
+  // parse mode; defaults to 'detect' (extension-based)
+  format?: DocumentFormat;
 
   customLayoutFilePath?: string;
   useHostMarkdownStyles?: boolean;

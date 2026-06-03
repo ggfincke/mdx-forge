@@ -52,6 +52,7 @@ console.log(result.html);
 
 - `compileSafe()` compiles MDX to HTML for non-executing preview flows
 - `compileTrusted()` compiles MDX to executable JavaScript for host-controlled trusted rendering
+- `format` selects lenient CommonMark (`md`) vs strict MDX (`mdx`); `detect` (default) derives it from the document extension (`.md` → `md`, else `mdx`)
 - built-in remark/rehype support includes GFM, alerts, directives, math, diagrams, heading anchors, and syntax highlighting
 
 ### Browser Runtime
@@ -71,6 +72,8 @@ console.log(result.html);
 - `mdx-forge/browser` evaluates code with `new Function()`
 - hosts must explicitly enforce their own trust and path boundaries
 - Safe compilation is a compile mode, not a full sanitization boundary by itself
+- `.md` documents compile as CommonMark: raw HTML (including event-handler attributes and elements that strict MDX would reject) passes through verbatim, so sanitize untrusted `.md` downstream or set `format: 'mdx'` for strict parsing
+- MDX component handling (`componentsUnknownBehavior`, `componentNameResolver`, component maps) does not apply to `.md`; the compiler warns (`MDX009`) when such config is set for a `.md` document
 - runtime style injection may require `style-src 'unsafe-inline'` or a nonce-aware host strategy
 
 ## Build and Test
