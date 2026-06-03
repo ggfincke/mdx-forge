@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **Frontmatter eval (RCE)**: Disable gray-matter's default `javascript` engine so `---js` / `---javascript` frontmatter is no longer evaluated via `eval()`. Previously any MDX passed to `compileSafe()`, `compileTrusted()`, `extractFrontmatter()` or `hasDefaultExport()` could execute arbitrary code in the host process (CWE-94). YAML & JSON frontmatter are unaffected.
+
 ## [0.4.4] - 2026-05-26
 
 ### Changed

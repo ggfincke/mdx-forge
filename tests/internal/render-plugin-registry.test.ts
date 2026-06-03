@@ -8,6 +8,7 @@ import {
   type ComponentRegistryEntry,
 } from '../../src/components/registry/index';
 import { COMPONENT_METADATA } from '../../plugins/render/src/component-metadata';
+import { VALID_CALLOUT_TYPES } from '../../src/internal/callout';
 import {
   findComponent,
   listComponentsForFramework,
@@ -134,6 +135,11 @@ describe('render plugin registry parity', () => {
     expect(findComponent('nextra', 'Tabs')?.importSpecifier).toBe(
       'nextra/components/Tabs'
     );
+    expect(
+      findComponent('generic', 'Callout')?.props.find(
+        (prop) => prop.name === 'type'
+      )?.values
+    ).toEqual(VALID_CALLOUT_TYPES);
 
     for (const framework of listFrameworks()) {
       for (const spec of listComponentsForFramework(framework)) {

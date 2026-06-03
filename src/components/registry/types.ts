@@ -10,6 +10,78 @@ export type FrameworkSetting = 'auto' | FrameworkId;
 export const SHIM_PREFIX = '@mdx-preview/shims' as const;
 
 export type ComponentKind = 'component' | 'barrel';
+export type ComponentKey = `${FrameworkId}:${string}`;
+
+export type ComponentPropType =
+  | 'string'
+  | 'number'
+  | 'boolean'
+  | 'array'
+  | 'object'
+  | 'node'
+  | 'enum'
+  | 'union';
+
+export interface ComponentPropSpec {
+  name: string;
+  type: ComponentPropType;
+  required?: boolean;
+  defaultValue?: string | number | boolean;
+  values?: readonly string[];
+  valueAliases?: Readonly<Record<string, string>>;
+  description?: string;
+  deprecated?: boolean;
+  deprecatedIn?: string;
+  replacement?: string;
+}
+
+export type ComponentChildrenKind =
+  | 'none'
+  | 'text'
+  | 'block'
+  | 'tabitems'
+  | 'steps';
+
+export interface ComponentExample {
+  code: string;
+  title?: string;
+  description?: string;
+}
+
+export type ComponentSafeModeSupport = 'full' | 'fallback' | 'unsupported';
+
+export interface ComponentSafeModeMetadata {
+  support: ComponentSafeModeSupport;
+  fallback?: string;
+}
+
+export interface ComponentAliasMetadata {
+  name: string;
+  canonical: string;
+  deprecated?: boolean;
+  deprecatedIn?: string;
+  replacement?: string;
+  description?: string;
+}
+
+export interface ComponentOpenPropsPolicy {
+  dom?: boolean;
+  dataAttributes?: boolean;
+  ariaAttributes?: boolean;
+  eventHandlers?: boolean;
+  unknown?: boolean;
+}
+
+export interface ComponentAuthoringMetadata {
+  summary: string;
+  props: readonly ComponentPropSpec[];
+  examples: readonly ComponentExample[];
+  childrenKind?: ComponentChildrenKind;
+  safeMode: ComponentSafeModeMetadata;
+  cssDeps?: readonly FrameworkId[];
+  aliasDocs?: readonly ComponentAliasMetadata[];
+  openProps?: ComponentOpenPropsPolicy;
+}
 
 export interface ComponentDefinitionBase {
   // canonical name
@@ -54,6 +126,9 @@ export interface ComponentDefinition extends ComponentDefinitionBase {
 
   // import name
   importName?: string;
+
+  // authoring metadata
+  metadata: ComponentAuthoringMetadata;
 }
 
 export interface ComponentBarrelDefinition extends ComponentDefinitionBase {

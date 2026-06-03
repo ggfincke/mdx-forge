@@ -1,12 +1,13 @@
 // src/components/registry/registry-data.ts
 // COMPONENT_REGISTRY data + derived types + builder functions
-// note: derived types (line 328+) use `typeof COMPONENT_REGISTRY` & must stay in this file
+// note: derived types use `typeof COMPONENT_REGISTRY` & must stay in this file
 
 import {
   SHIM_PREFIX,
   type ComponentRegistryEntry,
   type Framework,
 } from './types';
+import { COMPONENT_METADATA } from './component-metadata';
 
 export const COMPONENT_REGISTRY = [
   // generic components (framework-agnostic)
@@ -26,6 +27,7 @@ export const COMPONENT_REGISTRY = [
       'hint',
       'notice',
     ],
+    metadata: COMPONENT_METADATA['generic:Callout'],
     snippetTemplate:
       '<Callout type="${1|note,tip,warning,danger,info,caution,important|}">\n  $2\n</Callout>',
     snippetDoc: 'Callout w/ type (note, tip, warning, danger, info)',
@@ -39,6 +41,7 @@ export const COMPONENT_REGISTRY = [
     name: 'Collapsible',
     aliases: ['Accordion', 'Details'],
     semanticAliases: ['accordion', 'details', 'expandable', 'toggle'],
+    metadata: COMPONENT_METADATA['generic:Collapsible'],
     snippetTemplate:
       '<Collapsible title="${1:Click to expand}">\n  $2\n</Collapsible>',
     snippetDoc: 'Collapsible section w/ toggle',
@@ -52,6 +55,7 @@ export const COMPONENT_REGISTRY = [
     name: 'Tabs',
     aliases: [],
     semanticAliases: ['tabgroup'],
+    metadata: COMPONENT_METADATA['generic:Tabs'],
     snippetTemplate:
       '<Tabs>\n  <TabItem label="${1:Tab 1}">\n    $2\n  </TabItem>\n  <TabItem label="${3:Tab 2}">\n    $4\n  </TabItem>\n</Tabs>',
     snippetDoc: 'Tab group w/ multiple tabs',
@@ -65,6 +69,7 @@ export const COMPONENT_REGISTRY = [
     name: 'TabItem',
     aliases: ['Tab'],
     semanticAliases: ['tabpanel', 'tabcontent'],
+    metadata: COMPONENT_METADATA['generic:TabItem'],
     snippetTemplate: '<TabItem label="${1:Label}">\n  $2\n</TabItem>',
     snippetDoc: 'Individual tab panel (use inside Tabs)',
     framework: 'generic',
@@ -77,6 +82,7 @@ export const COMPONENT_REGISTRY = [
     name: 'CodeGroup',
     aliases: [],
     semanticAliases: ['codeblock', 'codetabs'],
+    metadata: COMPONENT_METADATA['generic:CodeGroup'],
     snippetTemplate:
       '<CodeGroup>\n```${1:js} title="${2:file.js}"\n$3\n```\n</CodeGroup>',
     snippetDoc: 'Grouped code blocks w/ tabs',
@@ -91,6 +97,7 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'Tabs',
     aliases: [],
+    metadata: COMPONENT_METADATA['docusaurus:Tabs'],
     framework: 'docusaurus',
     importSpecifiers: ['@theme/Tabs'],
     shimPath: `${SHIM_PREFIX}/docusaurus/Tabs`,
@@ -99,6 +106,7 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'TabItem',
     aliases: [],
+    metadata: COMPONENT_METADATA['docusaurus:TabItem'],
     framework: 'docusaurus',
     importSpecifiers: ['@theme/TabItem'],
     shimPath: `${SHIM_PREFIX}/docusaurus/TabItem`,
@@ -109,6 +117,7 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'CodeBlock',
     aliases: [],
+    metadata: COMPONENT_METADATA['docusaurus:CodeBlock'],
     framework: 'docusaurus',
     importSpecifiers: ['@theme/CodeBlock'],
     shimPath: `${SHIM_PREFIX}/docusaurus/CodeBlock`,
@@ -117,6 +126,7 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'Details',
     aliases: [],
+    metadata: COMPONENT_METADATA['docusaurus:Details'],
     framework: 'docusaurus',
     importSpecifiers: ['@theme/Details'],
     shimPath: `${SHIM_PREFIX}/docusaurus/Details`,
@@ -146,6 +156,7 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'Card',
     aliases: [],
+    metadata: COMPONENT_METADATA['starlight:Card'],
     framework: 'starlight',
     importSpecifiers: ['@astrojs/starlight/components/Card'],
     shimPath: `${SHIM_PREFIX}/starlight/Card`,
@@ -154,6 +165,7 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'CardGrid',
     aliases: [],
+    metadata: COMPONENT_METADATA['starlight:CardGrid'],
     framework: 'starlight',
     importSpecifiers: ['@astrojs/starlight/components/CardGrid'],
     shimPath: `${SHIM_PREFIX}/starlight/CardGrid`,
@@ -162,6 +174,7 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'LinkCard',
     aliases: [],
+    metadata: COMPONENT_METADATA['starlight:LinkCard'],
     framework: 'starlight',
     importSpecifiers: ['@astrojs/starlight/components/LinkCard'],
     shimPath: `${SHIM_PREFIX}/starlight/LinkCard`,
@@ -170,6 +183,7 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'Steps',
     aliases: [],
+    metadata: COMPONENT_METADATA['starlight:Steps'],
     framework: 'starlight',
     importSpecifiers: ['@astrojs/starlight/components/Steps'],
     shimPath: `${SHIM_PREFIX}/starlight/Steps`,
@@ -178,6 +192,7 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'Badge',
     aliases: [],
+    metadata: COMPONENT_METADATA['starlight:Badge'],
     framework: 'starlight',
     importSpecifiers: ['@astrojs/starlight/components/Badge'],
     shimPath: `${SHIM_PREFIX}/starlight/Badge`,
@@ -186,6 +201,7 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'Aside',
     aliases: [],
+    metadata: COMPONENT_METADATA['starlight:Aside'],
     framework: 'starlight',
     importSpecifiers: ['@astrojs/starlight/components/Aside'],
     shimPath: `${SHIM_PREFIX}/starlight/Aside`,
@@ -194,6 +210,7 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'Tabs',
     aliases: [],
+    metadata: COMPONENT_METADATA['starlight:Tabs'],
     framework: 'starlight',
     importSpecifiers: ['@astrojs/starlight/components/Tabs'],
     shimPath: `${SHIM_PREFIX}/starlight/Tabs`,
@@ -204,6 +221,7 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'TabItem',
     aliases: [],
+    metadata: COMPONENT_METADATA['starlight:TabItem'],
     framework: 'starlight',
     importSpecifiers: ['@astrojs/starlight/components/TabItem'],
     shimPath: `${SHIM_PREFIX}/starlight/TabItem`,
@@ -214,6 +232,7 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'FileTree',
     aliases: [],
+    metadata: COMPONENT_METADATA['starlight:FileTree'],
     framework: 'starlight',
     importSpecifiers: ['@astrojs/starlight/components/FileTree'],
     shimPath: `${SHIM_PREFIX}/starlight/FileTree`,
@@ -222,6 +241,7 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'Code',
     aliases: [],
+    metadata: COMPONENT_METADATA['starlight:Code'],
     framework: 'starlight',
     importSpecifiers: ['@astrojs/starlight/components/Code'],
     shimPath: `${SHIM_PREFIX}/starlight/Code`,
@@ -232,6 +252,7 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'Image',
     aliases: [],
+    metadata: COMPONENT_METADATA['nextjs:Image'],
     framework: 'nextjs',
     importSpecifiers: ['next/image'],
     shimPath: `${SHIM_PREFIX}/nextjs/Image`,
@@ -240,6 +261,7 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'Link',
     aliases: [],
+    metadata: COMPONENT_METADATA['nextjs:Link'],
     framework: 'nextjs',
     importSpecifiers: ['next/link'],
     shimPath: `${SHIM_PREFIX}/nextjs/Link`,
@@ -262,6 +284,7 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'Callout',
     aliases: [],
+    metadata: COMPONENT_METADATA['nextra:Callout'],
     framework: 'nextra',
     importSpecifiers: ['nextra/components/Callout'],
     shimPath: `${SHIM_PREFIX}/nextra/Callout`,
@@ -270,6 +293,7 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'Tabs',
     aliases: [],
+    metadata: COMPONENT_METADATA['nextra:Tabs'],
     framework: 'nextra',
     importSpecifiers: ['nextra/components/Tabs'],
     shimPath: `${SHIM_PREFIX}/nextra/Tabs`,
@@ -278,6 +302,7 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'Cards',
     aliases: [],
+    metadata: COMPONENT_METADATA['nextra:Cards'],
     framework: 'nextra',
     importSpecifiers: ['nextra/components/Cards'],
     shimPath: `${SHIM_PREFIX}/nextra/Cards`,
@@ -286,6 +311,7 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'FileTree',
     aliases: [],
+    metadata: COMPONENT_METADATA['nextra:FileTree'],
     framework: 'nextra',
     importSpecifiers: ['nextra/components/FileTree'],
     shimPath: `${SHIM_PREFIX}/nextra/FileTree`,
@@ -294,6 +320,7 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'Steps',
     aliases: [],
+    metadata: COMPONENT_METADATA['nextra:Steps'],
     framework: 'nextra',
     importSpecifiers: ['nextra/components/Steps'],
     shimPath: `${SHIM_PREFIX}/nextra/Steps`,
@@ -302,6 +329,7 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'Bleed',
     aliases: [],
+    metadata: COMPONENT_METADATA['nextra:Bleed'],
     framework: 'nextra',
     importSpecifiers: ['nextra/components/Bleed'],
     shimPath: `${SHIM_PREFIX}/nextra/Bleed`,
@@ -309,7 +337,7 @@ export const COMPONENT_REGISTRY = [
 ] as const satisfies readonly ComponentRegistryEntry[];
 
 // derive types from the registry for stronger typing across the repo
-// note: derived types (line 328+) use `typeof COMPONENT_REGISTRY` & must stay in this file
+// note: derived types use `typeof COMPONENT_REGISTRY` & must stay in this file
 export type ComponentRegistryEntryType = (typeof COMPONENT_REGISTRY)[number];
 
 type GenericComponentEntry = Extract<

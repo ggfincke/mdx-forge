@@ -14,7 +14,8 @@ export type PropType =
   | 'array'
   | 'object'
   | 'node'
-  | 'enum';
+  | 'enum'
+  | 'union';
 
 export interface PropSpec {
   name: string;

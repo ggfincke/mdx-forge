@@ -7,11 +7,25 @@ import {
   FRAMEWORK_COMPONENTS,
   type GenericComponentName,
 } from './registry-data';
-import { SHIM_PREFIX, type Framework } from './types';
+import {
+  SHIM_PREFIX,
+  type ComponentAuthoringMetadata,
+  type ComponentDefinition,
+  type ComponentRegistryEntry,
+  type Framework,
+  type FrameworkId,
+} from './types';
 
 // cached arrays/sets for O(1) lookups (COMPONENT_REGISTRY is immutable)
 let _cachedAllGenericNames: string[] | null = null;
 let _cachedGenericSet: Set<string> | null = null;
+const REGISTRY_ENTRIES: readonly ComponentRegistryEntry[] = COMPONENT_REGISTRY;
+
+function isComponentEntry(
+  entry: ComponentRegistryEntry
+): entry is ComponentDefinition {
+  return entry.kind === 'component';
+}
 
 // get all generic component names including aliases (cached)
 export function getAllGenericComponentNames(): string[] {
@@ -67,6 +81,43 @@ export function getFrameworkComponents<F extends Framework>(
   framework: F
 ): readonly string[] {
   return FRAMEWORK_COMPONENTS[framework];
+}
+
+export function getFrameworkComponentEntries(
+  framework: FrameworkId
+): readonly ComponentDefinition[] {
+  const entries: ComponentDefinition[] = [];
+  for (const entry of REGISTRY_ENTRIES) {
+    if (isComponentEntry(entry) && entry.framework === framework) {
+      entries.push(entry);
+    }
+  }
+  return entries;
+}
+
+export function findComponentEntry(
+  framework: FrameworkId,
+  name: string
+): ComponentDefinition | undefined {
+  for (const entry of REGISTRY_ENTRIES) {
+    if (!isComponentEntry(entry)) {
+      continue;
+    }
+    if (entry.framework !== framework) {
+      continue;
+    }
+    if (entry.name === name || entry.aliases.includes(name)) {
+      return entry;
+    }
+  }
+  return undefined;
+}
+
+export function getComponentMetadata(
+  framework: FrameworkId,
+  name: string
+): ComponentAuthoringMetadata | undefined {
+  return findComponentEntry(framework, name)?.metadata;
 }
 
 // check if component name is known generic component (including aliases)
