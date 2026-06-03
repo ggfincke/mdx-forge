@@ -1,12 +1,12 @@
 // src/compiler/trusted/hasDefaultExport.ts
 // check for default export in MDX content using regex patterns
 
-import grayMatter from 'gray-matter';
+import { safeMatter } from '../../internal/frontmatter';
 
 // check if MDX source has default export (using regex patterns)
 const hasDefaultExport = (source: string): boolean => {
   // strip frontmatter first
-  const { content } = grayMatter(source);
+  const { content } = safeMatter(source);
 
   // common default export patterns in MDX/JSX
   const patterns = [

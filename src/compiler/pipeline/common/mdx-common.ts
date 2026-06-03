@@ -1,16 +1,16 @@
 // src/compiler/pipeline/common/mdx-common.ts
 // shared utilities for MDX compilation (trusted & safe modes)
 
-import matter from 'gray-matter';
 import type {
   FrontmatterResult,
   NextraPageMeta,
   UnknownBehavior,
 } from '../../types/compiler';
+import { safeMatter } from '../../../internal/frontmatter';
 
 // extract frontmatter from MDX text w/ gray-matter (returns content & parsed data)
 export function extractFrontmatter(mdxText: string): FrontmatterResult {
-  const { content, data } = matter(mdxText);
+  const { content, data } = safeMatter(mdxText);
   return {
     content,
     frontmatter: data as Record<string, unknown>,
