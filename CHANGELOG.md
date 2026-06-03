@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-03
+
 ### Added
 
 - **Document format detection**: New `format` compiler option (`'detect' | 'md' | 'mdx'`, default `'detect'`). `.md`/`.markdown`/`.mdown`/`.mkd` compile as lenient CommonMark (so prose like `<1 day` or `{...}` no longer errors) while `.mdx` stays strict MDX. `format: 'mdx'` forces strict parsing for any document; `format: 'md'` forces lenient.
@@ -14,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **`.md` parsing**: By default `.md` documents now compile as CommonMark instead of strict MDX. Callers that relied on strict MDX parsing of `.md` (e.g. unknown-component stripping) should pass `format: 'mdx'`.
+- **Dependencies**: Bump `@types/react` to ^19.2.16, `eslint` to ^10.4.1, `react` & `react-dom` to ^19.2.7, `shiki` to 4.2.0, `typescript-eslint` to ^8.60.1, `vite` to ^8.0.16 (picks up the `server.fs.deny` dev-server hardening, GHSA-fx2h-pf6j-xcff) & `vitest` to ^4.1.8
 
 ### Security
 
