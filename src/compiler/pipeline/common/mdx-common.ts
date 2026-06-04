@@ -1,11 +1,7 @@
 // src/compiler/pipeline/common/mdx-common.ts
 // shared utilities for MDX compilation (trusted & safe modes)
 
-import type {
-  FrontmatterResult,
-  NextraPageMeta,
-  UnknownBehavior,
-} from '../../types/compiler';
+import type { FrontmatterResult, NextraPageMeta } from '../../types/compiler';
 import { safeMatter } from '../../../internal/frontmatter';
 
 // extract frontmatter from MDX text w/ gray-matter (returns content & parsed data)
@@ -15,14 +11,6 @@ export function extractFrontmatter(mdxText: string): FrontmatterResult {
     content,
     frontmatter: data as Record<string, unknown>,
   };
-}
-
-// get effective unknown component behavior (resolve from config or return default)
-export function getUnknownBehavior(
-  configBehavior: UnknownBehavior | undefined,
-  defaultBehavior: UnknownBehavior = 'placeholder'
-): UnknownBehavior {
-  return configBehavior ?? defaultBehavior;
 }
 
 // common frontmatter keys that affect preview behavior

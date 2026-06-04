@@ -13,7 +13,6 @@ export type CalloutProps = BaseCalloutProps<CalloutType>;
 // create the base Callout using factory
 const BaseCallout = createCallout<CalloutType>({
   classPrefix: 'mdx-preview-generic-callout',
-  types: ['note', 'tip', 'warning', 'danger', 'info', 'caution', 'important'],
   defaultType: 'note',
   icons: { type: 'svg', icons: CALLOUT_ICONS },
   defaultTitles: CALLOUT_TITLES,

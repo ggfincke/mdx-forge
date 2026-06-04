@@ -22,7 +22,6 @@ const ASIDE_TITLES: Record<AsideType, string> = {
 // create the Aside using factory
 const BaseAside = createCallout<AsideType>({
   classPrefix: 'mdx-preview-starlight-aside',
-  types: ['note', 'tip', 'caution', 'danger'],
   defaultType: 'note',
   icons: { type: 'svg', icons: CALLOUT_ICONS },
   defaultTitles: ASIDE_TITLES,

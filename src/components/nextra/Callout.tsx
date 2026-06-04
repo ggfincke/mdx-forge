@@ -29,7 +29,6 @@ const NEXTRA_CALLOUT_TITLES: Record<NextraCalloutType, string> = {
 // create the base Callout using factory
 const BaseCallout = createCallout<NextraCalloutType>({
   classPrefix: 'mdx-preview-nextra-callout',
-  types: ['default', 'info', 'warning', 'error', 'important'],
   defaultType: 'default',
   icons: { type: 'component', icons: NEXTRA_CALLOUT_ICONS },
   defaultTitles: NEXTRA_CALLOUT_TITLES,

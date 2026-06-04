@@ -7,7 +7,6 @@ import { loadModule } from './loader/loadModule';
 import {
   initPreloadedModules,
   fallbackLayoutModule,
-  getPreservedIds,
   ensureFrameworkShims,
   ensureGenericShims,
 } from './preload';
@@ -22,7 +21,6 @@ import type {
 // re-exports for external use
 export { registry } from './registry/ModuleRegistry';
 export { clearInjectedStyles } from './styles/injectStyles';
-export { injectStyles } from './styles/injectStyles';
 export { loadModule } from './loader/loadModule';
 export { evaluateModule } from './eval/evaluateModule';
 export { createSyncRequire } from './runtime/require';
@@ -68,7 +66,7 @@ let lastEntryPath: string | null = null;
 
 // clear all modules except preloaded ones - called when entry file changes to ensure fresh state
 export function resetModules(): void {
-  registry.clearNonPreloaded(getPreservedIds());
+  registry.clearNonPreloaded();
   clearInjectedStyles();
 }
 
