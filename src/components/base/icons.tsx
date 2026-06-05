@@ -96,3 +96,8 @@ export const NEXTRA_CALLOUT_ICONS: Record<
   error: ErrorIconGitHub,
   important: ImportantIconGitHub,
 };
+
+// canonical Nextra callout type list - single source for metadata
+export const NEXTRA_CALLOUT_TYPES = Object.keys(
+  NEXTRA_CALLOUT_ICONS
+) as NextraCalloutType[];

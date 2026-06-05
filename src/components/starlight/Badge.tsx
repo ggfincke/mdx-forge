@@ -13,11 +13,31 @@ export type BadgeVariant =
   | 'success'
   | 'default';
 
+// badge sizes
+export type BadgeSize = 'small' | 'medium' | 'large';
+
+// canonical badge variant list - single source for metadata
+export const BADGE_VARIANTS: readonly BadgeVariant[] = [
+  'note',
+  'tip',
+  'caution',
+  'danger',
+  'success',
+  'default',
+] as const;
+
+// canonical badge size list - single source for metadata
+export const BADGE_SIZES: readonly BadgeSize[] = [
+  'small',
+  'medium',
+  'large',
+] as const;
+
 // badge props (compatible w/ Starlight)
 export interface BadgeProps {
   text: ReactNode;
   variant?: BadgeVariant;
-  size?: 'small' | 'medium' | 'large';
+  size?: BadgeSize;
 }
 
 // badge component

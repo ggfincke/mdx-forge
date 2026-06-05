@@ -14,6 +14,12 @@ import {
   CALLOUT_TYPE_ALIASES,
   VALID_CALLOUT_TYPES,
 } from '../../src/internal/callout';
+import {
+  NEXTRA_CALLOUT_ICONS,
+  NEXTRA_CALLOUT_TYPES,
+} from '../../src/components/base/icons';
+import { ASIDE_TYPES } from '../../src/components/starlight/Aside';
+import { BADGE_VARIANTS } from '../../src/components/starlight/Badge';
 
 const REGISTRY_ENTRIES: readonly ComponentRegistryEntry[] = COMPONENT_REGISTRY;
 
@@ -78,5 +84,39 @@ describe('component authoring metadata', () => {
       'Accordion',
       'Details',
     ]);
+  });
+
+  it('derives the generic Callout snippet type choices from VALID_CALLOUT_TYPES', () => {
+    const callout = REGISTRY_ENTRIES.find(
+      (entry) =>
+        isComponentEntry(entry) &&
+        entry.framework === 'generic' &&
+        entry.name === 'Callout'
+    ) as ComponentDefinition;
+    const choiceMatch = callout.snippetTemplate?.match(/\$\{1\|([^|]*)\|\}/);
+    const choices = choiceMatch?.[1].split(',') ?? [];
+
+    expect(choices).toEqual([...VALID_CALLOUT_TYPES]);
+  });
+
+  it('sources shim value sets from their canonical shim definitions', () => {
+    // nextra callout types == NEXTRA_CALLOUT_ICONS keys
+    const nextraType = getComponentMetadata('nextra', 'Callout')?.props.find(
+      (prop) => prop.name === 'type'
+    );
+    expect(nextraType?.values).toEqual(NEXTRA_CALLOUT_TYPES);
+    expect(NEXTRA_CALLOUT_TYPES).toEqual(Object.keys(NEXTRA_CALLOUT_ICONS));
+
+    // starlight aside types == AsideType tuple
+    const asideType = getComponentMetadata('starlight', 'Aside')?.props.find(
+      (prop) => prop.name === 'type'
+    );
+    expect(asideType?.values).toEqual(ASIDE_TYPES);
+
+    // starlight badge variants == BadgeVariant tuple
+    const badgeVariant = getComponentMetadata('starlight', 'Badge')?.props.find(
+      (prop) => prop.name === 'variant'
+    );
+    expect(badgeVariant?.values).toEqual(BADGE_VARIANTS);
   });
 });

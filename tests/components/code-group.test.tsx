@@ -116,4 +116,29 @@ describe('CodeGroup', () => {
       expect(panels[1]?.getAttribute('hidden')).toBeNull();
     });
   });
+
+  describe('keyboard navigation', () => {
+    it('ArrowRight/ArrowLeft move tab focus & selection', () => {
+      const { container } = render(
+        React.createElement(
+          CodeGroup,
+          null,
+          codeBlock({ title: 'First' }),
+          codeBlock({ title: 'Second' }),
+          codeBlock({ title: 'Third' })
+        )
+      );
+      const buttons =
+        container.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+
+      buttons[0]!.focus();
+      fireEvent.keyDown(buttons[0]!, { key: 'ArrowRight' });
+      expect(document.activeElement).toBe(buttons[1]);
+      expect(buttons[1]?.getAttribute('aria-selected')).toBe('true');
+
+      fireEvent.keyDown(buttons[1]!, { key: 'ArrowLeft' });
+      expect(document.activeElement).toBe(buttons[0]);
+      expect(buttons[0]?.getAttribute('aria-selected')).toBe('true');
+    });
+  });
 });

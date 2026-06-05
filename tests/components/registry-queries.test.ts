@@ -1,6 +1,9 @@
 // tests/components/registry-queries.test.ts
 // unit tests for registry package query helpers
 
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
 import { describe, it, expect } from 'vitest';
 import {
   getComponentMetadata,
@@ -14,7 +17,45 @@ import {
   isFrameworkComponent,
   getGenericShimPath,
   getFrameworkShimPath,
+  SHIM_BARREL_CONFIG,
 } from '../../src/components/registry/index';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+
+// map shim-barrel outputPath -> framework folder name
+function frameworkFromOutputPath(outputPath: string): string {
+  return outputPath.replace(/\\/g, '/').split('/')[2];
+}
+
+// parse value & type re-export names from a framework index.ts barrel
+function parseBarrelExports(framework: string): {
+  values: Set<string>;
+  types: Set<string>;
+} {
+  const src = readFileSync(
+    resolve(HERE, `../../src/components/${framework}/index.ts`),
+    'utf8'
+  );
+  const values = new Set<string>();
+  const types = new Set<string>();
+  // match each `export { ... } from '...'` block (single- or multi-line)
+  const blockRe = /export\s*\{([^}]*)\}\s*from/g;
+  let match: RegExpExecArray | null;
+  while ((match = blockRe.exec(src)) !== null) {
+    for (const raw of match[1].split(',')) {
+      const name = raw.trim();
+      if (!name) {
+        continue;
+      }
+      if (name.startsWith('type ')) {
+        types.add(name.slice(5).trim());
+      } else {
+        values.add(name);
+      }
+    }
+  }
+  return { values, types };
+}
 
 describe('registry queries', () => {
   it('returns generic component names including aliases', () => {
@@ -92,5 +133,27 @@ describe('registry queries', () => {
     expect(getFrameworkShimPath('docusaurus', 'Tabs')).toBe(
       '@mdx-preview/shims/docusaurus/Tabs'
     );
+  });
+
+  it('shim-barrel config exports match framework barrel re-exports', () => {
+    for (const entry of SHIM_BARREL_CONFIG) {
+      const framework = frameworkFromOutputPath(entry.outputPath);
+      const barrel = parseBarrelExports(framework);
+
+      const configValues = new Set<string>();
+      const configTypes = new Set<string>();
+      for (const exp of entry.exports) {
+        for (const v of exp.values ?? []) {
+          configValues.add(v);
+        }
+        for (const t of exp.types ?? []) {
+          configTypes.add(t);
+        }
+      }
+
+      // both directions: config <-> framework barrel
+      expect([...configValues].sort()).toEqual([...barrel.values].sort());
+      expect([...configTypes].sort()).toEqual([...barrel.types].sort());
+    }
   });
 });

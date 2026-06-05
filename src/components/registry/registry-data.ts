@@ -8,6 +8,11 @@ import {
   type Framework,
 } from './types';
 import { COMPONENT_METADATA } from './component-metadata';
+import { VALID_CALLOUT_TYPES } from '../../internal/callout';
+
+// derive the Callout snippet type choice from the canonical type list
+// single-sources the VS Code snippet choices off VALID_CALLOUT_TYPES
+const CALLOUT_SNIPPET_TYPE_CHOICE = `\${1|${VALID_CALLOUT_TYPES.join(',')}|}`;
 
 export const COMPONENT_REGISTRY = [
   // generic components (framework-agnostic)
@@ -28,8 +33,7 @@ export const COMPONENT_REGISTRY = [
       'notice',
     ],
     metadata: COMPONENT_METADATA['generic:Callout'],
-    snippetTemplate:
-      '<Callout type="${1|note,tip,warning,danger,info,caution,important|}">\n  $2\n</Callout>',
+    snippetTemplate: `<Callout type="${CALLOUT_SNIPPET_TYPE_CHOICE}">\n  $2\n</Callout>`,
     snippetDoc: 'Callout w/ type (note, tip, warning, danger, info)',
     framework: 'generic',
     importSpecifiers: [],

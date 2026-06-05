@@ -9,6 +9,7 @@ import React, {
 } from 'react';
 import { cn } from '../internal/cn';
 import { ArrowIcon } from '../base/icons';
+import { BaseCard } from '../base/BaseCard';
 
 // cards props (compatible w/ Nextra)
 export interface CardsProps extends HTMLAttributes<HTMLDivElement> {
@@ -83,29 +84,20 @@ function Card({
   );
 
   // render as anchor if href is provided, otherwise as div
-  if (href) {
-    const isExternal =
-      href.startsWith('http://') || href.startsWith('https://');
-    return (
-      <a
-        href={href}
-        className={cn('mdx-preview-nextra-card', className)}
-        target={isExternal ? '_blank' : undefined}
-        rel={isExternal ? 'noopener noreferrer' : undefined}
-        {...(props as HTMLAttributes<HTMLAnchorElement>)}
-      >
-        {content}
-      </a>
-    );
-  }
+  // external http(s) hrefs auto-open in a new tab w/ safe rel
+  const isExternal =
+    !!href && (href.startsWith('http://') || href.startsWith('https://'));
 
   return (
-    <div
+    <BaseCard
       className={cn('mdx-preview-nextra-card', className)}
-      {...(props as HTMLAttributes<HTMLDivElement>)}
+      as={href ? 'a' : 'div'}
+      href={href}
+      openInNewTab={isExternal}
+      containerProps={props}
     >
       {content}
-    </div>
+    </BaseCard>
   );
 }
 

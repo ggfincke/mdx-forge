@@ -8,6 +8,14 @@ import { CALLOUT_ICONS } from '../base/icons';
 // aside types (same as admonitions)
 export type AsideType = 'note' | 'tip' | 'caution' | 'danger';
 
+// canonical aside type list - single source for metadata
+export const ASIDE_TYPES: readonly AsideType[] = [
+  'note',
+  'tip',
+  'caution',
+  'danger',
+] as const;
+
 // aside component props
 export type AsideProps = BaseCalloutProps<AsideType>;
 

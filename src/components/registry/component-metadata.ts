@@ -5,6 +5,9 @@ import {
   CALLOUT_TYPE_ALIASES,
   VALID_CALLOUT_TYPES,
 } from '../../internal/callout';
+import { NEXTRA_CALLOUT_TYPES } from '../base/icons';
+import { ASIDE_TYPES } from '../starlight/Aside';
+import { BADGE_VARIANTS, BADGE_SIZES } from '../starlight/Badge';
 import type {
   ComponentAuthoringMetadata,
   ComponentKey,
@@ -17,27 +20,6 @@ const DOM_OPEN_PROPS: ComponentOpenPropsPolicy = {
   ariaAttributes: true,
   eventHandlers: true,
 };
-
-const NEXTRA_CALLOUT_TYPES = [
-  'default',
-  'info',
-  'warning',
-  'error',
-  'important',
-] as const;
-
-const STARLIGHT_ASIDE_TYPES = ['note', 'tip', 'caution', 'danger'] as const;
-
-const STARLIGHT_BADGE_VARIANTS = [
-  'note',
-  'tip',
-  'caution',
-  'danger',
-  'success',
-  'default',
-] as const;
-
-const STARLIGHT_BADGE_SIZES = ['small', 'medium', 'large'] as const;
 
 export const COMPONENT_METADATA = {
   'generic:Callout': {
@@ -463,13 +445,13 @@ export const COMPONENT_METADATA = {
       {
         name: 'variant',
         type: 'enum',
-        values: STARLIGHT_BADGE_VARIANTS,
+        values: BADGE_VARIANTS,
         description: 'Color variant.',
       },
       {
         name: 'size',
         type: 'enum',
-        values: STARLIGHT_BADGE_SIZES,
+        values: BADGE_SIZES,
       },
     ],
     openProps: DOM_OPEN_PROPS,
@@ -491,7 +473,7 @@ export const COMPONENT_METADATA = {
       {
         name: 'type',
         type: 'enum',
-        values: STARLIGHT_ASIDE_TYPES,
+        values: ASIDE_TYPES,
       },
       {
         name: 'title',
