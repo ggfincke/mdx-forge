@@ -3,6 +3,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { evaluateModule } from '../../src/browser/eval/evaluateModule';
+import { ModuleError } from '../../src/browser/errors';
 import type { ModuleRuntime } from '../../src/browser/types';
 
 function createMockRuntime(): ModuleRuntime {
@@ -48,19 +49,20 @@ describe('evaluateModule', () => {
   });
 
   describe('error handling with stack preservation', () => {
-    it('should preserve original error as cause (ES2022)', () => {
+    it('should throw a ModuleError via the shared factory w/ cause (ES2022)', () => {
       const code = 'throw new Error("original error message");';
       const runtime = createMockRuntime();
 
       try {
         evaluateModule(code, 'error-test.js', runtime);
+        expect.unreachable('evaluateModule should throw');
       } catch (error: unknown) {
-        const err = error as Error & { cause?: Error };
+        const err = error as ModuleError & { cause?: Error };
 
-        expect(err.message).toContain(
-          'Error evaluating module "error-test.js"'
-        );
-        expect(err.message).toContain('original error message');
+        expect(err).toBeInstanceOf(ModuleError);
+        expect(err.message).toBe('Failed to evaluate module "error-test.js"');
+        expect(err.data.code).toBe('EVALUATION_FAILED');
+        expect(err.data.moduleId).toBe('error-test.js');
         expect(err.cause).toBeInstanceOf(Error);
         expect(err.cause?.message).toBe('original error message');
       }
@@ -86,9 +88,10 @@ describe('evaluateModule', () => {
       try {
         evaluateModule(code, 'string-error.js', runtime);
       } catch (error: unknown) {
-        const err = error as Error & { cause?: Error };
+        const err = error as ModuleError & { cause?: Error };
 
-        expect(err.message).toContain('string error');
+        expect(err).toBeInstanceOf(ModuleError);
+        expect(err.message).toBe('Failed to evaluate module "string-error.js"');
         expect(err.cause).toBeInstanceOf(Error);
         expect(err.cause?.message).toBe('string error');
       }
@@ -103,11 +106,10 @@ describe('evaluateModule', () => {
       try {
         evaluateModule(code, 'syntax-error.js', runtime);
       } catch (error: unknown) {
-        const err = error as Error & { cause?: Error };
+        const err = error as ModuleError & { cause?: Error };
 
-        expect(err.message).toContain(
-          'Error evaluating module "syntax-error.js"'
-        );
+        expect(err).toBeInstanceOf(ModuleError);
+        expect(err.message).toBe('Failed to evaluate module "syntax-error.js"');
         expect(err.cause).toBeDefined();
       }
     });
@@ -119,9 +121,10 @@ describe('evaluateModule', () => {
       try {
         evaluateModule(code, 'ref-error.js', runtime);
       } catch (error: unknown) {
-        const err = error as Error & { cause?: Error };
+        const err = error as ModuleError & { cause?: Error };
 
-        expect(err.message).toContain('Error evaluating module "ref-error.js"');
+        expect(err).toBeInstanceOf(ModuleError);
+        expect(err.message).toBe('Failed to evaluate module "ref-error.js"');
         expect(err.cause?.message).toContain('undefinedVariable');
       }
     });

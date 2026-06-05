@@ -8,6 +8,7 @@ import { isBareImport } from '../../src/browser/internal/module-id';
 import { Semaphore } from '../../src/browser/internal/semaphore';
 import { copyToClipboard } from '../../src/components/internal/clipboard';
 import { cn } from '../../src/components/internal/cn';
+import { extractErrorMessage } from '../../src/internal/errors';
 
 describe('cross-repo utility parity', () => {
   describe('cn() behavioral contract', () => {
@@ -18,6 +19,25 @@ describe('cross-repo utility parity', () => {
       expect(cn()).toBe('');
       expect(cn(false, null, undefined)).toBe('');
       expect(cn('only')).toBe('only');
+    });
+  });
+
+  describe('extractErrorMessage() behavioral contract', () => {
+    it('extracts messages and falls back to Unknown error', () => {
+      const cases: Array<[unknown, string]> = [
+        [new Error('boom'), 'boom'],
+        ['plain string', 'plain string'],
+        [{ message: 'obj msg' }, 'obj msg'],
+        [{ message: 42 }, 'Unknown error'],
+        [{ foo: 'bar' }, 'Unknown error'],
+        [42, 'Unknown error'],
+        [null, 'Unknown error'],
+        [undefined, 'Unknown error'],
+      ];
+
+      for (const [input, expected] of cases) {
+        expect(extractErrorMessage(input)).toBe(expected);
+      }
     });
   });
 
