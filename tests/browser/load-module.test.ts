@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { configureModuleLoader } from '../../src/browser/internal/runtime-config';
 import { loadModule } from '../../src/browser/loader/loadModule';
 import { registry } from '../../src/browser/registry/ModuleRegistry';
+import { StyleCache } from '../../src/browser/registry/StyleCache';
 import type { FetchResult } from '../../src/browser/types';
 
 const ENTRY_CODE = [
@@ -134,5 +135,68 @@ describe('loadModule', () => {
     const exports = module.exports as { value: string };
 
     expect(exports.value).toBe('sharedshared');
+  });
+
+  it('injects full MDX runtime (Fragment/jsx/jsxs/jsxDEV/useMDXComponents) + require', async () => {
+    const Fragment = Symbol('Fragment');
+    const jsx = (): null => null;
+    const jsxs = (): null => null;
+    const jsxDEV = (): null => null;
+    const useMDXComponents = (): Record<string, unknown> => ({});
+    registry.clear();
+    configureModuleLoader({
+      maxConcurrentFetches: 8,
+      maxModuleLoadDepth: 100,
+      preloadAliases: {},
+      runtime: { Fragment, jsx, jsxs, jsxDEV, useMDXComponents },
+    });
+
+    const code = [
+      'module.exports = {',
+      '  Fragment: runtime.Fragment,',
+      '  jsx: runtime.jsx,',
+      '  jsxs: runtime.jsxs,',
+      '  jsxDEV: runtime.jsxDEV,',
+      '  useMDXComponents: runtime.useMDXComponents,',
+      '  hasRequire: typeof require,',
+      '};',
+    ].join('\n');
+
+    const module = await loadModule('/runtime.js', code, [], vi.fn());
+    const captured = module.exports as Record<string, unknown>;
+
+    expect(captured.Fragment).toBe(Fragment);
+    expect(captured.jsx).toBe(jsx);
+    expect(captured.jsxs).toBe(jsxs);
+    expect(captured.jsxDEV).toBe(jsxDEV);
+    expect(captured.useMDXComponents).toBe(useMDXComponents);
+    expect(captured.hasRequire).toBe('function');
+  });
+});
+
+describe('StyleCache reference counting', () => {
+  it('promotes via get w/o losing refs when re-marking an injected style', () => {
+    const cache = new StyleCache();
+    cache.configure({ maxStyles: 2 });
+
+    // first mark creates entry w/ refCount 1
+    cache.markStyleInjected('a');
+    // second mark on same id increments refCount (relies on get returning live ref)
+    cache.markStyleInjected('a');
+    expect(cache.size).toBe(1);
+    expect(cache.hasInjectedStyle('a')).toBe(true);
+
+    // two decrements bring refCount back to 0 (entry survives as eviction candidate)
+    cache.decrementStyleRef('a');
+    cache.decrementStyleRef('a');
+    expect(cache.hasInjectedStyle('a')).toBe(true);
+
+    // a referenced style is protected from eviction even past capacity
+    cache.markStyleInjected('b');
+    cache.markStyleInjected('c');
+    expect(cache.hasInjectedStyle('b')).toBe(true);
+    expect(cache.hasInjectedStyle('c')).toBe(true);
+    // unreferenced 'a' is evicted to make room
+    expect(cache.hasInjectedStyle('a')).toBe(false);
   });
 });

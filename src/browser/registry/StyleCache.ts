@@ -57,9 +57,8 @@ export class StyleCache {
     const existing = this.cache.get(id);
 
     if (existing) {
+      // get already promoted lru position & existing is the live entry ref
       existing.refCount++;
-      // re-set to update lru position (get already did this, but explicit for clarity)
-      this.cache.set(id, existing);
     } else {
       // proactively evict unreferenced styles to make room for new entry
       // maintain compatibility w/ original dual-map behavior where
