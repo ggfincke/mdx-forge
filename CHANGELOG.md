@@ -7,14 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-06-05
+
+### Added
+
+- **`ShimBarrelConfig.injectCss`**: Shim-barrel config entries can now flag that a framework's stylesheet should be injected, so code generators emit the matching `mdx-forge/components/styles/<framework>.css` import. Consumed by the MDX Preview webview shim generator
+- **`FRAMEWORK_IDS`**: Now exported from `mdx-forge/components/registry` as the single source of framework identifiers
+
 ### Changed
 
-- **Internal consolidation** (behavior-preserving): The `render` registry is now a thin facade over the core component identity — deleted a 534-line metadata shadow and single-sourced `FRAMEWORK_IDS`. Shim and metadata value sets are single-sourced (`CodeGroup` built on `BaseTabs`, Cards on `BaseCard`), react-free shim metadata is extracted into `components/internal/metadata.ts`, and compiler callout/alert handling is factored into `createCalloutCard` + `stripDefaultMdxExport` with alert labels derived from the registry. Module evaluation routes through the shared error factory with `extractErrorMessage` parity locked. No public API or compiled-output changes
+- **Internal consolidation** (behavior-preserving): The `render` registry is now a thin facade over the core component identity — deleted a 534-line metadata shadow and single-sourced `FRAMEWORK_IDS`. Shim and metadata value sets are single-sourced (`CodeGroup` built on `BaseTabs`, Cards on `BaseCard`), react-free shim metadata is extracted into `components/internal/metadata.ts`, and compiler callout/alert handling is factored into `createCalloutCard` + `stripDefaultMdxExport` with alert labels derived from the registry. Module evaluation routes through the shared error factory with `extractErrorMessage` parity locked. Compiled output for existing components is unchanged
 - **Dev config**: `dev/tsconfig.json` now extends the shared base instead of copying its compiler options
 
 ### Removed
 
-- **Dead internal code**: Pruned unreachable compiler/browser exports, types, and pipeline warnings that were never part of the public surface
+- **`injectStyles` from `mdx-forge/browser`**: Removed the unused `injectStyles` export; style injection is handled internally by the browser registry during module evaluation
+- **Dead internal code**: Pruned unreachable browser-registry methods, compiler pipeline-warning helpers, and stale pipeline types
 
 ## [0.5.0] - 2026-06-03
 
