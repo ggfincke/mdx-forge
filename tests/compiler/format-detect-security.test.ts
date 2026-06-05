@@ -197,4 +197,46 @@ describe('format security (.md vs .mdx)', () => {
       expect(defaults.length).toBe(1);
     });
   });
+
+  // pins: each wrap path emits exactly one module-level export default
+  // the .md layout path also re-attaches the layout import
+  describe('WRAP-EXPORT: single module-level export default per wrap path', () => {
+    it('.mdx wrap (with custom components) has exactly one export default', async () => {
+      const result = await compileTrusted(
+        '# hi\n',
+        true,
+        config({
+          documentPath: '/w/d.mdx',
+          configFile: {
+            config: { components: { Foo: './Foo.tsx' } },
+            configPath: '/w/.mdx-previewrc.json',
+            configDir: '/w',
+          },
+        })
+      );
+      const defaults = result.code.match(/^export default/gm) ?? [];
+      expect(defaults.length).toBe(1);
+    });
+
+    it('.mdx wrap (no components) has exactly one export default', async () => {
+      const result = await compileTrusted(
+        '# hi\n',
+        true,
+        config({ documentPath: '/w/d.mdx', useHostMarkdownStyles: true })
+      );
+      const defaults = result.code.match(/^export default/gm) ?? [];
+      expect(defaults.length).toBe(1);
+    });
+
+    it('.md layout wrap includes the vscode-markdown-layout import', async () => {
+      const result = await compileTrusted(
+        '# hi\n',
+        true,
+        config({ documentPath: '/w/n.md', useHostMarkdownStyles: true })
+      );
+      expect(importSources(result.code)).toContain('vscode-markdown-layout');
+      const defaults = result.code.match(/^export default/gm) ?? [];
+      expect(defaults.length).toBe(1);
+    });
+  });
 });

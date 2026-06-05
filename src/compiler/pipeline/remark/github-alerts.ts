@@ -5,8 +5,12 @@ import { visit } from 'unist-util-visit';
 import type { Root, Blockquote, Paragraph, Text, RootContent } from 'mdast';
 import type { Parent } from 'unist';
 import { GITHUB_ALERT_ICONS } from '../../../internal/icons';
-import { createNode } from '../transforms/utils';
-import { type CalloutStyleConfig } from '../../../internal/callout';
+import { createCalloutCard } from '../transforms/utils';
+import {
+  type CalloutStyleConfig,
+  type CalloutType,
+  CALLOUT_TITLES,
+} from '../../../internal/callout';
 import {
   GITHUB_ALERT,
   GITHUB_ALERT_TITLE,
@@ -25,33 +29,23 @@ export const GITHUB_ALERT_TYPES: readonly AlertType[] = [
   'CAUTION',
 ] as const;
 
-const ALERT_CONFIG: Record<AlertType, CalloutStyleConfig> = {
-  NOTE: {
-    className: 'note',
-    label: 'Note',
-    icon: GITHUB_ALERT_ICONS.NOTE,
-  },
-  TIP: {
-    className: 'tip',
-    label: 'Tip',
-    icon: GITHUB_ALERT_ICONS.TIP,
-  },
-  IMPORTANT: {
-    className: 'important',
-    label: 'Important',
-    icon: GITHUB_ALERT_ICONS.IMPORTANT,
-  },
-  WARNING: {
-    className: 'warning',
-    label: 'Warning',
-    icon: GITHUB_ALERT_ICONS.WARNING,
-  },
-  CAUTION: {
-    className: 'caution',
-    label: 'Caution',
-    icon: GITHUB_ALERT_ICONS.CAUTION,
-  },
-};
+// derive each alert config from the shared callout registry
+// className/label come from the lowercased type + CALLOUT_TITLES
+// the icon keeps the GitHub-specific override
+function buildAlertConfig(): Record<AlertType, CalloutStyleConfig> {
+  const map = {} as Record<AlertType, CalloutStyleConfig>;
+  for (const type of GITHUB_ALERT_TYPES) {
+    const calloutType = type.toLowerCase() as CalloutType;
+    map[type] = {
+      className: calloutType,
+      label: CALLOUT_TITLES[calloutType],
+      icon: GITHUB_ALERT_ICONS[type],
+    };
+  }
+  return map;
+}
+
+const ALERT_CONFIG: Record<AlertType, CalloutStyleConfig> = buildAlertConfig();
 
 // match [!TYPE] at start of first paragraph in blockquote
 const ALERT_REGEX = /^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*/i;
@@ -110,29 +104,20 @@ function createAlertNode(
   config: CalloutStyleConfig,
   node: Blockquote
 ): RootContent {
-  return createNode({
-    type: 'githubAlert',
-    hName: 'div',
-    className: [GITHUB_ALERT, `${GITHUB_ALERT}-${config.className}`],
+  return createCalloutCard({
+    outerType: 'githubAlert',
+    wrapperTag: 'div',
+    outerClassNames: [GITHUB_ALERT, `${GITHUB_ALERT}-${config.className}`],
     additionalProps: { role: 'note' },
-    children: [
-      createNode({
-        type: 'githubAlertTitle',
-        hName: 'p',
-        className: GITHUB_ALERT_TITLE,
-        children: [
-          {
-            type: 'html',
-            value: `${config.icon}<span>${config.label}</span>`,
-          },
-        ],
-      }),
-      createNode({
-        type: 'githubAlertContent',
-        hName: 'div',
-        className: GITHUB_ALERT_CONTENT,
-        children: node.children as RootContent[],
-      }),
-    ],
+    headerType: 'githubAlertTitle',
+    headerTag: 'p',
+    headerClassName: GITHUB_ALERT_TITLE,
+    headerMode: 'combined-html',
+    icon: config.icon,
+    title: config.label,
+    escapeTitle: false,
+    contentType: 'githubAlertContent',
+    contentClassName: GITHUB_ALERT_CONTENT,
+    contentChildren: node.children as RootContent[],
   });
 }

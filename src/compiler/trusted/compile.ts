@@ -15,42 +15,72 @@ import { warnMarkdownModeIgnoredConfig } from '../pipeline/common/pipeline-warni
 
 import type { CompilerConfig, MdxTranspileResult } from '../types';
 
-// inject MDX layout styles based on configuration
-const injectMDXStyles = (mdxText: string, config: CompilerConfig): string => {
-  const log = getLogger(config.logger);
+// strip MDX 3's module-level default export so the content component can be
+// re-wrapped; anchor to line start so prose/string literals are untouched
+const stripDefaultMdxExport = (compiledMDX: string): string =>
+  compiledMDX
+    .replace(/^export default function MDXContent/m, 'function MDXContent')
+    .replace(/^export default MDXContent;?$/m, '');
+
+// resolved layout source shared by the mdx-source & compiled-js wrap paths
+// custom: an import specifier literal; host: the createLayout options string
+type LayoutResolution =
+  | { kind: 'custom'; specifier: string }
+  | { kind: 'host'; options: string }
+  | null;
+
+// resolve which layout applies from config (custom file vs host styles)
+// centralizes the customLayoutFilePath try/catch/warn & useHostMarkdownStyles
+// branching; callers format their own output (source prepend vs js import/expr)
+const resolveLayout = (
+  config: CompilerConfig,
+  onResolveError: (err: unknown) => void
+): LayoutResolution => {
   const { customLayoutFilePath, useHostMarkdownStyles, useWhiteBackground } =
     config;
 
   if (customLayoutFilePath) {
     try {
-      const currentPreviewDirname = getDocumentDir(config);
-      const layoutSpecifier = toImportSpecifierLiteral(
-        customLayoutFilePath,
-        currentPreviewDirname
-      );
-      return `import Layout from ${layoutSpecifier};
+      const dir = getDocumentDir(config);
+      const specifier = toImportSpecifierLiteral(customLayoutFilePath, dir);
+      return { kind: 'custom', specifier };
+    } catch (err) {
+      onResolveError(err);
+      return null;
+    }
+  }
+  if (useHostMarkdownStyles) {
+    const options = useWhiteBackground ? '{ forceLightTheme: true }' : '{}';
+    return { kind: 'host', options };
+  }
+  return null;
+};
+
+// inject MDX layout styles based on configuration
+const injectMDXStyles = (mdxText: string, config: CompilerConfig): string => {
+  const log = getLogger(config.logger);
+  const layout = resolveLayout(config, (err) =>
+    log.warn(
+      `Failed to load custom layout from ${config.customLayoutFilePath}: ${err}`
+    )
+  );
+
+  if (!layout) {
+    return mdxText;
+  }
+
+  if (layout.kind === 'custom') {
+    return `import Layout from ${layout.specifier};
 
 export default Layout;
 
 ${mdxText}`;
-    } catch (err) {
-      log.warn(
-        `Failed to load custom layout from ${customLayoutFilePath}: ${err}`
-      );
-      return mdxText;
-    }
-  } else if (useHostMarkdownStyles) {
-    const layoutOptions = useWhiteBackground
-      ? '{ forceLightTheme: true }'
-      : '{}';
-    return `import { createLayout } from 'vscode-markdown-layout';
+  }
+  return `import { createLayout } from 'vscode-markdown-layout';
 
-export default createLayout(${layoutOptions});
+export default createLayout(${layout.options});
 
 ${mdxText}`;
-  } else {
-    return mdxText;
-  }
 };
 
 // wrap compiled MDX output (webview owns React root & handles rendering, wrap w/ MDXProvider if components provided)
@@ -60,10 +90,7 @@ const wrapCompiledMdx = (
 ): string => {
   if (componentsObject && componentsObject !== '{}') {
     // remove original "export default" to avoid duplicate exports (MDX 3 output)
-    // ! anchor to line start so the phrase inside content/string literals is untouched
-    const strippedMDX = compiledMDX
-      .replace(/^export default function MDXContent/m, 'function MDXContent')
-      .replace(/^export default MDXContent;?$/m, '');
+    const strippedMDX = stripDefaultMdxExport(compiledMDX);
 
     // wrap w/ MDXProvider to make custom components available as shortcodes
     return `
@@ -95,35 +122,26 @@ const resolveMarkdownLayout = (
   config: CompilerConfig
 ): { layoutImport: string; layoutExpr: string } | null => {
   const log = getLogger(config.logger);
-  const { customLayoutFilePath, useHostMarkdownStyles, useWhiteBackground } =
-    config;
+  const layout = resolveLayout(config, (err) =>
+    log.warn(
+      `Failed to resolve custom layout ${config.customLayoutFilePath}: ${err}`
+    )
+  );
 
-  if (customLayoutFilePath) {
-    try {
-      const dir = getDocumentDir(config);
-      const layoutSpecifier = toImportSpecifierLiteral(
-        customLayoutFilePath,
-        dir
-      );
-      return {
-        layoutImport: `import _MDXLayoutComponent from ${layoutSpecifier};`,
-        layoutExpr: '_MDXLayoutComponent',
-      };
-    } catch (err) {
-      log.warn(
-        `Failed to resolve custom layout ${customLayoutFilePath}: ${err}`
-      );
-      return null;
-    }
+  if (!layout) {
+    return null;
   }
-  if (useHostMarkdownStyles) {
-    const opts = useWhiteBackground ? '{ forceLightTheme: true }' : '{}';
+
+  if (layout.kind === 'custom') {
     return {
-      layoutImport: `import { createLayout } from 'vscode-markdown-layout';`,
-      layoutExpr: `createLayout(${opts})`,
+      layoutImport: `import _MDXLayoutComponent from ${layout.specifier};`,
+      layoutExpr: '_MDXLayoutComponent',
     };
   }
-  return null;
+  return {
+    layoutImport: `import { createLayout } from 'vscode-markdown-layout';`,
+    layoutExpr: `createLayout(${layout.options})`,
+  };
 };
 
 // wrap compiled markdown output, re-attaching the layout at the JS level
@@ -142,10 +160,7 @@ ${compiledMDX}
   }
 
   // strip the default export so the content component can be wrapped
-  // ! anchor to line start so the phrase inside markdown content is untouched
-  const strippedMDX = compiledMDX
-    .replace(/^export default function MDXContent/m, 'function MDXContent')
-    .replace(/^export default MDXContent;?$/m, '');
+  const strippedMDX = stripDefaultMdxExport(compiledMDX);
 
   return `
 // markdown compiled output w/ layout

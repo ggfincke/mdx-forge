@@ -106,4 +106,55 @@ describe('compileTrusted()', () => {
     expect(result.code).toContain('children: "strong"');
     expect(result.code).not.toContain('[!NOTE]');
   });
+
+  // pins: github-alert output classes for all 5 types incl title + content
+  it('emits github-alert classes (outer + title + content) for all 5 types', async () => {
+    const cases: Array<[string, string, string]> = [
+      ['NOTE', 'note', 'Note'],
+      ['TIP', 'tip', 'Tip'],
+      ['IMPORTANT', 'important', 'Important'],
+      ['WARNING', 'warning', 'Warning'],
+      ['CAUTION', 'caution', 'Caution'],
+    ];
+    for (const [type, cls, label] of cases) {
+      const result = await compileTrusted(
+        `> [!${type}]\n> body`,
+        true,
+        createConfig()
+      );
+      expect(result.code).toContain(
+        `className: "github-alert github-alert-${cls}"`
+      );
+      expect(result.code).toContain('className: "github-alert-title"');
+      expect(result.code).toContain('className: "github-alert-content"');
+      expect(result.code).toContain(`children: "${label}"`);
+      expect(result.code).not.toContain(`[!${type}]`);
+    }
+  });
+
+  // pins: wrap paths emit exactly one module-level export default
+  it('wrapCompiledMdx (.mdx) yields exactly one module-level export default', async () => {
+    const result = await compileTrusted(
+      FIXTURES.basicMdx,
+      true,
+      createConfig({ documentPath: '/workspace/test.mdx' })
+    );
+    const defaults = result.code.match(/^export default/gm) ?? [];
+    expect(defaults.length).toBe(1);
+  });
+
+  it('wrapCompiledMd (.md) yields one export default + the layout import', async () => {
+    const result = await compileTrusted(
+      '# hi\n',
+      true,
+      createConfig({
+        documentPath: '/workspace/test.md',
+        useHostMarkdownStyles: true,
+      })
+    );
+    const defaults = result.code.match(/^export default/gm) ?? [];
+    expect(defaults.length).toBe(1);
+    expect(result.code).toContain('MDXContentWithLayout');
+    expect(result.code).toContain("from 'vscode-markdown-layout'");
+  });
 });
