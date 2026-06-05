@@ -2,74 +2,12 @@
 // type definitions for MDX pipeline configuration
 
 import type { Pluggable } from 'unified';
-import type { UnknownBehavior } from './compiler';
-
-// pipeline mode determines which plugins are included
-export type PipelineMode = 'trusted' | 'safe';
-
-// remark phase annotations for plugin ordering
-// pre/mdx/shared/custom map parser, builtins, shared, & user plugins
-export type RemarkPhase = 'pre' | 'mdx' | 'shared' | 'custom';
-
-// rehype phase annotations for plugin ordering
-// raw/preMath/math/postMath/custom map HTML, math, post-math, & user plugins
-export type RehypePhase = 'raw' | 'preMath' | 'math' | 'postMath' | 'custom';
-
-// pipeline configuration input
-export interface PipelineConfig {
-  mode: PipelineMode;
-  builtinsEnabled: boolean;
-  unknownBehavior: UnknownBehavior;
-  customPlugins?: LoadedPlugins;
-}
-
-// annotated plugin entry for documentation & filtering
-export interface AnnotatedPlugin {
-  plugin: Pluggable;
-  phase: RemarkPhase | RehypePhase;
-  trustedOnly?: boolean;
-  safeOnly?: boolean;
-  description?: string;
-}
-
-// full pipeline description w/ annotated plugins
-export interface PipelineDescription {
-  mode: PipelineMode;
-  remarkPlugins: AnnotatedPlugin[];
-  rehypePlugins: AnnotatedPlugin[];
-}
-
-// Safe Mode pipeline output - split for unified().use() pattern
-export interface SafePipelineConfig {
-  // shared remark plugins (GFM, alerts, math)
-  sharedRemarkPlugins: Pluggable[];
-  // rehype-raw for HTML passthrough
-  rehypeRaw: Pluggable;
-  // rehype plugins before math
-  rehypePreMath: Pluggable[];
-  // KaTeX plugin
-  rehypeMath: Pluggable;
-  // rehype plugins after math
-  rehypePostMath: Pluggable[];
-}
 
 // warning codes for MDX pipeline operations
 export enum PipelineWarningCode {
   // Safe Mode warnings
   CUSTOM_PLUGINS_IGNORED = 'MDX001',
   CUSTOM_COMPONENTS_IGNORED = 'MDX002',
-
-  // plugin loading warnings
-  PLUGIN_LOAD_FAILED = 'MDX003',
-  PLUGIN_INVALID_EXPORT = 'MDX004',
-
-  // component handling warnings
-  BUILTIN_TRANSFORM_FAILED = 'MDX005',
-  UNKNOWN_COMPONENT_DETECTED = 'MDX006',
-
-  // configuration warnings
-  INVALID_CONFIG_VALUE = 'MDX007',
-  CONFIG_FILE_NOT_FOUND = 'MDX008',
 
   // plain-markdown (.md) format warnings
   MARKDOWN_CONFIG_IGNORED = 'MDX009',

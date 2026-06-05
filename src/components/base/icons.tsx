@@ -8,10 +8,15 @@ import {
   FILE_TREE_ICONS as SHARED_FILE_TREE_ICONS,
   LUCIDE_ICONS as SHARED_LUCIDE_ICONS,
 } from '../../internal/icons';
+import type { NextraCalloutType } from '../internal/metadata';
 import { createIconComponent, type IconProps } from './createIconComponent';
 
 // re-export type for external consumers
 export type { IconProps } from './createIconComponent';
+export {
+  NEXTRA_CALLOUT_TYPES,
+  type NextraCalloutType,
+} from '../internal/metadata';
 
 // re-export SVG icon registries from shared package
 export const CALLOUT_ICONS = SHARED_CALLOUT_ICONS;
@@ -77,14 +82,6 @@ export const CopyIcon = createIconComponent(LUCIDE_ICONS.copy, 16);
 
 // check icon (Lucide style) - used for copy confirmation
 export const CheckIcon = createIconComponent(LUCIDE_ICONS.check, 16);
-
-// Nextra callout type icons
-export type NextraCalloutType =
-  | 'default'
-  | 'info'
-  | 'warning'
-  | 'error'
-  | 'important';
 
 export const NEXTRA_CALLOUT_ICONS: Record<
   NextraCalloutType,

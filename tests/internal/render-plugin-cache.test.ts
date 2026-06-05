@@ -113,7 +113,7 @@ describe('render plugin retry caches', () => {
     const readFile = vi
       .fn()
       .mockRejectedValueOnce(new Error('bundle missing'))
-      .mockResolvedValueOnce(Buffer.from('console.log("ok");'));
+      .mockResolvedValueOnce('console.log("ok");');
     vi.doMock('node:fs/promises', () => ({ readFile }));
     const { startPreviewServer, stopPreviewServer } =
       await import('../../plugins/render/src/preview-server');
@@ -129,6 +129,33 @@ describe('render plugin retry caches', () => {
       expect(second.status).toBe(200);
       expect(await second.text()).toBe('console.log("ok");');
       expect(readFile).toHaveBeenCalledTimes(2);
+    } finally {
+      await stopPreviewServer();
+    }
+  });
+
+  it('resolves the same bundle path from both readers', async () => {
+    const trustedReadFile = vi.fn().mockResolvedValue('console.log("ok");');
+    vi.doMock('node:fs/promises', () => ({ readFile: trustedReadFile }));
+    const { readHarnessBundle } =
+      await import('../../plugins/render/src/trusted');
+    await readHarnessBundle('generic');
+    const trustedPath = trustedReadFile.mock.calls[0][0] as string;
+    vi.doUnmock('node:fs/promises');
+    vi.resetModules();
+
+    const serverReadFile = vi.fn().mockResolvedValue('console.log("ok");');
+    vi.doMock('node:fs/promises', () => ({ readFile: serverReadFile }));
+    const { startPreviewServer, stopPreviewServer } =
+      await import('../../plugins/render/src/preview-server');
+    const url = await startPreviewServer();
+    const bundleUrl = `${new URL(url).origin}/harness/generic/bundle.js`;
+
+    try {
+      await fetch(bundleUrl);
+      const serverPath = serverReadFile.mock.calls[0][0] as string;
+      expect(serverPath).toBe(trustedPath);
+      expect(serverPath).toMatch(/dist\/harness\/generic\/bundle\.js$/);
     } finally {
       await stopPreviewServer();
     }

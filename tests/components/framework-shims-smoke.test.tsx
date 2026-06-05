@@ -33,6 +33,7 @@ import {
   Tabs as NextraTabs,
   Steps as NextraSteps,
   Bleed as NextraBleed,
+  Cards as NextraCards,
 } from '../../src/components/nextra/index';
 
 // nextjs
@@ -187,6 +188,23 @@ describe('Nextra shims [smoke]', () => {
       React.createElement(NextraBleed, null, 'Bleed content')
     );
     expect(container.textContent).toContain('Bleed content');
+  });
+
+  it('Cards.Card w/ external href sets target=_blank rel=noopener', () => {
+    const { container } = render(
+      React.createElement(
+        NextraCards,
+        null,
+        React.createElement(NextraCards.Card, {
+          title: 'External',
+          href: 'https://example.com',
+        })
+      )
+    );
+    const anchor = container.querySelector('a');
+    expect(anchor?.getAttribute('href')).toBe('https://example.com');
+    expect(anchor?.getAttribute('target')).toBe('_blank');
+    expect(anchor?.getAttribute('rel')).toBe('noopener noreferrer');
   });
 });
 

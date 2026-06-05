@@ -180,11 +180,6 @@ export class ModuleCache {
     this.pendingFetches.delete(id);
   }
 
-  // clear all pending fetches
-  clearAllPending(): void {
-    this.pendingFetches.clear();
-  }
-
   // bulk operations
 
   // clear all cached modules except preloaded ones

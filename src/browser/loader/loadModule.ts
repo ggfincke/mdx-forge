@@ -252,11 +252,7 @@ async function loadModuleAsync(
   // phase 6: evaluate this module now that all dependencies are loaded
   const runtimeBase = getModuleLoaderConfig().runtime;
   const runtime: ModuleRuntime = {
-    Fragment: runtimeBase.Fragment,
-    jsx: runtimeBase.jsx,
-    jsxs: runtimeBase.jsxs,
-    jsxDEV: runtimeBase.jsxDEV,
-    useMDXComponents: runtimeBase.useMDXComponents,
+    ...runtimeBase,
     require: createSyncRequire(id),
   };
 

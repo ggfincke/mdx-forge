@@ -4,13 +4,10 @@
 import { access, readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { FRAMEWORK_IDS } from 'mdx-forge/components/registry';
 
-export type Framework =
-  | 'generic'
-  | 'docusaurus'
-  | 'starlight'
-  | 'nextra'
-  | 'nextjs';
+// generic-inclusive framework id, derived from the core registry tuple
+export type FrameworkId = (typeof FRAMEWORK_IDS)[number];
 
 const cache = new Map<string, string>();
 const __filename = fileURLToPath(import.meta.url);
@@ -140,7 +137,7 @@ export async function tokensCss(): Promise<string> {
 
 // Next.js has no bundled CSS — consumers bring their own
 export async function resolveFrameworkCss(
-  framework: Framework
+  framework: FrameworkId
 ): Promise<string> {
   if (framework === 'nextjs') {
     return '';

@@ -62,11 +62,6 @@ export class DependencyTracker {
     this.dependents.get(dependsOnId)!.add(moduleId);
   }
 
-  // get all modules that depend on the given module
-  getDependents(moduleId: string): Set<string> | undefined {
-    return this.dependents.get(moduleId);
-  }
-
   // get number of dependency relationships tracked
   get dependentsCount(): number {
     return this.dependents.size;
@@ -155,13 +150,6 @@ export class DependencyTracker {
   // clear the dependency graph (but keep resolution map)
   clearDependencies(): void {
     this.dependents.clear();
-  }
-
-  // clear resolution map
-  clearResolutions(): void {
-    this.resolutionMap.clear();
-    this.parentToResolutionKeys.clear();
-    this.targetToResolutionKeys.clear();
   }
 
   // clear all tracking data

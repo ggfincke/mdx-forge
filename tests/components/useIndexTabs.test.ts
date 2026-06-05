@@ -73,7 +73,7 @@ describe('useIndexTabs', () => {
     const { result } = renderHook(() =>
       useIndexTabs({
         items: ['A', 'B', 'C'],
-        isDisabled: (_item, index) => index === 1,
+        isDisabled: (item) => item === 'B',
       })
     );
 

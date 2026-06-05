@@ -3,7 +3,7 @@
 
 import type { RootContent } from 'mdast';
 import type { MdxJsxElement } from '../../types';
-import { getStaticStringProp, escapeHtml, createNode } from './utils';
+import { getStaticStringProp, createCalloutCard } from './utils';
 import {
   type CalloutType,
   type CalloutStyleConfig,
@@ -72,30 +72,21 @@ export function transformCallout(node: MdxJsxElement): RootContent {
   const config = CALLOUT_DEFAULTS[calloutType];
   const title = getStaticStringProp(node, 'title') || config.label;
 
-  return createNode({
-    type: 'callout',
-    hName: 'aside',
-    className: [SAFE_CALLOUT, config.className],
+  return createCalloutCard({
+    outerType: 'callout',
+    wrapperTag: 'aside',
+    outerClassNames: [SAFE_CALLOUT, config.className],
     additionalProps: { 'data-callout-type': calloutType },
-    children: [
-      createNode({
-        type: 'calloutHeader',
-        hName: 'div',
-        className: SAFE_CALLOUT_HEADER,
-        children: [
-          {
-            type: 'html',
-            value: `<span class="${SAFE_CALLOUT_ICON}">${config.icon}</span>`,
-          },
-          { type: 'text', value: escapeHtml(title) },
-        ],
-      }),
-      createNode({
-        type: 'calloutContent',
-        hName: 'div',
-        className: SAFE_CALLOUT_CONTENT,
-        children: node.children,
-      }),
-    ],
+    headerType: 'calloutHeader',
+    headerTag: 'div',
+    headerClassName: SAFE_CALLOUT_HEADER,
+    headerMode: 'split-icon-text',
+    iconClassName: SAFE_CALLOUT_ICON,
+    icon: config.icon,
+    title,
+    escapeTitle: true,
+    contentType: 'calloutContent',
+    contentClassName: SAFE_CALLOUT_CONTENT,
+    contentChildren: node.children as RootContent[],
   });
 }

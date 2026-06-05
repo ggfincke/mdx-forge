@@ -2,6 +2,7 @@
 // shared utilities for Safe Mode component transforms
 
 import type { RootContent } from 'mdast';
+import type { Properties } from 'hast';
 import type { MdxJsxElement, NodeConfig, TransformNode } from '../../types';
 
 // extract a static string prop from an MDX JSX element
@@ -97,4 +98,75 @@ export function isMdxJsxElement(node: unknown): node is MdxJsxElement {
     ((node as { type: string }).type === 'mdxJsxFlowElement' ||
       (node as { type: string }).type === 'mdxJsxTextElement')
   );
+}
+
+// how the card header renders its icon + title
+// split-icon-text: <span class=icon>icon</span> + text node (callout/admonition)
+// combined-html: single raw `icon<span>title</span>` string (github alert)
+export type HeaderMode = 'split-icon-text' | 'combined-html';
+
+// params for the shared callout/admonition/alert card scaffold
+export interface CalloutCardConfig {
+  outerType: string;
+  wrapperTag: string;
+  outerClassNames: string[];
+  additionalProps?: Properties;
+  headerType: string;
+  headerTag: string;
+  headerClassName: string;
+  headerMode: HeaderMode;
+  iconClassName?: string;
+  icon: string;
+  title: string;
+  escapeTitle: boolean;
+  contentType: string;
+  contentClassName: string;
+  contentChildren: RootContent[];
+}
+
+// build header children for the requested header mode
+function buildCardHeaderChildren(config: CalloutCardConfig): RootContent[] {
+  if (config.headerMode === 'combined-html') {
+    return [
+      {
+        type: 'html',
+        value: `${config.icon}<span>${config.title}</span>`,
+      } as RootContent,
+    ];
+  }
+  const titleValue = config.escapeTitle
+    ? escapeHtml(config.title)
+    : config.title;
+  return [
+    {
+      type: 'html',
+      value: `<span class="${config.iconClassName}">${config.icon}</span>`,
+    } as RootContent,
+    { type: 'text', value: titleValue } as RootContent,
+  ];
+}
+
+// shared scaffold for callout/admonition/github-alert cards
+// callers parameterize the divergent tags, classes, header shape & escaping
+export function createCalloutCard(config: CalloutCardConfig): TransformNode {
+  return createNode({
+    type: config.outerType,
+    hName: config.wrapperTag,
+    className: config.outerClassNames,
+    additionalProps: config.additionalProps,
+    children: [
+      createNode({
+        type: config.headerType,
+        hName: config.headerTag,
+        className: config.headerClassName,
+        children: buildCardHeaderChildren(config),
+      }),
+      createNode({
+        type: config.contentType,
+        hName: 'div',
+        className: config.contentClassName,
+        children: config.contentChildren,
+      }),
+    ],
+  });
 }

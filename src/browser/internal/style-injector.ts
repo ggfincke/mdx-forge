@@ -32,12 +32,8 @@ class DomStyleInjector implements StyleInjector {
   }
 }
 
-let styleInjector: StyleInjector = new DomStyleInjector();
+const styleInjector: StyleInjector = new DomStyleInjector();
 
 export function getStyleInjector(): StyleInjector {
   return styleInjector;
-}
-
-export function setStyleInjector(next: StyleInjector): void {
-  styleInjector = next;
 }

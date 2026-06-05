@@ -147,7 +147,7 @@ export interface UseIndexTabsOptions<T> {
   // selection change handler
   onChange?: (index: number) => void;
   // disabled check
-  isDisabled?: (item: T, index: number) => boolean;
+  isDisabled?: (item: T) => boolean;
 }
 
 // result from useIndexTabs hook
@@ -190,7 +190,7 @@ export function useIndexTabs<T>({
   const setActiveIndex = useCallback(
     (index: number) => {
       // check if tab is disabled
-      if (items[index] !== undefined && isDisabled(items[index], index)) {
+      if (items[index] !== undefined && isDisabled(items[index])) {
         return;
       }
 

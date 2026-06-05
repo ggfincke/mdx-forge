@@ -3,21 +3,20 @@
 // provide preview-compatible version of @astrojs/starlight/components Badge
 
 import React, { ReactNode, ReactElement } from 'react';
+import type { BadgeSize, BadgeVariant } from '../internal/metadata';
 
-// badge variants
-export type BadgeVariant =
-  | 'note'
-  | 'tip'
-  | 'caution'
-  | 'danger'
-  | 'success'
-  | 'default';
+export {
+  BADGE_SIZES,
+  BADGE_VARIANTS,
+  type BadgeSize,
+  type BadgeVariant,
+} from '../internal/metadata';
 
 // badge props (compatible w/ Starlight)
 export interface BadgeProps {
   text: ReactNode;
   variant?: BadgeVariant;
-  size?: 'small' | 'medium' | 'large';
+  size?: BadgeSize;
 }
 
 // badge component

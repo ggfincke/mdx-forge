@@ -14,6 +14,17 @@ import {
   CALLOUT_TYPE_ALIASES,
   VALID_CALLOUT_TYPES,
 } from '../../src/internal/callout';
+import {
+  ASIDE_TYPES,
+  BADGE_VARIANTS,
+  NEXTRA_CALLOUT_TYPES,
+} from '../../src/components/internal/metadata';
+import {
+  NEXTRA_CALLOUT_ICONS,
+  NEXTRA_CALLOUT_TYPES as NEXTRA_CALLOUT_TYPES_FROM_ICONS,
+} from '../../src/components/base/icons';
+import { ASIDE_TYPES as ASIDE_TYPES_FROM_ASIDE } from '../../src/components/starlight/Aside';
+import { BADGE_VARIANTS as BADGE_VARIANTS_FROM_BADGE } from '../../src/components/starlight/Badge';
 
 const REGISTRY_ENTRIES: readonly ComponentRegistryEntry[] = COMPONENT_REGISTRY;
 
@@ -78,5 +89,39 @@ describe('component authoring metadata', () => {
       'Accordion',
       'Details',
     ]);
+  });
+
+  it('derives the generic Callout snippet type choices from VALID_CALLOUT_TYPES', () => {
+    const callout = REGISTRY_ENTRIES.find(
+      (entry) =>
+        isComponentEntry(entry) &&
+        entry.framework === 'generic' &&
+        entry.name === 'Callout'
+    ) as ComponentDefinition;
+    const choiceMatch = callout.snippetTemplate?.match(/\$\{1\|([^|]*)\|\}/);
+    const choices = choiceMatch?.[1].split(',') ?? [];
+
+    expect(choices).toEqual([...VALID_CALLOUT_TYPES]);
+  });
+
+  it('sources shim value sets from their react-free metadata tuples', () => {
+    const nextraType = getComponentMetadata('nextra', 'Callout')?.props.find(
+      (prop) => prop.name === 'type'
+    );
+    expect(nextraType?.values).toEqual(NEXTRA_CALLOUT_TYPES);
+    expect(NEXTRA_CALLOUT_TYPES_FROM_ICONS).toEqual(NEXTRA_CALLOUT_TYPES);
+    expect(NEXTRA_CALLOUT_TYPES).toEqual(Object.keys(NEXTRA_CALLOUT_ICONS));
+
+    const asideType = getComponentMetadata('starlight', 'Aside')?.props.find(
+      (prop) => prop.name === 'type'
+    );
+    expect(asideType?.values).toEqual(ASIDE_TYPES);
+    expect(ASIDE_TYPES_FROM_ASIDE).toEqual(ASIDE_TYPES);
+
+    const badgeVariant = getComponentMetadata('starlight', 'Badge')?.props.find(
+      (prop) => prop.name === 'variant'
+    );
+    expect(badgeVariant?.values).toEqual(BADGE_VARIANTS);
+    expect(BADGE_VARIANTS_FROM_BADGE).toEqual(BADGE_VARIANTS);
   });
 });

@@ -227,3 +227,94 @@ digraph G { A -> B }
     );
   });
 });
+
+// pins: structural scaffolds are largely untested; lock the divergent shapes
+describe('callout/admonition/alert scaffold pins (Safe Mode)', () => {
+  it('Callout scaffold: aside outer, div header w/ icon span + escaped text, div content', async () => {
+    const result = await compileSafe(
+      `<Callout type="note" title="My Title">
+Body text
+</Callout>`,
+      createConfig()
+    );
+
+    // outer aside w/ prefix + prefix-{type} classes & data-callout-type
+    expect(result.html).toMatch(
+      /<aside class="mdx-safe-callout mdx-safe-callout-note" data-callout-type="note">/
+    );
+    // header is a div w/ icon span + plain text title
+    expect(result.html).toMatch(
+      /<div class="mdx-safe-callout-header"><span class="mdx-safe-callout-icon"[^>]*><svg[\s\S]*?<\/svg><\/span>My Title<\/div>/
+    );
+    // content is a div
+    expect(result.html).toContain('<div class="mdx-safe-callout-content">');
+    expect(result.html).toContain('</aside>');
+  });
+
+  it('Callout title is HTML-escaped by escapeHtml (then serialized once more)', async () => {
+    const result = await compileSafe(
+      `<Callout type="note" title="a<b>&'c">
+Body
+</Callout>`,
+      createConfig()
+    );
+
+    // escapeHtml turns the title into an entity string, which the HTML
+    // serializer then re-escapes the &; pin the exact current bytes
+    expect(result.html).toContain('a&#x26;lt;b&#x26;gt;&#x26;amp;&#x26;#039;c');
+  });
+
+  it('admonition scaffold: div outer, div header w/ icon span + text, div content', async () => {
+    const result = await compileSafe(
+      `:::note
+Body text
+:::`,
+      createConfig()
+    );
+
+    // outer div w/ prefix + prefix-{type} classes & data-admonition-type
+    expect(result.html).toMatch(
+      /<div class="mdx-preview-admonition mdx-preview-admonition-note" data-admonition-type="note">/
+    );
+    // header is a div w/ icon span + plain text label (default "Note")
+    expect(result.html).toMatch(
+      /<div class="mdx-preview-admonition-header"><span class="mdx-preview-admonition-icon"[^>]*><svg[\s\S]*?<\/svg><\/span>Note<\/div>/
+    );
+    // content is a div
+    expect(result.html).toContain(
+      '<div class="mdx-preview-admonition-content">'
+    );
+  });
+
+  it('github-alert scaffold: div outer, p title w/ combined icon+label HTML, div content', async () => {
+    const result = await compileSafe(`> [!TIP]\n> tip body`, createConfig());
+
+    expect(result.html).toMatch(
+      /<div class="github-alert github-alert-tip" role="note">/
+    );
+    // title is a <p>, header children are one combined-HTML string: icon then <span>label</span>
+    expect(result.html).toMatch(
+      /<p class="github-alert-title"><svg[\s\S]*?<\/svg><span[^>]*>Tip<\/span><\/p>/
+    );
+    expect(result.html).toContain('<div class="github-alert-content">');
+  });
+
+  it('github-alert classes + title + content for all 5 alert types', async () => {
+    const cases: Array<[string, string, string]> = [
+      ['NOTE', 'note', 'Note'],
+      ['TIP', 'tip', 'Tip'],
+      ['IMPORTANT', 'important', 'Important'],
+      ['WARNING', 'warning', 'Warning'],
+      ['CAUTION', 'caution', 'Caution'],
+    ];
+    for (const [type, cls, label] of cases) {
+      const result = await compileSafe(`> [!${type}]\n> body`, createConfig());
+      expect(result.html).toContain(`class="github-alert github-alert-${cls}"`);
+      expect(result.html).toContain('class="github-alert-title"');
+      expect(result.html).toContain('class="github-alert-content"');
+      expect(result.html).toContain(
+        `<span data-source-line="1">${label}</span>`
+      );
+    }
+  });
+});

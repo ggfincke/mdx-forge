@@ -55,69 +55,6 @@ export function createIgnoredComponentsWarning(
   };
 }
 
-// create warning for plugin load failure
-export function createPluginLoadFailureWarning(
-  pluginName: string,
-  error: Error
-): PipelineWarning {
-  return {
-    code: PipelineWarningCode.PLUGIN_LOAD_FAILED,
-    message: `Failed to load plugin "${pluginName}": ${error.message}`,
-    severity: 'error',
-    context: { pluginName, error: error.message },
-  };
-}
-
-// create warning for invalid plugin export
-export function createInvalidPluginExportWarning(
-  pluginName: string,
-  actualType: string
-): PipelineWarning {
-  return {
-    code: PipelineWarningCode.PLUGIN_INVALID_EXPORT,
-    message:
-      `Plugin "${pluginName}" does not export a function. Got: ${actualType}. ` +
-      `Plugins must export a function as default or named export.`,
-    severity: 'error',
-    context: { pluginName, actualType },
-  };
-}
-
-// create warning for builtin component transform failure
-export function createBuiltinTransformFailureWarning(
-  componentName: string
-): PipelineWarning {
-  return {
-    code: PipelineWarningCode.BUILTIN_TRANSFORM_FAILED,
-    message:
-      `Built-in component "${componentName}" could not be transformed. ` +
-      `It will appear as a placeholder in Safe Mode.`,
-    severity: 'warning',
-    context: { componentName },
-  };
-}
-
-// create warning for unknown component detection
-export function createUnknownComponentWarning(
-  componentName: string,
-  behavior: 'strip' | 'placeholder' | 'raw'
-): PipelineWarning {
-  const actionMap = {
-    strip: 'removed from output',
-    placeholder: 'replaced w/ a placeholder',
-    raw: 'rendered w/ children only',
-  };
-
-  return {
-    code: PipelineWarningCode.UNKNOWN_COMPONENT_DETECTED,
-    message:
-      `Unknown component "${componentName}" detected in Safe Mode. ` +
-      `It will be ${actionMap[behavior]}.`,
-    severity: 'info',
-    context: { componentName, behavior },
-  };
-}
-
 // create warning for component-containment config not applying to plain markdown
 export function createMarkdownConfigIgnoredWarning(
   ignoredSettings: string[]
@@ -210,26 +147,4 @@ export function warnMarkdownModeIgnoredConfig(
     return;
   }
   emitWarning(createMarkdownConfigIgnoredWarning(ignored), logger);
-}
-
-// log debug information about plugin loading
-export function logPluginLoadResult(
-  result: {
-    loaded: number;
-    failed: number;
-    errors: string[];
-  },
-  logger?: CompilerLogger
-): void {
-  const log = getLogger(logger);
-  if (result.loaded > 0) {
-    log.info(
-      `Loaded ${result.loaded} custom plugin(s)` +
-        (result.failed > 0 ? ` (${result.failed} failed)` : '')
-    );
-  }
-
-  if (result.errors.length > 0) {
-    log.debug(`Plugin errors: ${result.errors.join('; ')}`);
-  }
 }

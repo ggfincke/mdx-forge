@@ -4,9 +4,9 @@
 import { ReactElement } from 'react';
 import { createCallout, type BaseCalloutProps } from '../base/BaseCallout';
 import { CALLOUT_ICONS } from '../base/icons';
+import type { AsideType } from '../internal/metadata';
 
-// aside types (same as admonitions)
-export type AsideType = 'note' | 'tip' | 'caution' | 'danger';
+export { ASIDE_TYPES, type AsideType } from '../internal/metadata';
 
 // aside component props
 export type AsideProps = BaseCalloutProps<AsideType>;
@@ -22,7 +22,6 @@ const ASIDE_TITLES: Record<AsideType, string> = {
 // create the Aside using factory
 const BaseAside = createCallout<AsideType>({
   classPrefix: 'mdx-preview-starlight-aside',
-  types: ['note', 'tip', 'caution', 'danger'],
   defaultType: 'note',
   icons: { type: 'svg', icons: CALLOUT_ICONS },
   defaultTitles: ASIDE_TITLES,

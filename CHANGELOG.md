@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Internal consolidation** (behavior-preserving): The `render` registry is now a thin facade over the core component identity — deleted a 534-line metadata shadow and single-sourced `FRAMEWORK_IDS`. Shim and metadata value sets are single-sourced (`CodeGroup` built on `BaseTabs`, Cards on `BaseCard`), react-free shim metadata is extracted into `components/internal/metadata.ts`, and compiler callout/alert handling is factored into `createCalloutCard` + `stripDefaultMdxExport` with alert labels derived from the registry. Module evaluation routes through the shared error factory with `extractErrorMessage` parity locked. No public API or compiled-output changes
+- **Dev config**: `dev/tsconfig.json` now extends the shared base instead of copying its compiler options
+
+### Removed
+
+- **Dead internal code**: Pruned unreachable compiler/browser exports, types, and pipeline warnings that were never part of the public surface
+
 ## [0.5.0] - 2026-06-03
 
 ### Added

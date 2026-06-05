@@ -4,7 +4,7 @@
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium, type Browser, type Page } from 'playwright';
-import type { Framework } from './css.js';
+import type { FrameworkId } from './css.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const PLUGIN_ROOT = resolve(dirname(__filename), '..');
@@ -21,7 +21,7 @@ const defaultBrowserLauncher: BrowserLauncher = () =>
 
 let browserPromise: Promise<Browser> | undefined;
 let browserLauncher: BrowserLauncher = defaultBrowserLauncher;
-const pages = new Map<Framework, HarnessEntry>();
+const pages = new Map<FrameworkId, HarnessEntry>();
 
 async function getBrowser(): Promise<Browser> {
   if (!browserPromise) {
@@ -40,7 +40,7 @@ export function configureHarnessBrowserLauncher(
   browserPromise = undefined;
 }
 
-function harnessUrl(framework: Framework): string {
+function harnessUrl(framework: FrameworkId): string {
   const htmlPath = resolve(
     PLUGIN_ROOT,
     'dist',
@@ -51,7 +51,7 @@ function harnessUrl(framework: Framework): string {
   return pathToFileURL(htmlPath).href;
 }
 
-async function openHarnessPage(framework: Framework): Promise<HarnessEntry> {
+async function openHarnessPage(framework: FrameworkId): Promise<HarnessEntry> {
   const browser = await getBrowser();
   const context = await browser.newContext({
     viewport: { width: 1024, height: 768 },
@@ -105,7 +105,7 @@ async function closeHarnessEntry(entry: HarnessEntry): Promise<void> {
   await context.close().catch(() => undefined);
 }
 
-export async function getHarnessPage(framework: Framework): Promise<Page> {
+export async function getHarnessPage(framework: FrameworkId): Promise<Page> {
   let entry = pages.get(framework);
   if (!entry) {
     entry = await openHarnessPage(framework);

@@ -16,7 +16,7 @@ import {
   type CalloutStyleConfig,
   buildCalloutStyleMap,
 } from '../../../internal/callout';
-import { createNode } from '../transforms/utils';
+import { createCalloutCard } from '../transforms/utils';
 import {
   PREVIEW_ADMONITION,
   PREVIEW_ADMONITION_NOTE,
@@ -148,7 +148,7 @@ function resolveAdmonitionType(name: string): CalloutStyleConfig | undefined {
   return undefined;
 }
 
-// create AST node for admonition using shared createNode() pattern
+// create AST node for admonition via the shared createCalloutCard scaffold
 function createAdmonitionNode(
   config: CalloutStyleConfig,
   title: string,
@@ -163,31 +163,22 @@ function createAdmonitionNode(
     return true;
   });
 
-  return createNode({
-    type: 'admonition',
-    hName: 'div',
-    className: [PREVIEW_ADMONITION, config.className],
+  return createCalloutCard({
+    outerType: 'admonition',
+    wrapperTag: 'div',
+    outerClassNames: [PREVIEW_ADMONITION, config.className],
     additionalProps: { 'data-admonition-type': config.label.toLowerCase() },
-    children: [
-      createNode({
-        type: 'admonitionHeader',
-        hName: 'div',
-        className: PREVIEW_ADMONITION_HEADER,
-        children: [
-          {
-            type: 'html',
-            value: `<span class="${PREVIEW_ADMONITION_ICON}">${config.icon}</span>`,
-          },
-          { type: 'text', value: title },
-        ],
-      }),
-      createNode({
-        type: 'admonitionContent',
-        hName: 'div',
-        className: PREVIEW_ADMONITION_CONTENT,
-        children: contentChildren as RootContent[],
-      }),
-    ],
+    headerType: 'admonitionHeader',
+    headerTag: 'div',
+    headerClassName: PREVIEW_ADMONITION_HEADER,
+    headerMode: 'split-icon-text',
+    iconClassName: PREVIEW_ADMONITION_ICON,
+    icon: config.icon,
+    title,
+    escapeTitle: false,
+    contentType: 'admonitionContent',
+    contentClassName: PREVIEW_ADMONITION_CONTENT,
+    contentChildren: contentChildren as RootContent[],
   });
 }
 

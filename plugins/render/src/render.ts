@@ -8,7 +8,7 @@ import { join } from 'node:path';
 
 import { compileSafe } from 'mdx-forge/compiler';
 import { chromium, type Browser } from 'playwright';
-import { resolveFrameworkCss, tokensCss, type Framework } from './css.js';
+import { resolveFrameworkCss, tokensCss, type FrameworkId } from './css.js';
 import {
   normalizeCompileError,
   RenderDiagnosticError,
@@ -47,7 +47,7 @@ export interface ScreenshotsMatrix {
 
 export interface RenderArgs {
   source: string;
-  framework?: Framework;
+  framework?: FrameworkId;
   mode?: RenderMode;
   screenshot?: boolean;
   screenshots?: ScreenshotsMatrix;
@@ -255,7 +255,7 @@ interface ModeDocs {
 async function buildModeDocs(
   mode: RenderMode,
   source: string,
-  framework: Framework,
+  framework: FrameworkId,
   tokens: string,
   frameworkCss: string,
   theme: 'light' | 'dark',
@@ -330,7 +330,7 @@ async function buildModeDocs(
 }
 
 export async function renderMdx(args: RenderArgs): Promise<RenderResult> {
-  const framework: Framework = args.framework ?? 'generic';
+  const framework: FrameworkId = args.framework ?? 'generic';
   const theme = args.theme ?? 'light';
   const mode: RenderMode = args.mode ?? 'safe';
 

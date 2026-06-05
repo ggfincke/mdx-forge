@@ -1,5 +1,6 @@
 // src/browser/errors.ts
 // error types & factory for browser module system
+// ! cross-repo: MIT mirror of GPL contracts ModuleError E-codes, parallel taxonomy pinned by tests, do not merge
 
 export type ModuleErrorCode =
   | 'MODULE_NOT_FOUND'
@@ -63,27 +64,11 @@ export function createCircularDependencyError(
   });
 }
 
-export function createFetchFailedError(
-  request: string,
-  parentId: string,
-  cause?: Error
-): ModuleError {
-  return new ModuleError(
-    `Failed to fetch "${request}" (requested by "${parentId}")`,
-    {
-      code: 'FETCH_FAILED',
-      request,
-      parentId,
-    },
-    cause
-  );
-}
-
 export function createEvaluationFailedError(
   moduleId: string,
   cause?: Error
 ): ModuleError {
-  return new ModuleError(
+  const error = new ModuleError(
     `Failed to evaluate module "${moduleId}"`,
     {
       code: 'EVALUATION_FAILED',
@@ -91,6 +76,13 @@ export function createEvaluationFailedError(
     },
     cause
   );
+
+  // preserve original stack for display so wrapping does not hide it
+  if (cause?.stack) {
+    error.stack = `${error.message}\n    caused by: ${cause.stack}`;
+  }
+
+  return error;
 }
 
 export function createModuleDepthExceededError(

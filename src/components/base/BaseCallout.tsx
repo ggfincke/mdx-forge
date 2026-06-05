@@ -12,7 +12,6 @@ export type IconSource<T extends string> =
 // configuration for creating a callout component
 export interface BaseCalloutConfig<T extends string> {
   classPrefix: string;
-  types: readonly T[];
   defaultType: T;
   icons: IconSource<T>;
   defaultTitles: Record<T, string>;

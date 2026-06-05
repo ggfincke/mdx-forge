@@ -2,9 +2,18 @@
 // Generic CodeGroup component shim for MDX Preview
 // provide tabbed code blocks w/o framework dependency
 
-import React, { ReactElement, Children, isValidElement, useState } from 'react';
+import React, {
+  ReactElement,
+  ReactNode,
+  Children,
+  isValidElement,
+  useRef,
+  useCallback,
+  KeyboardEvent,
+} from 'react';
 import { CodeGroupProps } from './types';
 import { cn } from '../internal/cn';
+import { useIndexTabs } from '../base/useTabState';
 
 // extract label from code block element
 function extractLabelFromCodeBlock(child: ReactElement): string {
@@ -38,17 +47,60 @@ function extractLabelFromCodeBlock(child: ReactElement): string {
   return 'Code';
 }
 
+// single code-block tab (label + rendered content)
+interface CodeGroupTab {
+  label: string;
+  content: ReactNode;
+}
+
 // render tabbed code blocks from children
 export function CodeGroup({ children, labels }: CodeGroupProps): ReactElement {
   const childArray = Children.toArray(children).filter(isValidElement);
-  const [activeIndex, setActiveIndex] = useState(0);
 
   // extract tabs from children
-  const tabs = childArray.map((child, index) => {
+  const tabs: CodeGroupTab[] = childArray.map((child, index) => {
     const label =
       labels?.[index] || extractLabelFromCodeBlock(child as ReactElement);
     return { label, content: child };
   });
+
+  // shared index-based tab state (matches base tabs factory)
+  const { activeIndex, setActiveIndex } = useIndexTabs({ items: tabs });
+
+  // refs for tab buttons to enable focus management
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  // handle keyboard navigation for tabs
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
+      const tabCount = tabs.length;
+      let newIndex: number;
+
+      switch (e.key) {
+        case 'ArrowLeft':
+        case 'ArrowUp':
+          newIndex = (currentIndex - 1 + tabCount) % tabCount;
+          break;
+        case 'ArrowRight':
+        case 'ArrowDown':
+          newIndex = (currentIndex + 1) % tabCount;
+          break;
+        case 'Home':
+          newIndex = 0;
+          break;
+        case 'End':
+          newIndex = tabCount - 1;
+          break;
+        default:
+          return;
+      }
+
+      e.preventDefault();
+      setActiveIndex(newIndex);
+      tabRefs.current[newIndex]?.focus();
+    },
+    [tabs.length, setActiveIndex]
+  );
 
   if (tabs.length === 0) {
     return (
@@ -70,6 +122,9 @@ export function CodeGroup({ children, labels }: CodeGroupProps): ReactElement {
         {tabs.map((tab, index) => (
           <button
             key={index}
+            ref={(el) => {
+              tabRefs.current[index] = el;
+            }}
             role="tab"
             className={cn(
               'mdx-preview-generic-code-group-button',
@@ -77,6 +132,7 @@ export function CodeGroup({ children, labels }: CodeGroupProps): ReactElement {
             )}
             aria-selected={index === activeIndex}
             onClick={() => setActiveIndex(index)}
+            onKeyDown={(e) => handleKeyDown(e, index)}
             tabIndex={index === activeIndex ? 0 : -1}
           >
             {tab.label}

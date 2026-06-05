@@ -3,6 +3,7 @@
 
 import type { ModuleRuntime } from '../types';
 import { normalizeError } from '../../internal/errors';
+import { createEvaluationFailedError } from '../errors';
 
 // evaluate function-body or CJS-style module code
 // pass runtime via arguments[0]; return default export or module.exports
@@ -40,18 +41,8 @@ export function evaluateModule(
 
     return module.exports;
   } catch (error: unknown) {
-    // preserve original error chain using Error.cause (ES2022)
+    // route through shared factory; preserves cause chain & original stack
     const originalError = normalizeError(error);
-    const contextualError = new Error(
-      `Error evaluating module "${moduleId}": ${originalError.message}`,
-      { cause: originalError }
-    );
-
-    // also include original stack in the stack property for display
-    if (originalError.stack) {
-      contextualError.stack = `${contextualError.message}\n    caused by: ${originalError.stack}`;
-    }
-
-    throw contextualError;
+    throw createEvaluationFailedError(moduleId, originalError);
   }
 }

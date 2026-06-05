@@ -130,11 +130,6 @@ export class ModuleRegistry {
     return this.dependencyTracker.getResolution(parentId, request);
   }
 
-  // clear resolution map (called on reset)
-  clearResolutions(): void {
-    this.dependencyTracker.clearResolutions();
-  }
-
   // style operations (delegated to StyleCache)
 
   // check if CSS has been injected for module
@@ -165,7 +160,7 @@ export class ModuleRegistry {
   // bulk operations (coordinated across subsystems)
 
   // clear all cached modules except preloaded ones
-  clearNonPreloaded(_preloadedIds?: string[]): void {
+  clearNonPreloaded(): void {
     this.moduleCache.clearNonPreloaded();
     this.dependencyTracker.clear();
   }

@@ -4,6 +4,7 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { FRAMEWORK_IDS } from 'mdx-forge/components/registry';
 import { z } from 'zod';
 import {
   formatDiagnostic,
@@ -28,13 +29,7 @@ import {
 import { startPreviewServer, stopPreviewServer } from './preview-server.js';
 import { VIEWPORT_PRESET_NAMES } from './viewports.js';
 
-const FRAMEWORKS = [
-  'generic',
-  'docusaurus',
-  'starlight',
-  'nextra',
-  'nextjs',
-] as const;
+const FRAMEWORKS = FRAMEWORK_IDS;
 const THEMES = ['light', 'dark'] as const;
 
 const server = new McpServer({
