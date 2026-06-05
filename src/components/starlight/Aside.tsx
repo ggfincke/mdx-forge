@@ -4,17 +4,9 @@
 import { ReactElement } from 'react';
 import { createCallout, type BaseCalloutProps } from '../base/BaseCallout';
 import { CALLOUT_ICONS } from '../base/icons';
+import type { AsideType } from '../internal/metadata';
 
-// aside types (same as admonitions)
-export type AsideType = 'note' | 'tip' | 'caution' | 'danger';
-
-// canonical aside type list - single source for metadata
-export const ASIDE_TYPES: readonly AsideType[] = [
-  'note',
-  'tip',
-  'caution',
-  'danger',
-] as const;
+export { ASIDE_TYPES, type AsideType } from '../internal/metadata';
 
 // aside component props
 export type AsideProps = BaseCalloutProps<AsideType>;

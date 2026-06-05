@@ -49,16 +49,14 @@ check(
 
 const callout = findComponent('generic', 'Callout');
 check('Callout lookup works', Boolean(callout));
+const calloutTypeValues =
+  callout?.props.find((p) => p.name === 'type' && p.type === 'enum')?.values ??
+  [];
 check(
-  'Callout has type prop with 7 enum values',
-  callout?.props.some(
-    (p) => p.name === 'type' && p.type === 'enum' && p.values?.length === 7
-  )
+  'Callout has expanded generic type enum',
+  calloutTypeValues.length >= 17 && calloutTypeValues.includes('attention')
 );
-check(
-  'Callout.type accepts danger',
-  callout?.props.find((p) => p.name === 'type')?.values?.includes('danger')
-);
+check('Callout.type accepts danger', calloutTypeValues.includes('danger'));
 
 const alertAlias = findComponent('generic', 'Alert');
 check('Alert resolves to Callout via alias', alertAlias?.name === 'Callout');
@@ -210,8 +208,8 @@ check('unknown prop suggestion = title', badPropDiag?.suggestion === 'title');
 
 // missing required prop
 const missingReqLint = await lintMdxSource(
-  '<Collapsible>body</Collapsible>',
-  'generic'
+  '<LinkCard href="/docs" />',
+  'starlight'
 );
 const missingReqDiag = missingReqLint.diagnostics.find(
   (d) => d.kind === 'missing-required-prop'

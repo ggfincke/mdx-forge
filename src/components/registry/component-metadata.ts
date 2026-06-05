@@ -5,9 +5,12 @@ import {
   CALLOUT_TYPE_ALIASES,
   VALID_CALLOUT_TYPES,
 } from '../../internal/callout';
-import { NEXTRA_CALLOUT_TYPES } from '../base/icons';
-import { ASIDE_TYPES } from '../starlight/Aside';
-import { BADGE_VARIANTS, BADGE_SIZES } from '../starlight/Badge';
+import {
+  ASIDE_TYPES,
+  BADGE_SIZES,
+  BADGE_VARIANTS,
+  NEXTRA_CALLOUT_TYPES,
+} from '../internal/metadata';
 import type {
   ComponentAuthoringMetadata,
   ComponentKey,
