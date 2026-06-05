@@ -8,43 +8,15 @@ import {
   type ServerResponse,
 } from 'node:http';
 import { spawn } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __filename = fileURLToPath(import.meta.url);
-const PLUGIN_ROOT = resolve(dirname(__filename), '..');
+import { FRAMEWORK_IDS } from 'mdx-forge/components/registry';
+import type { FrameworkId } from './css.js';
+import { readHarnessBundle } from './trusted.js';
 
 // validate framework path segment for /harness/:framework/bundle.js routing
-// keep aligned w/ Framework type in css.ts
-const HARNESS_FRAMEWORKS = new Set([
-  'generic',
-  'docusaurus',
-  'starlight',
-  'nextra',
-  'nextjs',
-]);
+const HARNESS_FRAMEWORKS = new Set<string>(FRAMEWORK_IDS);
 
-const harnessBundleCache = new Map<string, Promise<Buffer>>();
-
-function readHarnessBundle(framework: string): Promise<Buffer> {
-  const cached = harnessBundleCache.get(framework);
-  if (cached) {
-    return cached;
-  }
-  const filePath = resolve(
-    PLUGIN_ROOT,
-    'dist',
-    'harness',
-    framework,
-    'bundle.js'
-  );
-  const pending = readFile(filePath).catch((err: unknown) => {
-    harnessBundleCache.delete(framework);
-    throw err;
-  });
-  harnessBundleCache.set(framework, pending);
-  return pending;
+function isHarnessFramework(framework: string): framework is FrameworkId {
+  return HARNESS_FRAMEWORKS.has(framework);
 }
 
 interface PreviewState {
@@ -109,7 +81,7 @@ function handleRequest(req: IncomingMessage, res: ServerResponse): void {
   const harnessMatch = HARNESS_PATH.exec(url);
   if (harnessMatch) {
     const framework = harnessMatch[1];
-    if (!HARNESS_FRAMEWORKS.has(framework)) {
+    if (!isHarnessFramework(framework)) {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       res.end('unknown framework');
       return;
@@ -120,7 +92,7 @@ function handleRequest(req: IncomingMessage, res: ServerResponse): void {
           'Content-Type': 'application/javascript; charset=utf-8',
           'Cache-Control': 'public, max-age=60',
         });
-        res.end(contents);
+        res.end(Buffer.from(contents));
       },
       (err) => {
         res.writeHead(500, { 'Content-Type': 'text/plain' });

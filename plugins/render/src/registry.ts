@@ -2,7 +2,6 @@
 // render-plugin registry facade derived from mdx-forge component identity
 
 import * as coreRegistry from 'mdx-forge/components/registry';
-import { COMPONENT_METADATA as FALLBACK_COMPONENT_METADATA } from './component-metadata.js';
 import { getFrontmatterSchema } from './frontmatter.js';
 import type {
   ComponentKey,
@@ -27,52 +26,46 @@ export type {
 } from './registry-types.js';
 export { getFrontmatterSchema } from './frontmatter.js';
 
-const FRAMEWORKS: readonly FrameworkId[] = [
-  'generic',
-  'docusaurus',
-  'starlight',
-  'nextra',
-  'nextjs',
-];
+// minimal structural view of the core registry used only for the import cast
+// note: barrel d.ts export* does not surface core types under NodeNext, so the
+// entry shape is mirrored here until the published package fixes that
+interface CoreAuthoringMetadata {
+  summary: string;
+  examples: readonly { code: string }[];
+  props: ComponentMetadata['props'];
+  childrenKind?: ComponentMetadata['childrenKind'];
+}
 
-interface CoreEntryBase {
-  kind: 'component' | 'barrel';
+interface CoreComponentDefinition {
+  kind: 'component';
+  framework: FrameworkId;
+  name: string;
+  aliases: readonly string[];
+  importSpecifiers: readonly string[];
+  shimPath: string;
+  metadata: CoreAuthoringMetadata;
+}
+
+interface CoreBarrelDefinition {
+  kind: 'barrel';
   framework: FrameworkId;
   name: string;
   importSpecifiers: readonly string[];
   shimPath: string;
-}
-
-interface CoreComponentDefinition extends CoreEntryBase {
-  kind: 'component';
-  aliases: readonly string[];
-  metadata?: CoreAuthoringMetadata;
-}
-
-interface CoreBarrelDefinition extends CoreEntryBase {
-  kind: 'barrel';
   exportNames: readonly string[];
 }
 
 type CoreRegistryEntry = CoreComponentDefinition | CoreBarrelDefinition;
 
-interface CoreComponentExample {
-  code: string;
-}
+// the dist build infers COMPONENT_REGISTRY/FRAMEWORK_IDS as deeply-const
+// readonly tuples, so a structural cast is required at this import boundary
+const core = coreRegistry as unknown as {
+  COMPONENT_REGISTRY: readonly CoreRegistryEntry[];
+  FRAMEWORK_IDS: readonly FrameworkId[];
+};
 
-interface CoreAuthoringMetadata {
-  summary: string;
-  examples: readonly CoreComponentExample[];
-  props: ComponentMetadata['props'];
-  childrenKind?: ComponentMetadata['childrenKind'];
-}
-
-// load the public registry value without relying on declaration reexports
-const CORE_REGISTRY = (
-  coreRegistry as unknown as {
-    COMPONENT_REGISTRY: readonly CoreRegistryEntry[];
-  }
-).COMPONENT_REGISTRY;
+const CORE_REGISTRY = core.COMPONENT_REGISTRY;
+const FRAMEWORKS: readonly FrameworkId[] = core.FRAMEWORK_IDS;
 
 function isComponentEntry(
   entry: CoreRegistryEntry
@@ -105,73 +98,33 @@ function toIdentity(entry: CoreRegistryEntry): RegistryIdentity {
   return identity;
 }
 
-function metadataFor(entry: CoreComponentDefinition): ComponentMetadata {
-  if (entry.metadata) {
-    return {
-      summary: entry.metadata.summary,
-      example: entry.metadata.examples[0]?.code ?? '',
-      props: entry.metadata.props,
-      childrenKind: entry.metadata.childrenKind,
-    };
-  }
-
-  const key = componentKey(entry.framework, entry.name);
-  const metadata = FALLBACK_COMPONENT_METADATA[key];
-  if (!metadata) {
-    throw new Error(`render plugin metadata missing for ${key}`);
-  }
-  return metadata;
+function specFromMetadata(
+  entry: CoreComponentDefinition,
+  metadata: CoreAuthoringMetadata
+): ComponentSpec {
+  return {
+    framework: entry.framework,
+    name: entry.name,
+    aliases: [...entry.aliases],
+    importSpecifier: firstImportSpecifier(entry),
+    importSpecifiers: [...entry.importSpecifiers],
+    summary: metadata.summary,
+    example: metadata.examples[0]?.code ?? '',
+    props: metadata.props,
+    childrenKind: metadata.childrenKind,
+  };
 }
-
-function assertMetadataKeys(componentKeys: ReadonlySet<ComponentKey>): void {
-  if (COMPONENTS_WITH_CORE_METADATA.size === componentKeys.size) {
-    return;
-  }
-
-  for (const key of Object.keys(
-    FALLBACK_COMPONENT_METADATA
-  ) as ComponentKey[]) {
-    if (!componentKeys.has(key)) {
-      throw new Error(
-        `render plugin metadata has no core component for ${key}`
-      );
-    }
-  }
-}
-
-const COMPONENTS_WITH_CORE_METADATA = new Set<ComponentKey>();
 
 function buildComponentSpecs(
   entries: readonly CoreRegistryEntry[]
 ): ComponentSpec[] {
-  const componentKeys = new Set<ComponentKey>();
   const specs: ComponentSpec[] = [];
-
   for (const entry of entries) {
     if (!isComponentEntry(entry)) {
       continue;
     }
-
-    const key = componentKey(entry.framework, entry.name);
-    componentKeys.add(key);
-    if (entry.metadata) {
-      COMPONENTS_WITH_CORE_METADATA.add(key);
-    }
-    const metadata = metadataFor(entry);
-    specs.push({
-      framework: entry.framework,
-      name: entry.name,
-      aliases: [...entry.aliases],
-      importSpecifier: firstImportSpecifier(entry),
-      importSpecifiers: [...entry.importSpecifiers],
-      summary: metadata.summary,
-      example: metadata.example,
-      props: metadata.props,
-      childrenKind: metadata.childrenKind,
-    });
+    specs.push(specFromMetadata(entry, entry.metadata));
   }
-
-  assertMetadataKeys(componentKeys);
   return specs;
 }
 

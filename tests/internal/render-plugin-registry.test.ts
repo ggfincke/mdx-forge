@@ -7,7 +7,6 @@ import {
   type ComponentDefinition,
   type ComponentRegistryEntry,
 } from '../../src/components/registry/index';
-import { COMPONENT_METADATA } from '../../plugins/render/src/component-metadata';
 import { VALID_CALLOUT_TYPES } from '../../src/internal/callout';
 import {
   findComponent,
@@ -34,10 +33,6 @@ function coreComponentsForFramework(
   framework: FrameworkId
 ): ComponentDefinition[] {
   return coreEntriesForFramework(framework).filter(isComponentEntry);
-}
-
-function componentKey(entry: ComponentDefinition): string {
-  return `${entry.framework}:${entry.name}`;
 }
 
 function coreSignature(entry: ComponentRegistryEntry): string {
@@ -122,13 +117,28 @@ describe('render plugin registry parity', () => {
     ).not.toContain('components');
   });
 
-  it('has plugin metadata for every core component and no stale keys', () => {
-    const coreKeys = COMPONENT_REGISTRY.filter(isComponentEntry)
-      .map(componentKey)
-      .sort();
-    const metadataKeys = Object.keys(COMPONENT_METADATA).sort();
+  it('lists frameworks in canonical order', () => {
+    expect(listFrameworks()).toEqual([
+      'generic',
+      'docusaurus',
+      'starlight',
+      'nextra',
+      'nextjs',
+    ]);
+  });
 
-    expect(metadataKeys).toEqual(coreKeys);
+  it('has core metadata for every core component', () => {
+    for (const entry of COMPONENT_REGISTRY) {
+      if (!isComponentEntry(entry)) {
+        continue;
+      }
+      expect(entry.metadata).toBeDefined();
+      expect(entry.metadata.summary).not.toBe('');
+      expect(entry.metadata.examples[0]?.code).not.toBe('');
+    }
+  });
+
+  it('has plugin metadata for every core component and no stale keys', () => {
     expect(findComponent('starlight', 'Card')?.importSpecifier).toBe(
       '@astrojs/starlight/components/Card'
     );

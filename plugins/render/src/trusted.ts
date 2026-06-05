@@ -7,7 +7,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { transform } from 'esbuild';
 import { compileTrusted } from 'mdx-forge/compiler';
-import type { Framework } from './css.js';
+import type { FrameworkId } from './css.js';
 import { getHarnessPage } from './harness-page.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -21,7 +21,7 @@ export interface TrustedCompiledModule {
   cjsCode: string;
   dependencies: string[];
   frontmatter: Record<string, unknown>;
-  framework: Framework;
+  framework: FrameworkId;
   entryId: string;
 }
 
@@ -53,7 +53,7 @@ function uniqueEntryId(): string {
 
 export async function compileTrustedModule(
   source: string,
-  framework: Framework
+  framework: FrameworkId
 ): Promise<TrustedCompiledModule> {
   // disable builtin imports; harness preloads React, jsx-runtime & MDXProvider
   // shims are supplied at render time via MDXProvider components
@@ -109,10 +109,10 @@ export async function snapshotTrustedModule(
   return result.html;
 }
 
-const bundleCache = new Map<Framework, Promise<string>>();
+const bundleCache = new Map<FrameworkId, Promise<string>>();
 
 // read per-framework IIFE bundle for inline artifacts or preview server refs
-export function readHarnessBundle(framework: Framework): Promise<string> {
+export function readHarnessBundle(framework: FrameworkId): Promise<string> {
   const cached = bundleCache.get(framework);
   if (cached) {
     return cached;

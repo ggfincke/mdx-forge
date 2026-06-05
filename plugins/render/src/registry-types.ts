@@ -1,9 +1,9 @@
 // plugins/render/src/registry-types.ts
 // shared registry types for component metadata & render-plugin lookups
 
-import type { Framework } from './css.js';
+import type { FrameworkId as CssFrameworkId } from './css.js';
 
-export type FrameworkId = Framework;
+export type FrameworkId = CssFrameworkId;
 
 export type ComponentKey = `${FrameworkId}:${string}`;
 
