@@ -2,7 +2,7 @@
 // scripts/check-comment-style.mjs
 // enforce mechanical comment-style guardrails across active code
 
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, relative } from 'node:path';
 import ts from 'typescript';
 
@@ -64,9 +64,7 @@ function collectEntry(rootDir, entry, output) {
     return;
   }
 
-  const statEntries = readdirSync(rootDir, { withFileTypes: true });
-  const rootEntry = statEntries.find((item) => item.name === entry);
-  if (rootEntry?.isFile()) {
+  if (statSync(absolutePath).isFile()) {
     if (SOURCE_EXTENSIONS.has(extname(entry))) {
       output.push(entry);
     }
