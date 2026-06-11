@@ -455,15 +455,12 @@ function buildCapturePlan(
 }
 
 function dedupeThemes(themes: readonly Theme[]): Theme[] {
-  const seen = new Set<Theme>();
-  const out: Theme[] = [];
-  for (const t of themes) {
-    if (!seen.has(t)) {
-      seen.add(t);
-      out.push(t);
-    }
-  }
-  return out;
+  return Array.from(new Set(themes));
+}
+
+// shared by dedupe & capture grouping so the formats can't drift
+function viewportKey(v: ResolvedViewport): string {
+  return `${v.preset ?? ''}:${v.width}x${v.height}`;
 }
 
 function dedupeViewports(
@@ -472,7 +469,7 @@ function dedupeViewports(
   const seen = new Set<string>();
   const out: ResolvedViewport[] = [];
   for (const v of viewports) {
-    const key = `${v.preset ?? ''}:${v.width}x${v.height}`;
+    const key = viewportKey(v);
     if (!seen.has(key)) {
       seen.add(key);
       out.push(v);
@@ -488,7 +485,7 @@ async function captureVariants(
   const browser = await getBrowser();
   const byViewport = new Map<string, CapturePlanVariant[]>();
   for (const variant of plan.variants) {
-    const key = `${variant.viewport.preset ?? ''}:${variant.viewport.width}x${variant.viewport.height}`;
+    const key = viewportKey(variant.viewport);
     const bucket = byViewport.get(key);
     if (bucket) {
       bucket.push(variant);

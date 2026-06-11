@@ -17,14 +17,7 @@ const CSS_IMPORT_PATTERN =
   /@import\s+(?:url\(\s*)?(?:(['"])([^'"]+)\1|([^'")\s]+))(?:\s*\))?\s*([^;]*);/g;
 
 async function loadCss(subpath: string): Promise<string> {
-  const filePath = await resolveCssPath(subpath);
-  const cached = cache.get(filePath);
-  if (cached !== undefined) {
-    return cached;
-  }
-  const css = await loadCssFile(filePath, new Set<string>());
-  cache.set(filePath, css);
-  return css;
+  return loadCssFile(await resolveCssPath(subpath), new Set<string>());
 }
 
 async function resolveCssPath(subpath: string): Promise<string> {

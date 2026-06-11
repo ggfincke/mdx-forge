@@ -53,7 +53,6 @@ const EMPTY_DOCUMENT = `<!doctype html>
 <head><meta charset="utf-8"><title>mdx-forge-render</title></head>
 <body style="font-family: system-ui, sans-serif; padding: 2rem; color: #666;">
   <p>No preview yet. Call <code>render_mdx</code> to populate this page.</p>
-${LIVE_RELOAD_SCRIPT}
 </body>
 </html>`;
 

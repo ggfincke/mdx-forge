@@ -437,6 +437,9 @@ export function lintFrontmatter(
 
 // --- main entry point -------------------------------------------------------
 
+// frozen processor reused across calls; parse() is stateless
+const mdxProcessor = unified().use(remarkParse).use(remarkMdx).freeze();
+
 export async function lintMdxSource(
   source: string,
   framework: FrameworkId
@@ -466,8 +469,7 @@ export async function lintMdxSource(
   // parse raw MDX AST for lint without rehype or stringify
   let tree: Root;
   try {
-    const processor = unified().use(remarkParse).use(remarkMdx);
-    tree = processor.parse(content) as Root;
+    tree = mdxProcessor.parse(content) as Root;
   } catch (err) {
     const diagnostic = normalizeCompileError(err, { source, framework });
     return {

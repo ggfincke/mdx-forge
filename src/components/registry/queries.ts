@@ -16,9 +16,11 @@ import {
   type FrameworkId,
 } from './types';
 
-// cached arrays/sets for O(1) lookups (COMPONENT_REGISTRY is immutable)
-let _cachedAllGenericNames: string[] | null = null;
-let _cachedGenericSet: Set<string> | null = null;
+// eager constants for O(1) lookups (registry data is built at module load)
+const ALL_GENERIC_NAMES: string[] = Object.entries(GENERIC_COMPONENTS).flatMap(
+  ([name, config]) => [name, ...config.aliases]
+);
+const GENERIC_NAME_SET = new Set(ALL_GENERIC_NAMES);
 const REGISTRY_ENTRIES: readonly ComponentRegistryEntry[] = COMPONENT_REGISTRY;
 
 function isComponentEntry(
@@ -27,24 +29,14 @@ function isComponentEntry(
   return entry.kind === 'component';
 }
 
-// get all generic component names including aliases (cached)
+// get all generic component names including aliases
 export function getAllGenericComponentNames(): string[] {
-  if (_cachedAllGenericNames === null) {
-    const names: string[] = [];
-    for (const [name, config] of Object.entries(GENERIC_COMPONENTS)) {
-      names.push(name, ...config.aliases);
-    }
-    _cachedAllGenericNames = names;
-  }
-  return _cachedAllGenericNames;
+  return ALL_GENERIC_NAMES;
 }
 
-// get Set of all generic component names for O(1) lookup (cached)
+// get Set of all generic component names for O(1) lookup
 export function getGenericComponentSet(): Set<string> {
-  if (_cachedGenericSet === null) {
-    _cachedGenericSet = new Set(getAllGenericComponentNames());
-  }
-  return _cachedGenericSet;
+  return GENERIC_NAME_SET;
 }
 
 // get aliases for a generic component by primary name
@@ -145,14 +137,11 @@ export function isFrameworkComponent(
 // get canonical component name for a semantic alias (e.g., "note" -> "Callout")
 export function getSemanticAlias(name: string): string | undefined {
   const lowerName = name.toLowerCase();
-  for (const entry of COMPONENT_REGISTRY) {
-    if (entry.kind !== 'component') {
+  for (const entry of REGISTRY_ENTRIES) {
+    if (!isComponentEntry(entry)) {
       continue;
     }
-    if (
-      'semanticAliases' in entry &&
-      entry.semanticAliases?.some((a: string) => a === lowerName)
-    ) {
+    if (entry.semanticAliases?.includes(lowerName)) {
       return entry.name;
     }
   }
@@ -166,15 +155,15 @@ export function getGenericComponentSnippets(): Array<{
   doc: string;
 }> {
   const results: Array<{ name: string; template: string; doc: string }> = [];
-  for (const entry of COMPONENT_REGISTRY) {
-    if (entry.kind !== 'component' || entry.framework !== 'generic') {
+  for (const entry of REGISTRY_ENTRIES) {
+    if (!isComponentEntry(entry) || entry.framework !== 'generic') {
       continue;
     }
-    if ('snippetTemplate' in entry && 'snippetDoc' in entry) {
+    if (entry.snippetTemplate !== undefined && entry.snippetDoc !== undefined) {
       results.push({
         name: entry.name,
-        template: entry.snippetTemplate as string,
-        doc: entry.snippetDoc as string,
+        template: entry.snippetTemplate,
+        doc: entry.snippetDoc,
       });
     }
   }

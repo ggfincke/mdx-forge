@@ -160,9 +160,10 @@ export class ModuleRegistry {
   // bulk operations (coordinated across subsystems)
 
   // clear all cached modules except preloaded ones
+  // clear tracker first so per-module onEvict cleanup runs on empty maps
   clearNonPreloaded(): void {
-    this.moduleCache.clearNonPreloaded();
     this.dependencyTracker.clear();
+    this.moduleCache.clearNonPreloaded();
   }
 
   // clear all cached modules & metadata

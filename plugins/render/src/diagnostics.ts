@@ -8,7 +8,6 @@ import type {
 } from './registry.js';
 import {
   allComponentNamesForFramework,
-  findComponent,
   getFrontmatterSchema,
 } from './registry.js';
 
@@ -110,7 +109,7 @@ export function suggestMatch(
   return best;
 }
 
-export function suggestComponent(
+function suggestComponent(
   name: string,
   framework: FrameworkId
 ): string | undefined {
@@ -127,7 +126,7 @@ export function suggestProp(
   );
 }
 
-export function suggestFrontmatterField(
+function suggestFrontmatterField(
   name: string,
   schema: FrontmatterSchema
 ): string | undefined {
@@ -280,6 +279,3 @@ export function buildMissingFrontmatterDiagnostic(
     suggestion: suggestFrontmatterField(field, getFrontmatterSchema(framework)),
   };
 }
-
-// re-export so callers don't need to import registry + diagnostics separately
-export { findComponent };

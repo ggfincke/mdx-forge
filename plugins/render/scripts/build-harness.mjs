@@ -6,11 +6,12 @@ import { build } from 'esbuild';
 import { copyFile, mkdir, rm } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { FRAMEWORK_IDS } from 'mdx-forge/components/registry';
 
 const __filename = fileURLToPath(import.meta.url);
 const ROOT = resolve(dirname(__filename), '..');
 
-const FRAMEWORKS = ['generic', 'docusaurus', 'starlight', 'nextra', 'nextjs'];
+const FRAMEWORKS = FRAMEWORK_IDS;
 
 const HARNESS_HTML = resolve(ROOT, 'harness/index.html');
 const HARNESS_ENTRY = resolve(ROOT, 'harness/entry.ts');

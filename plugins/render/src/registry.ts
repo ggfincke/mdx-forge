@@ -77,10 +77,6 @@ function componentKey(framework: FrameworkId, name: string): ComponentKey {
   return `${framework}:${name}`;
 }
 
-function firstImportSpecifier(entry: CoreRegistryEntry): string | undefined {
-  return entry.importSpecifiers[0];
-}
-
 function toIdentity(entry: CoreRegistryEntry): RegistryIdentity {
   const identity: RegistryIdentity = {
     kind: entry.kind,
@@ -98,15 +94,13 @@ function toIdentity(entry: CoreRegistryEntry): RegistryIdentity {
   return identity;
 }
 
-function specFromMetadata(
-  entry: CoreComponentDefinition,
-  metadata: CoreAuthoringMetadata
-): ComponentSpec {
+function specFromMetadata(entry: CoreComponentDefinition): ComponentSpec {
+  const metadata = entry.metadata;
   return {
     framework: entry.framework,
     name: entry.name,
     aliases: [...entry.aliases],
-    importSpecifier: firstImportSpecifier(entry),
+    importSpecifier: entry.importSpecifiers[0],
     importSpecifiers: [...entry.importSpecifiers],
     summary: metadata.summary,
     example: metadata.examples[0]?.code ?? '',
@@ -123,7 +117,7 @@ function buildComponentSpecs(
     if (!isComponentEntry(entry)) {
       continue;
     }
-    specs.push(specFromMetadata(entry, entry.metadata));
+    specs.push(specFromMetadata(entry));
   }
   return specs;
 }

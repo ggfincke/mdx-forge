@@ -2,7 +2,6 @@
 // safe MDX parser w/ AST transformation only (no code execution)
 
 import { unified } from 'unified';
-import type { Pluggable } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkMdx from 'remark-mdx';
 import remarkRehype from 'remark-rehype';
@@ -202,28 +201,19 @@ function remarkStripMdx(options: RemarkStripMdxOptions = {}) {
         return;
       }
 
-      // replace flow expressions {expression} w/ placeholder
-      if (node.type === 'mdxFlowExpression') {
-        const placeholder: RootContent = {
-          type: 'paragraph',
-          children: [
-            {
-              type: 'html',
-              value: `<span class="${EXPRESSION_PLACEHOLDER}" title="JavaScript expression (requires Trusted Mode)">{...}</span>`,
-            },
-          ],
-        };
-        (parent as Parent).children[index] = placeholder;
-        return;
-      }
-
-      // replace text expressions w/ placeholder
-      if (node.type === 'mdxTextExpression') {
-        const placeholder: RootContent = {
+      // replace expressions {expression} w/ placeholder (flow gets paragraph wrapper)
+      if (
+        node.type === 'mdxFlowExpression' ||
+        node.type === 'mdxTextExpression'
+      ) {
+        const htmlNode: RootContent = {
           type: 'html',
           value: `<span class="${EXPRESSION_PLACEHOLDER}" title="JavaScript expression (requires Trusted Mode)">{...}</span>`,
         } as RootContent;
-        (parent as Parent).children[index] = placeholder;
+        (parent as Parent).children[index] =
+          node.type === 'mdxFlowExpression'
+            ? ({ type: 'paragraph', children: [htmlNode] } as RootContent)
+            : htmlNode;
         return;
       }
     });
@@ -329,29 +319,6 @@ function createJsxReplacement(
   }
 }
 
-// unified processor type for dynamic plugin pipeline building
-interface PluginPipeline {
-  use(plugin: Pluggable, settings?: unknown): PluginPipeline;
-  process(file: string): Promise<{ toString(): string }>;
-}
-
-// apply plugins from array to unified processor
-function applyPlugins<T extends PluginPipeline>(
-  processor: T,
-  plugins: Pluggable[]
-): T {
-  for (const plugin of plugins) {
-    if (Array.isArray(plugin)) {
-      // plugin w/ options: [pluginFn, options]
-      const [pluginFn, options] = plugin;
-      processor.use(pluginFn as Pluggable, options);
-    } else {
-      processor.use(plugin);
-    }
-  }
-  return processor;
-}
-
 // compile MDX to safe static HTML (strip frontmatter, parse AST, remove dangerous nodes, & convert to HTML)
 export async function compileSafe(
   mdxText: string,
@@ -408,24 +375,14 @@ export async function compileSafe(
       unknownBehavior,
       builtinsEnabled,
       componentNameResolver: config.componentNameResolver,
-    });
-  const remarkProcessor = applyPlugins(baseProcessor, remarkPlugins);
+    })
+    .use(remarkPlugins);
 
   // stage 2: convert to rehype & apply rehype plugins
   // rehype-raw parses raw HTML nodes into proper HAST elements
-  const rehypeProcessor = applyPlugins(
-    applyPlugins(
-      applyPlugins(
-        applyPlugins(
-          remarkProcessor.use(remarkRehype, { allowDangerousHtml: true }),
-          [raw]
-        ),
-        preMath
-      ),
-      [math]
-    ),
-    postMath
-  );
+  const rehypeProcessor = baseProcessor
+    .use(remarkRehype, { allowDangerousHtml: true })
+    .use([raw, ...preMath, math, ...postMath]);
 
   // stage 3: stringify to HTML
   const processor = rehypeProcessor.use(rehypeStringify, {

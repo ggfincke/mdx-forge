@@ -159,13 +159,21 @@ export class LRUCache<K, V> {
   }
 
   private evictOverflow(): void {
-    while (this.countEvictable() > this.maxEntries) {
-      if (!this.evictOldestEvictable()) {
-        break;
+    // short-circuit: countEvictable() <= cache.size, so no eviction possible below limit
+    if (this.cache.size > this.maxEntries) {
+      while (this.countEvictable() > this.maxEntries) {
+        if (!this.evictOldestEvictable()) {
+          break;
+        }
       }
     }
 
-    if (this.maxMemoryBytes && this.estimateSize) {
+    // short-circuit: getEvictableMemory() <= currentMemoryBytes
+    if (
+      this.maxMemoryBytes &&
+      this.estimateSize &&
+      this.currentMemoryBytes > this.maxMemoryBytes
+    ) {
       while (
         this.getEvictableMemory() > this.maxMemoryBytes &&
         this.countEvictable() > 0

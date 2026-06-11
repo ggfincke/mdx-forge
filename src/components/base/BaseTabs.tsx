@@ -18,6 +18,7 @@ import { cn } from '../internal/cn';
 import {
   useTabState,
   useIndexTabs,
+  resolveTabNavIndex,
   type TabDefinition,
   type TabItemProps,
 } from './useTabState';
@@ -89,26 +90,9 @@ export function createTabs(config: BaseTabsConfig): CreateTabsResult {
     // handle keyboard navigation for tabs
     const handleKeyDown = useCallback(
       (e: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
-        const tabCount = tabs.length;
-        let newIndex: number;
-
-        switch (e.key) {
-          case 'ArrowLeft':
-          case 'ArrowUp':
-            newIndex = (currentIndex - 1 + tabCount) % tabCount;
-            break;
-          case 'ArrowRight':
-          case 'ArrowDown':
-            newIndex = (currentIndex + 1) % tabCount;
-            break;
-          case 'Home':
-            newIndex = 0;
-            break;
-          case 'End':
-            newIndex = tabCount - 1;
-            break;
-          default:
-            return;
+        const newIndex = resolveTabNavIndex(e.key, currentIndex, tabs.length);
+        if (newIndex === undefined) {
+          return;
         }
 
         e.preventDefault();
@@ -274,55 +258,17 @@ export function createIndexTabs<T>(
     // refs for tab buttons to enable focus management
     const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-    // handle keyboard navigation for tabs
+    // handle keyboard navigation for tabs (disabled-aware)
     const handleKeyDown = useCallback(
       (e: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
-        const tabCount = items.length;
-        let newIndex = currentIndex;
-
-        switch (e.key) {
-          case 'ArrowLeft':
-          case 'ArrowUp':
-            // find previous non-disabled tab
-            for (let i = 1; i <= tabCount; i++) {
-              const idx = (currentIndex - i + tabCount) % tabCount;
-              if (!isDisabled(items[idx])) {
-                newIndex = idx;
-                break;
-              }
-            }
-            break;
-          case 'ArrowRight':
-          case 'ArrowDown':
-            // find next non-disabled tab
-            for (let i = 1; i <= tabCount; i++) {
-              const idx = (currentIndex + i) % tabCount;
-              if (!isDisabled(items[idx])) {
-                newIndex = idx;
-                break;
-              }
-            }
-            break;
-          case 'Home':
-            // find first non-disabled tab
-            for (let i = 0; i < tabCount; i++) {
-              if (!isDisabled(items[i])) {
-                newIndex = i;
-                break;
-              }
-            }
-            break;
-          case 'End':
-            // find last non-disabled tab
-            for (let i = tabCount - 1; i >= 0; i--) {
-              if (!isDisabled(items[i])) {
-                newIndex = i;
-                break;
-              }
-            }
-            break;
-          default:
-            return;
+        const newIndex = resolveTabNavIndex(
+          e.key,
+          currentIndex,
+          items.length,
+          (idx) => isDisabled(items[idx])
+        );
+        if (newIndex === undefined) {
+          return;
         }
 
         e.preventDefault();

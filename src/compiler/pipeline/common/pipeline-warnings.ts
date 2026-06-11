@@ -80,8 +80,6 @@ export function emitWarning(
 
   switch (warning.severity) {
     case 'error':
-      log.warn(formattedMessage);
-      break;
     case 'warning':
       log.warn(formattedMessage);
       break;

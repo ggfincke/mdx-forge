@@ -36,7 +36,6 @@ interface HarnessWindow extends Window {
     dependencies: string[],
     entryId: string
   ) => Promise<{ ok: true } | { error: string }>;
-  __mdxForgeReady?: Promise<void>;
   // inline bootstrap can set these for auto-mount on load
   __MDX_FORGE_CODE__?: string;
   __MDX_FORGE_DEPS__?: string[];
@@ -116,14 +115,12 @@ async function waitForRenderToSettle(container: HTMLElement): Promise<void> {
 interface MountContext {
   container: HTMLElement;
   tree: React.ReactElement;
-  onCapture: (err: Error) => void;
 }
 
 async function buildMountContext(
   code: string,
   dependencies: string[],
-  entryId: string,
-  onCapture: (err: Error) => void
+  entryId: string
 ): Promise<MountContext | { error: string }> {
   const container = document.getElementById('mdx-root');
   if (!container) {
@@ -155,7 +152,7 @@ async function buildMountContext(
     )
   );
 
-  return { container, tree, onCapture };
+  return { container, tree };
 }
 
 function createRootWithErrorCapture(
@@ -175,6 +172,33 @@ function createRootWithErrorCapture(
   });
 }
 
+// shared scaffold: build context, mount w/ error capture, settle
+async function renderToContainer(
+  code: string,
+  dependencies: string[],
+  entryId: string,
+  onCapture: (err: Error) => void,
+  onRootCreated?: (root: ReturnType<typeof ReactDOMClient.createRoot>) => void
+): Promise<
+  | {
+      container: HTMLElement;
+      root: ReturnType<typeof ReactDOMClient.createRoot>;
+    }
+  | { error: string }
+> {
+  const ctx = await buildMountContext(code, dependencies, entryId);
+  if ('error' in ctx) {
+    return ctx;
+  }
+
+  const root = createRootWithErrorCapture(ctx.container, onCapture);
+  onRootCreated?.(root);
+  root.render(ctx.tree);
+  await waitForRenderToSettle(ctx.container);
+
+  return { container: ctx.container, root };
+}
+
 // render snapshot for MCP html field & PNG screenshot source
 async function renderMdx(
   code: string,
@@ -183,19 +207,20 @@ async function renderMdx(
 ): Promise<{ html: string } | { error: string }> {
   try {
     let captured: Error | undefined;
-    const ctx = await buildMountContext(code, dependencies, entryId, (err) => {
-      captured = err;
-    });
-    if ('error' in ctx) {
-      return ctx;
+    const mounted = await renderToContainer(
+      code,
+      dependencies,
+      entryId,
+      (err) => {
+        captured = err;
+      }
+    );
+    if ('error' in mounted) {
+      return mounted;
     }
 
-    const root = createRootWithErrorCapture(ctx.container, ctx.onCapture);
-    root.render(ctx.tree);
-    await waitForRenderToSettle(ctx.container);
-
-    const html = ctx.container.innerHTML;
-    root.unmount();
+    const html = mounted.container.innerHTML;
+    mounted.root.unmount();
 
     if (captured) {
       return { error: captured.message };
@@ -221,20 +246,23 @@ async function mountMdx(
     }
 
     let captured: Error | undefined;
-    const ctx = await buildMountContext(code, dependencies, entryId, (err) => {
-      captured = err;
-    });
-    if ('error' in ctx) {
-      return ctx;
+    const mounted = await renderToContainer(
+      code,
+      dependencies,
+      entryId,
+      (err) => {
+        captured = err;
+      },
+      (root) => {
+        activeRoot = root;
+      }
+    );
+    if ('error' in mounted) {
+      return mounted;
     }
 
-    const root = createRootWithErrorCapture(ctx.container, ctx.onCapture);
-    activeRoot = root;
-    root.render(ctx.tree);
-    await waitForRenderToSettle(ctx.container);
-
     if (captured) {
-      root.unmount();
+      mounted.root.unmount();
       activeRoot = undefined;
       return { error: captured.message };
     }
@@ -249,7 +277,6 @@ installPreloads();
 setModuleFetcher(rejectFetcher);
 harnessWindow.__mdxForgeRender = renderMdx;
 harnessWindow.__mdxForgeMount = mountMdx;
-harnessWindow.__mdxForgeReady = Promise.resolve();
 
 // auto-mount preview server globals when bundle loads after #mdx-root
 const autoCode = harnessWindow.__MDX_FORGE_CODE__;

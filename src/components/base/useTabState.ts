@@ -93,6 +93,64 @@ function findDefaultFromChildren(
   return undefined;
 }
 
+// resolve keyboard-nav target index for tab lists
+// skips disabled tabs; returns undefined for unhandled keys
+export function resolveTabNavIndex(
+  key: string,
+  currentIndex: number,
+  count: number,
+  isDisabled: (index: number) => boolean = () => false
+): number | undefined {
+  let newIndex = currentIndex;
+
+  switch (key) {
+    case 'ArrowLeft':
+    case 'ArrowUp':
+      // find previous non-disabled tab
+      for (let i = 1; i <= count; i++) {
+        const idx = (currentIndex - i + count) % count;
+        if (!isDisabled(idx)) {
+          newIndex = idx;
+          break;
+        }
+      }
+      break;
+    case 'ArrowRight':
+    case 'ArrowDown':
+      // find next non-disabled tab
+      for (let i = 1; i <= count; i++) {
+        const idx = (currentIndex + i) % count;
+        if (!isDisabled(idx)) {
+          newIndex = idx;
+          break;
+        }
+      }
+      break;
+    case 'Home':
+      // find first non-disabled tab
+      for (let i = 0; i < count; i++) {
+        if (!isDisabled(i)) {
+          newIndex = i;
+          break;
+        }
+      }
+      break;
+    case 'End':
+      // find last non-disabled tab
+      for (let i = count - 1; i >= 0; i--) {
+        if (!isDisabled(i)) {
+          newIndex = i;
+          break;
+        }
+      }
+      break;
+    default:
+      return undefined;
+  }
+
+  return newIndex;
+}
+
 // hook for managing tab state
 // extract tab items from children, determine initial active value
 // & provide state management for tab selection
@@ -110,14 +168,14 @@ export function useTabState(options: UseTabStateOptions): UseTabStateResult {
       label: item.label,
     }));
 
-  // determine initial active value
-  const initialValue =
-    defaultValue ||
-    findDefaultFromChildren(children, tabItems) ||
-    tabs[0]?.value ||
-    '';
-
-  const [activeValue, setActiveValue] = useState(initialValue);
+  // determine initial active value lazily (read only on mount)
+  const [activeValue, setActiveValue] = useState(
+    () =>
+      defaultValue ||
+      findDefaultFromChildren(children, tabItems) ||
+      tabs[0]?.value ||
+      ''
+  );
 
   // ensure activeValue is valid (in case tabs change)
   const validActiveValue = tabs.find((t) => t.value === activeValue)
@@ -166,7 +224,7 @@ export function useIndexTabs<T>({
   isDisabled = () => false,
 }: UseIndexTabsOptions<T>): UseIndexTabsResult {
   // get initial index from localStorage if storageKey is provided
-  const getInitialIndex = useCallback((): number => {
+  const [internalIndex, setInternalIndex] = useState((): number => {
     if (storageKey && typeof window !== 'undefined') {
       try {
         const stored = window.localStorage.getItem(`nextra-tabs-${storageKey}`);
@@ -181,9 +239,7 @@ export function useIndexTabs<T>({
       }
     }
     return defaultIndex;
-  }, [storageKey, defaultIndex, items.length]);
-
-  const [internalIndex, setInternalIndex] = useState(getInitialIndex);
+  });
   const activeIndex = controlledIndex ?? internalIndex;
 
   // handle tab selection

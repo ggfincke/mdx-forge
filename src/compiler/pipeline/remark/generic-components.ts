@@ -28,6 +28,18 @@ const COLLAPSIBLE_COMPONENTS = new Set([
   'Collapsible',
   ...getGenericComponentAliases('Collapsible'),
 ]);
+const TABS_COMPONENTS = new Set([
+  'Tabs',
+  ...getGenericComponentAliases('Tabs'),
+]);
+const TABITEM_COMPONENTS = new Set([
+  'TabItem',
+  ...getGenericComponentAliases('TabItem'),
+]);
+const CODEGROUP_COMPONENTS = new Set([
+  'CodeGroup',
+  ...getGenericComponentAliases('CodeGroup'),
+]);
 
 // export the full set of known generic components
 export const KNOWN_GENERIC_COMPONENTS = getGenericComponentSet();
@@ -66,11 +78,11 @@ export default function remarkGenericComponents(
         transformed = transformCallout(mdxNode);
       } else if (COLLAPSIBLE_COMPONENTS.has(name)) {
         transformed = transformCollapsible(mdxNode);
-      } else if (name === 'Tabs') {
+      } else if (TABS_COMPONENTS.has(name)) {
         transformed = transformTabs(mdxNode);
-      } else if (name === 'TabItem' || name === 'Tab') {
+      } else if (TABITEM_COMPONENTS.has(name)) {
         transformed = transformTabItem(mdxNode);
-      } else if (name === 'CodeGroup') {
+      } else if (CODEGROUP_COMPONENTS.has(name)) {
         transformed = transformCodeGroup(mdxNode);
       }
 

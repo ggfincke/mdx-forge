@@ -13,37 +13,6 @@ export function extractFrontmatter(mdxText: string): FrontmatterResult {
   };
 }
 
-// common frontmatter keys that affect preview behavior
-export const PREVIEW_FRONTMATTER_KEYS = [
-  'previewTheme',
-  'codeBlockTheme',
-] as const;
-
-// check if frontmatter has any preview-related keys
-export function hasPreviewFrontmatter(
-  frontmatter: Record<string, unknown>
-): boolean {
-  return PREVIEW_FRONTMATTER_KEYS.some((key) => key in frontmatter);
-}
-
-// extract preview-related frontmatter values (only keys w/ string values)
-export function extractPreviewFrontmatter(
-  frontmatter: Record<string, unknown>
-): Partial<Record<(typeof PREVIEW_FRONTMATTER_KEYS)[number], string>> {
-  const result: Partial<
-    Record<(typeof PREVIEW_FRONTMATTER_KEYS)[number], string>
-  > = {};
-
-  for (const key of PREVIEW_FRONTMATTER_KEYS) {
-    const value = frontmatter[key];
-    if (typeof value === 'string') {
-      result[key] = value;
-    }
-  }
-
-  return result;
-}
-
 // Nextra-specific frontmatter keys (sidebarTitle takes precedence over title)
 export const NEXTRA_FRONTMATTER_KEYS = [
   'title',

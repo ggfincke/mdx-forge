@@ -7,9 +7,6 @@ import { createCallout, type BaseCalloutProps } from '../base/BaseCallout';
 import { CalloutType, CALLOUT_TITLES, normalizeCalloutType } from './types';
 import { CALLOUT_ICONS } from '../base/icons';
 
-// callout props - extends base props for generic callout
-export type CalloutProps = BaseCalloutProps<CalloutType>;
-
 // create the base Callout using factory
 const BaseCallout = createCallout<CalloutType>({
   classPrefix: 'mdx-preview-generic-callout',
@@ -20,19 +17,19 @@ const BaseCallout = createCallout<CalloutType>({
 });
 
 // callout component w/ type normalization
-export function Callout(props: CalloutProps): ReactElement {
+export function Callout(props: BaseCalloutProps<CalloutType>): ReactElement {
   // normalize type aliases (success -> tip, error -> danger, etc.)
   const normalizedType = normalizeCalloutType(props.type);
   return <BaseCallout {...props} type={normalizedType} />;
 }
 
 // alert component (alias for Callout)
-export function Alert(props: CalloutProps): ReactElement {
+export function Alert(props: BaseCalloutProps<CalloutType>): ReactElement {
   return <Callout {...props} />;
 }
 
 // admonition component (alias for Callout, Docusaurus style)
-export function Admonition(props: CalloutProps): ReactElement {
+export function Admonition(props: BaseCalloutProps<CalloutType>): ReactElement {
   return <Callout {...props} />;
 }
 

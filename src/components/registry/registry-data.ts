@@ -6,6 +6,7 @@ import {
   SHIM_PREFIX,
   type ComponentRegistryEntry,
   type Framework,
+  type FrameworkId,
 } from './types';
 import { COMPONENT_METADATA } from './component-metadata';
 import { VALID_CALLOUT_TYPES } from '../../internal/callout';
@@ -344,40 +345,25 @@ export const COMPONENT_REGISTRY = [
 // note: derived types use `typeof COMPONENT_REGISTRY` & must stay in this file
 export type ComponentRegistryEntryType = (typeof COMPONENT_REGISTRY)[number];
 
-type GenericComponentEntry = Extract<
+// registry component entries narrowed by framework
+type EntryFor<F extends FrameworkId> = Extract<
   ComponentRegistryEntryType,
-  { kind: 'component'; framework: 'generic' }
+  { kind: 'component'; framework: F }
 >;
 
-export type GenericComponentName = Extract<
-  ComponentRegistryEntryType,
-  { kind: 'component'; framework: 'generic' }
->['name'];
+type GenericComponentEntry = EntryFor<'generic'>;
 
-export type GenericComponentAlias = Extract<
-  ComponentRegistryEntryType,
-  { kind: 'component'; framework: 'generic' }
->['aliases'][number];
+export type GenericComponentName = EntryFor<'generic'>['name'];
 
-export type DocusaurusComponent = Extract<
-  ComponentRegistryEntryType,
-  { kind: 'component'; framework: 'docusaurus' }
->['name'];
+export type GenericComponentAlias = EntryFor<'generic'>['aliases'][number];
 
-export type StarlightComponent = Extract<
-  ComponentRegistryEntryType,
-  { kind: 'component'; framework: 'starlight' }
->['name'];
+export type DocusaurusComponent = EntryFor<'docusaurus'>['name'];
 
-export type NextjsComponent = Extract<
-  ComponentRegistryEntryType,
-  { kind: 'component'; framework: 'nextjs' }
->['name'];
+export type StarlightComponent = EntryFor<'starlight'>['name'];
 
-export type NextraComponent = Extract<
-  ComponentRegistryEntryType,
-  { kind: 'component'; framework: 'nextra' }
->['name'];
+export type NextjsComponent = EntryFor<'nextjs'>['name'];
+
+export type NextraComponent = EntryFor<'nextra'>['name'];
 
 // generic component definitions w/ aliases (derived from registry)
 export const GENERIC_COMPONENTS = buildGenericComponents();
