@@ -108,28 +108,12 @@ function extractCustomTitle(node: ContainerDirective): string | null {
     }
   }
 
-  // check for [Title] syntax in name
-  const nameMatch = node.name?.match(/^(\w+)\[(.+)\]$/);
-  if (nameMatch) {
-    return nameMatch[2];
-  }
-
   return null;
 }
 
-// get the directive name without custom title
+// get the lowercased directive name
 function getDirectiveName(node: ContainerDirective): string {
-  if (!node.name) {
-    return '';
-  }
-
-  // handle :::note[Title] syntax
-  const nameMatch = node.name.match(/^(\w+)(?:\[.+\])?$/);
-  if (nameMatch) {
-    return nameMatch[1].toLowerCase();
-  }
-
-  return node.name.toLowerCase();
+  return node.name ? node.name.toLowerCase() : '';
 }
 
 // resolve directive name to admonition config (handles aliases)

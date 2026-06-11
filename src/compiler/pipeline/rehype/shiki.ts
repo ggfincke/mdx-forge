@@ -3,7 +3,6 @@
 
 import { visit } from 'unist-util-visit';
 import type { Root, Element, Text, ElementContent } from 'hast';
-import { htmlToHastFragment } from './shiki-helpers';
 import {
   createHighlighter,
   type Highlighter,
@@ -105,19 +104,21 @@ const cssVariablesTheme = createCssVariablesTheme({
   fontStyle: true,
 });
 
-// transformer to add diff-specific classes to lines
-const diffTransformer: ShikiTransformer = {
-  name: 'diff-highlight',
-  line(hast, lineNumber) {
-    const lines = this.source.split('\n');
-    const lineText = lines[lineNumber - 1] || '';
+// build per-block transformer adding diff classes (splits source once, not per line)
+const createDiffTransformer = (code: string): ShikiTransformer => {
+  const lines = code.split('\n');
+  return {
+    name: 'diff-highlight',
+    line(hast, lineNumber) {
+      const lineText = lines[lineNumber - 1] || '';
 
-    if (lineText.startsWith('+')) {
-      this.addClassToHast(hast, DIFF_ADD);
-    } else if (lineText.startsWith('-')) {
-      this.addClassToHast(hast, DIFF_REMOVE);
-    }
-  },
+      if (lineText.startsWith('+')) {
+        this.addClassToHast(hast, DIFF_ADD);
+      } else if (lineText.startsWith('-')) {
+        this.addClassToHast(hast, DIFF_REMOVE);
+      }
+    },
+  };
 };
 
 // cached highlighter instance
@@ -336,16 +337,17 @@ export default function rehypeShiki() {
           ? resolvedLang
           : 'text';
 
-        // generate HTML w/ CSS variables (themeable via external CSS)
-        const html = highlighter.codeToHtml(code, {
+        // generate hast w/ CSS variables (themeable via external CSS)
+        const hast = highlighter.codeToHast(code, {
           lang: highlightLang,
           theme: 'css-variables',
-          transformers: highlightLang === 'diff' ? [diffTransformer] : [],
+          transformers:
+            highlightLang === 'diff' ? [createDiffTransformer(code)] : [],
         });
 
         // create wrapper w/ code block
         const wrapper = createCodeBlockWrapper({
-          html,
+          hastChildren: hast.children as ElementContent[],
           lang,
           meta,
           code,
@@ -362,13 +364,13 @@ export default function rehypeShiki() {
 
 // create wrapper element w/ code block, title bar, etc
 function createCodeBlockWrapper(options: {
-  html: string;
+  hastChildren: ElementContent[];
   lang: string;
   meta: CodeMeta;
   code: string;
   sourceLine?: string;
 }): Element {
-  const { html, lang, meta, code, sourceLine } = options;
+  const { hastChildren, lang, meta, code, sourceLine } = options;
 
   const children: ElementContent[] = [];
 
@@ -397,7 +399,7 @@ function createCodeBlockWrapper(options: {
     },
     children: [
       // single themed version using CSS variables
-      ...htmlToHastFragment(html),
+      ...hastChildren,
     ],
   };
 
