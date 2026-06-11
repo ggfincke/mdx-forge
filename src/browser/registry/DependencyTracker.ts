@@ -16,6 +16,9 @@ export class DependencyTracker {
   // reverse dependency graph: moduleId -> set of modules that depend on it
   private dependents: Map<string, Set<string>> = new Map();
 
+  // forward index: moduleId -> set of modules it depends on (for O(deg) cleanup)
+  private dependenciesOf: Map<string, Set<string>> = new Map();
+
   // create key for resolution map
   private makeResolutionKey(parentId: string, request: string): string {
     return `${parentId}\0${request}`;
@@ -60,6 +63,12 @@ export class DependencyTracker {
       this.dependents.set(dependsOnId, new Set());
     }
     this.dependents.get(dependsOnId)!.add(moduleId);
+
+    // maintain forward index for O(deg) cleanup
+    if (!this.dependenciesOf.has(moduleId)) {
+      this.dependenciesOf.set(moduleId, new Set());
+    }
+    this.dependenciesOf.get(moduleId)!.add(dependsOnId);
   }
 
   // get number of dependency relationships tracked
@@ -100,14 +109,19 @@ export class DependencyTracker {
     }
   }
 
-  // remove module from all dependents sets & delete its own entry
+  // remove module from the dependents sets it appears in & delete its own entry
+  // O(deg) via forward index instead of O(n) full scan
   cleanDependentsFor(moduleId: string): void {
     // remove this module's entry as a dependency target
     this.dependents.delete(moduleId);
 
-    // remove this module from all other modules' dependent sets
-    for (const [, deps] of this.dependents) {
-      deps.delete(moduleId);
+    // remove this module from the dependent sets of modules it depends on
+    const dependencies = this.dependenciesOf.get(moduleId);
+    if (dependencies) {
+      for (const dependsOnId of dependencies) {
+        this.dependents.get(dependsOnId)?.delete(moduleId);
+      }
+      this.dependenciesOf.delete(moduleId);
     }
   }
 
@@ -150,6 +164,7 @@ export class DependencyTracker {
   // clear the dependency graph (but keep resolution map)
   clearDependencies(): void {
     this.dependents.clear();
+    this.dependenciesOf.clear();
   }
 
   // clear all tracking data
@@ -158,6 +173,7 @@ export class DependencyTracker {
     this.parentToResolutionKeys.clear();
     this.targetToResolutionKeys.clear();
     this.dependents.clear();
+    this.dependenciesOf.clear();
   }
 
   // get statistics for debugging/monitoring

@@ -21,13 +21,10 @@ export const PRELOADED_MODULE_IDS = {
   vscodeLayout: 'npm://vscode-markdown-layout@0.1.0',
 } as const;
 
-// module export value
-type ModuleExports = Record<string, unknown> | unknown;
-
 // cached module
 export interface Module {
   id: string;
-  exports: ModuleExports;
+  exports: unknown;
   loaded: boolean;
 }
 

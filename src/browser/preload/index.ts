@@ -3,7 +3,6 @@
 
 import type { ModuleRegistry } from '../registry/ModuleRegistry';
 import type { FrameworkId, HostPreloadCallbacks, PreloadEntry } from '../types';
-import { PRELOADED_MODULE_IDS } from '../types';
 import { preloadCoreModules } from './core';
 import { configureModuleLoader } from '../internal/runtime-config';
 
@@ -21,9 +20,6 @@ export function setHostPreloadCallbacks(callbacks: HostPreloadCallbacks): void {
 // request-specifier -> canonical module ID
 const PRELOAD_ALIASES: Record<string, string> = {};
 
-// tracked shim IDs for reset preservation
-const PRELOADED_SHIM_IDS: string[] = [];
-
 const preloadEntriesById = new Map<string, PreloadEntry>();
 
 function clearObject(target: Record<string, string>): void {
@@ -34,12 +30,6 @@ function clearObject(target: Record<string, string>): void {
 
 function syncRuntimeAliases(): void {
   configureModuleLoader({ preloadAliases: { ...PRELOAD_ALIASES } });
-}
-
-function appendShimId(id: string): void {
-  if (!PRELOADED_SHIM_IDS.includes(id)) {
-    PRELOADED_SHIM_IDS.push(id);
-  }
 }
 
 function addAliasesForEntry(entry: PreloadEntry): void {
@@ -56,13 +46,11 @@ function addAliasesForEntry(entry: PreloadEntry): void {
 
 function registerEntry(entry: PreloadEntry): void {
   preloadEntriesById.set(entry.id, entry);
-  appendShimId(entry.id);
   addAliasesForEntry(entry);
 }
 
 export function setPreloadEntries(entries: readonly PreloadEntry[]): void {
   preloadEntriesById.clear();
-  PRELOADED_SHIM_IDS.length = 0;
   clearObject(PRELOAD_ALIASES);
 
   for (const entry of entries) {
@@ -122,10 +110,4 @@ export async function ensureGenericShims(
     return hostCallbacks.ensureGenericShims(registry, components);
   }
   // no-op in standalone (host integration provides real implementation)
-}
-
-export function getPreservedIds(): string[] {
-  return Array.from(
-    new Set([...Object.values(PRELOADED_MODULE_IDS), ...PRELOADED_SHIM_IDS])
-  );
 }
