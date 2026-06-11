@@ -22,6 +22,8 @@ const defaultBrowserLauncher: BrowserLauncher = () =>
 let browserPromise: Promise<Browser> | undefined;
 let browserLauncher: BrowserLauncher = defaultBrowserLauncher;
 const pages = new Map<FrameworkId, Promise<HarnessEntry>>();
+const pageQueues = new Map<FrameworkId, Promise<void>>();
+let shuttingDown = false;
 
 async function getBrowser(): Promise<Browser> {
   if (!browserPromise) {
@@ -129,23 +131,59 @@ export async function getHarnessPage(framework: FrameworkId): Promise<Page> {
   }
 }
 
-export async function shutdownHarnessPages(): Promise<void> {
-  const entryPromises = Array.from(pages.values());
-  pages.clear();
-  await Promise.allSettled(
-    entryPromises.map(async (entryPromise) => {
-      const entry = await entryPromise.catch(() => undefined);
-      if (entry) {
-        await closeHarnessEntry(entry);
-      }
-    })
-  );
-
-  const pending = browserPromise;
-  browserPromise = undefined;
-  if (!pending) {
-    return;
+// ! reentrant calls deadlock - operation must not call runWithHarnessPage for the same framework
+export async function runWithHarnessPage<T>(
+  framework: FrameworkId,
+  operation: (page: Page) => Promise<T>
+): Promise<T> {
+  if (shuttingDown) {
+    throw new Error('harness pages are shutting down');
   }
-  const browser = await pending.catch(() => undefined);
-  await browser?.close().catch(() => undefined);
+  const previous = pageQueues.get(framework) ?? Promise.resolve();
+  let release!: () => void;
+  const current = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const queued = previous.catch(() => undefined).then(() => current);
+  pageQueues.set(framework, queued);
+
+  await previous.catch(() => undefined);
+  try {
+    return await operation(await getHarnessPage(framework));
+  } finally {
+    release();
+    if (pageQueues.get(framework) === queued) {
+      pageQueues.delete(framework);
+    }
+  }
+}
+
+export async function shutdownHarnessPages(): Promise<void> {
+  // block new queue entries so drained pages can't be recreated mid-shutdown
+  shuttingDown = true;
+  try {
+    await Promise.allSettled(Array.from(pageQueues.values()));
+    pageQueues.clear();
+
+    const entryPromises = Array.from(pages.values());
+    pages.clear();
+    await Promise.allSettled(
+      entryPromises.map(async (entryPromise) => {
+        const entry = await entryPromise.catch(() => undefined);
+        if (entry) {
+          await closeHarnessEntry(entry);
+        }
+      })
+    );
+
+    const pending = browserPromise;
+    browserPromise = undefined;
+    if (!pending) {
+      return;
+    }
+    const browser = await pending.catch(() => undefined);
+    await browser?.close().catch(() => undefined);
+  } finally {
+    shuttingDown = false;
+  }
 }

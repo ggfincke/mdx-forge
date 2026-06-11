@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { transform } from 'esbuild';
 import { compileTrusted } from 'mdx-forge/compiler';
 import type { FrameworkId } from './css.js';
-import { getHarnessPage } from './harness-page.js';
+import { runWithHarnessPage } from './harness-page.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const PLUGIN_ROOT = resolve(dirname(__filename), '..');
@@ -78,29 +78,29 @@ export async function compileTrustedModule(
 export async function snapshotTrustedModule(
   compiled: TrustedCompiledModule
 ): Promise<string> {
-  const page = await getHarnessPage(compiled.framework);
-
-  const result = await page.evaluate(
-    async ({ code, deps, entryId }) => {
-      const api = (
-        window as unknown as {
-          __mdxForgeRender?: (
-            code: string,
-            deps: string[],
-            entryId: string
-          ) => Promise<{ html: string } | { error: string }>;
+  const result = await runWithHarnessPage(compiled.framework, (page) =>
+    page.evaluate(
+      async ({ code, deps, entryId }) => {
+        const api = (
+          window as unknown as {
+            __mdxForgeRender?: (
+              code: string,
+              deps: string[],
+              entryId: string
+            ) => Promise<{ html: string } | { error: string }>;
+          }
+        ).__mdxForgeRender;
+        if (!api) {
+          return { error: 'harness __mdxForgeRender not installed' };
         }
-      ).__mdxForgeRender;
-      if (!api) {
-        return { error: 'harness __mdxForgeRender not installed' };
+        return api(code, deps, entryId);
+      },
+      {
+        code: compiled.cjsCode,
+        deps: compiled.dependencies,
+        entryId: compiled.entryId,
       }
-      return api(code, deps, entryId);
-    },
-    {
-      code: compiled.cjsCode,
-      deps: compiled.dependencies,
-      entryId: compiled.entryId,
-    }
+    )
   );
 
   if ('error' in result) {
