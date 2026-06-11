@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-06-11
+
+### Changed
+
+- **Render plugin**: Simplify the Trusted Mode harness and preview server, including shared harness-page execution, serialized per-framework page access to avoid render deadlocks, and a cleaner shutdown sequence
+- **Browser runtime**: Simplify module registry and preload internals, pruning stale shim-loader plumbing while preserving the public preload API
+- **Compiler**: Simplify Safe Mode compilation and the Shiki/admonition pipeline, with leaner Shiki HAST generation and reduced internal pipeline helpers
+- **Components**: Simplify tab navigation and registry type derivation, including lazy tab-state initialization and eager generic-component lookup tables
+- **Dependencies**: Bump `@types/node` to ^25.9.3, `@types/react` to ^19.2.17, `prettier` to ^3.8.4 and `typescript-eslint` to ^8.61.0
+
 ## [0.6.0] - 2026-06-05
 
 ### Added
