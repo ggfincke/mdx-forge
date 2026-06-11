@@ -29,7 +29,6 @@ import {
 import { startPreviewServer, stopPreviewServer } from './preview-server.js';
 import { VIEWPORT_PRESET_NAMES } from './viewports.js';
 
-const FRAMEWORKS = FRAMEWORK_IDS;
 const THEMES = ['light', 'dark'] as const;
 
 const server = new McpServer({
@@ -49,7 +48,7 @@ server.tool(
         'MDX source text (inline). Frontmatter is parsed automatically.'
       ),
     framework: z
-      .enum(FRAMEWORKS)
+      .enum(FRAMEWORK_IDS)
       .optional()
       .describe(
         "Framework CSS bundle to apply — one of 'generic', 'docusaurus', 'starlight', 'nextra', 'nextjs'. Default: 'generic'."
@@ -102,7 +101,7 @@ server.tool(
         'Matrix screenshot capture — cross-product of themes & viewports. Returns one labeled PNG per variant. Wins over `screenshot` when both are set.'
       ),
     theme: z
-      .enum(['light', 'dark'])
+      .enum(THEMES)
       .optional()
       .describe(
         "Preferred color scheme for the preview & screenshot. Default: 'light'."
@@ -175,10 +174,7 @@ server.tool(
       );
       const trailing = trailingSections.join('\n');
 
-      const content: Array<
-        | { type: 'text'; text: string }
-        | { type: 'image'; data: string; mimeType: string }
-      > = [{ type: 'text', text: leadIn }];
+      const content: ContentBlock[] = [{ type: 'text', text: leadIn }];
 
       if (result.screenshots && result.screenshots.length > 0) {
         content.push(...buildScreenshotBlocks(result.screenshots));
@@ -200,7 +196,7 @@ server.tool(
   "Return the MDX component registry for a framework — names, props, required vs optional, enum values, examples. Call this BEFORE writing MDX that uses framework-specific components so you don't guess at prop names or enum values. When `name` is supplied, returns the full detail for that one component; otherwise returns the summary list for the entire framework.",
   {
     framework: z
-      .enum(FRAMEWORKS)
+      .enum(FRAMEWORK_IDS)
       .optional()
       .describe(
         "Framework whose shim registry to list. Default: 'generic'. Each framework is scoped to its own shim barrel; generic components are listed separately."

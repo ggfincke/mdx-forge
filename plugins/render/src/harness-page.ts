@@ -21,7 +21,7 @@ const defaultBrowserLauncher: BrowserLauncher = () =>
 
 let browserPromise: Promise<Browser> | undefined;
 let browserLauncher: BrowserLauncher = defaultBrowserLauncher;
-const pages = new Map<FrameworkId, HarnessEntry>();
+const pages = new Map<FrameworkId, Promise<HarnessEntry>>();
 
 async function getBrowser(): Promise<Browser> {
   if (!browserPromise) {
@@ -82,7 +82,7 @@ async function openHarnessPage(framework: FrameworkId): Promise<HarnessEntry> {
 
   const ready = (async () => {
     await page.goto(harnessUrl(framework), { waitUntil: 'load' });
-    // bundle sets window.__mdxForgeReady once preloads register
+    // bundle sets window.__mdxForgeRender once preloads register
     await page.waitForFunction(
       () => {
         const api = (
@@ -106,28 +106,40 @@ async function closeHarnessEntry(entry: HarnessEntry): Promise<void> {
 }
 
 export async function getHarnessPage(framework: FrameworkId): Promise<Page> {
-  let entry = pages.get(framework);
-  if (!entry) {
-    entry = await openHarnessPage(framework);
-    pages.set(framework, entry);
+  // store the promise synchronously so concurrent renders share one context
+  let entryPromise = pages.get(framework);
+  if (!entryPromise) {
+    entryPromise = openHarnessPage(framework);
+    pages.set(framework, entryPromise);
   }
 
+  let entry: HarnessEntry | undefined;
   try {
+    entry = await entryPromise;
     await entry.ready;
     return entry.page;
   } catch (error: unknown) {
-    if (pages.get(framework) === entry) {
+    if (pages.get(framework) === entryPromise) {
       pages.delete(framework);
     }
-    await closeHarnessEntry(entry);
+    if (entry) {
+      await closeHarnessEntry(entry);
+    }
     throw error;
   }
 }
 
 export async function shutdownHarnessPages(): Promise<void> {
-  const entries = Array.from(pages.values());
+  const entryPromises = Array.from(pages.values());
   pages.clear();
-  await Promise.allSettled(entries.map(closeHarnessEntry));
+  await Promise.allSettled(
+    entryPromises.map(async (entryPromise) => {
+      const entry = await entryPromise.catch(() => undefined);
+      if (entry) {
+        await closeHarnessEntry(entry);
+      }
+    })
+  );
 
   const pending = browserPromise;
   browserPromise = undefined;
