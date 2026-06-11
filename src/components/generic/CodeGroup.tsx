@@ -13,7 +13,7 @@ import React, {
 } from 'react';
 import { CodeGroupProps } from './types';
 import { cn } from '../internal/cn';
-import { useIndexTabs } from '../base/useTabState';
+import { useIndexTabs, resolveTabNavIndex } from '../base/useTabState';
 
 // extract label from code block element
 function extractLabelFromCodeBlock(child: ReactElement): string {
@@ -73,26 +73,9 @@ export function CodeGroup({ children, labels }: CodeGroupProps): ReactElement {
   // handle keyboard navigation for tabs
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
-      const tabCount = tabs.length;
-      let newIndex: number;
-
-      switch (e.key) {
-        case 'ArrowLeft':
-        case 'ArrowUp':
-          newIndex = (currentIndex - 1 + tabCount) % tabCount;
-          break;
-        case 'ArrowRight':
-        case 'ArrowDown':
-          newIndex = (currentIndex + 1) % tabCount;
-          break;
-        case 'Home':
-          newIndex = 0;
-          break;
-        case 'End':
-          newIndex = tabCount - 1;
-          break;
-        default:
-          return;
+      const newIndex = resolveTabNavIndex(e.key, currentIndex, tabs.length);
+      if (newIndex === undefined) {
+        return;
       }
 
       e.preventDefault();
