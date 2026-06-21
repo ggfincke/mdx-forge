@@ -10,6 +10,9 @@ export {
   extractNextraFrontmatter,
 } from './pipeline/common/mdx-common';
 
+// no-eval frontmatter parser; hosts must route diagnostics parses through this
+export { safeMatter } from '../internal/frontmatter';
+
 // known generic component set for diagnostics
 export { KNOWN_GENERIC_COMPONENTS } from './pipeline/remark/generic-components';
 

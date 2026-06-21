@@ -6,11 +6,23 @@ import { safeMatter } from '../../../internal/frontmatter';
 
 // extract frontmatter from MDX text w/ gray-matter (returns content & parsed data)
 export function extractFrontmatter(mdxText: string): FrontmatterResult {
-  const { content, data } = safeMatter(mdxText);
+  const parsed = safeMatter(mdxText);
   return {
-    content,
-    frontmatter: data as Record<string, unknown>,
+    content: parsed.content,
+    frontmatter: parsed.data as Record<string, unknown>,
+    bodyStartLine: computeBodyStartLine(mdxText, parsed.content),
   };
+}
+
+// 1-based original-doc line where the body begins; 1 w/o frontmatter
+// derived from gray-matter's actual stripped prefix so empty & trailing-ws fences
+// stay correct (a trim-based --- scan diverges from gray-matter's stripping rule)
+function computeBodyStartLine(mdxText: string, content: string): number {
+  if (content === mdxText || !mdxText.endsWith(content)) {
+    return 1;
+  }
+  const stripped = mdxText.slice(0, mdxText.length - content.length);
+  return (stripped.match(/\n/g)?.length ?? 0) + 1;
 }
 
 // Nextra-specific frontmatter keys (sidebarTitle takes precedence over title)
