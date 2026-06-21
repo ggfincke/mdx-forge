@@ -43,6 +43,14 @@
       "import": "./dist/esm/compiler/plugins/index.js",
       "types": "./dist/types/compiler/plugins/index.d.ts"
     },
+    "./diagnostics": {
+      "import": "./dist/esm/diagnostics/index.js",
+      "types": "./dist/types/diagnostics/index.d.ts"
+    },
+    "./diagnostics/analyze": {
+      "import": "./dist/esm/diagnostics/analyze/index.js",
+      "types": "./dist/types/diagnostics/analyze/index.d.ts"
+    },
     "./browser": {
       "import": "./dist/esm/browser/index.js",
       "types": "./dist/types/browser/index.d.ts"

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-06-21
+
+### Added
+
+- **`mdx-forge/diagnostics`**: New zero-dependency contract leaf — a host-agnostic, JSON-serializable `Diagnostic` shape (`code`, `ruleId`, `severity`, `message`, `source`, unist-native 1-based `range`, discriminated `data`) plus the stable `DIAGNOSTIC_CODES` table (`MDXF###`). Consumed identically by VS Code, the CLI, the MCP server, and tests
+- **`mdx-forge/diagnostics/analyze`**: New render-free analysis engine — `analyzeMdx(source, ctx)` runs one safe-frontmatter extraction + a single remark/remark-mdx parse and emits `Diagnostic[]` with no compile. Ships the ported unknown-component rule (`MDXF001`) and the reusable, framework-accurate `classifyComponentSource` ladder so every host shares one classification implementation
+- **`FrontmatterResult.bodyStartLine`**: `extractFrontmatter` now returns the 1-based original-document line where the body begins, so lint positions are file-relative without re-evaluating frontmatter
+- **`safeMatter`**: Now exported from `mdx-forge/compiler` so hosts can route diagnostics parses through the no-eval (`---js` / `---javascript`) frontmatter parser
+
 ## [0.6.2] - 2026-06-11
 
 ### Changed
