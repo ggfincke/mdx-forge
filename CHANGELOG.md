@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-07-03
+
 ### Added
 
 - **`mdx-forge/diagnostics`**: New zero-dependency contract leaf — a host-agnostic, JSON-serializable `Diagnostic` shape (`code`, `ruleId`, `severity`, `message`, `source`, unist-native 1-based `range`, discriminated `data`) plus the stable `DIAGNOSTIC_CODES` table (`MDXF###`). Consumed by VS Code and tests today; CLI and MCP consumption is planned
