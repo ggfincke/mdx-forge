@@ -440,6 +440,14 @@ export function lintFrontmatter(
 // frozen processor reused across calls; parse() is stateless
 const mdxProcessor = unified().use(remarkParse).use(remarkMdx).freeze();
 
+function safeMatter(source: string) {
+  return matter(source, {
+    engines: {
+      javascript: () => ({}),
+    },
+  });
+}
+
 export async function lintMdxSource(
   source: string,
   framework: FrameworkId
@@ -448,7 +456,7 @@ export async function lintMdxSource(
   let frontmatter: Record<string, unknown> = {};
   let content = source;
   try {
-    const parsed = matter(source);
+    const parsed = safeMatter(source);
     frontmatter = (parsed.data ?? {}) as Record<string, unknown>;
     content = parsed.content;
   } catch (err) {

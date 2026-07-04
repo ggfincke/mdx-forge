@@ -2,9 +2,10 @@
 
 `mdx-forge` is a standalone MDX runtime toolkit published as an ESM package for Node 22+.
 
-It exposes three domain-focused entry points:
+It exposes four domain-focused entry points:
 
 - `mdx-forge/compiler` for Safe and Trusted MDX compilation
+- `mdx-forge/diagnostics` for host-agnostic diagnostic contracts and analysis
 - `mdx-forge/browser` for browser-side module loading and evaluation
 - `mdx-forge/components` for framework shim components, metadata, and CSS
 
@@ -35,6 +36,8 @@ console.log(result.html);
 
 - `mdx-forge/compiler`
 - `mdx-forge/compiler/plugins`
+- `mdx-forge/diagnostics`
+- `mdx-forge/diagnostics/analyze`
 - `mdx-forge/browser`
 - `mdx-forge/browser/registry`
 - `mdx-forge/components`
@@ -60,6 +63,12 @@ console.log(result.html);
 - `loadModule()` recursively loads modules and their dependencies
 - module evaluation uses `new Function()` and requires a host that intentionally allows that execution model
 - the registry layer coordinates module cache, style cache, and dependency tracking
+
+### Diagnostics
+
+- zero-dependency `Diagnostic` contract with stable `MDXF###` codes
+- `analyzeMdx()` safely parses frontmatter and emits render-free diagnostics
+- framework-aware unknown-component classification shared by hosts
 
 ### Components
 

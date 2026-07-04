@@ -135,8 +135,7 @@ async function buildMountContext(
   const module = await loadModule(entryId, code, dependencies, rejectFetcher);
   const exports = module.exports as Record<string, unknown>;
   const Component = (exports.default ?? exports) as
-    | ((props: unknown) => unknown)
-    | undefined;
+    ((props: unknown) => unknown) | undefined;
 
   if (typeof Component !== 'function') {
     return {

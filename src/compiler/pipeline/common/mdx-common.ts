@@ -6,11 +6,58 @@ import { safeMatter } from '../../../internal/frontmatter';
 
 // extract frontmatter from MDX text w/ gray-matter (returns content & parsed data)
 export function extractFrontmatter(mdxText: string): FrontmatterResult {
-  const { content, data } = safeMatter(mdxText);
+  const source = typeof mdxText === 'string' ? mdxText : String(mdxText);
+  const parsed = safeMatter(source);
+  const isEmpty = 'isEmpty' in parsed && parsed.isEmpty === true;
+  const bodyStart = computeBodyStartPosition(source, parsed.content, {
+    hasFrontmatter: Boolean(parsed.matter) || isEmpty,
+  });
   return {
-    content,
-    frontmatter: data as Record<string, unknown>,
+    content: parsed.content,
+    frontmatter: parsed.data as Record<string, unknown>,
+    bodyStartLine: bodyStart.line,
+    bodyStartColumn: bodyStart.column,
   };
+}
+
+interface BodyStartOptions {
+  hasFrontmatter: boolean;
+}
+
+interface BodyStartPosition {
+  line: number;
+  column: number;
+}
+
+// calc original-doc body start from gray-matter's stripped prefix
+function computeBodyStartPosition(
+  mdxText: string,
+  content: string,
+  options: BodyStartOptions
+): BodyStartPosition {
+  if (!options.hasFrontmatter || !mdxText.endsWith(content)) {
+    return { line: 1, column: 1 };
+  }
+  const stripped = mdxText.slice(0, mdxText.length - content.length);
+  let line = 1;
+  let column = 1;
+  for (let i = 0; i < stripped.length; i++) {
+    if (stripped[i] === '\r') {
+      line++;
+      column = 1;
+      if (stripped[i + 1] === '\n') {
+        i++;
+      }
+      continue;
+    }
+    if (stripped[i] === '\n') {
+      line++;
+      column = 1;
+      continue;
+    }
+    column++;
+  }
+  return { line, column };
 }
 
 // Nextra-specific frontmatter keys (sidebarTitle takes precedence over title)

@@ -105,6 +105,10 @@ export interface CompilerConfig {
 export interface FrontmatterResult {
   content: string;
   frontmatter: Record<string, unknown>;
+  // 1-based body line in the original doc; 1 w/o frontmatter
+  bodyStartLine: number;
+  // 1-based body column in the original doc; 1 w/o frontmatter
+  bodyStartColumn: number;
 }
 
 // result of Trusted Mode transpilation

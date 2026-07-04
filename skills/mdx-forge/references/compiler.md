@@ -5,39 +5,40 @@ Source: `src/compiler/index.ts`. Types: `src/compiler/types/`.
 
 ## Exports
 
-| Symbol                       | Kind     | Brief                                            |
-| ---------------------------- | -------- | ------------------------------------------------ |
-| `compileSafe`                | function | MDX → HTML (no JS execution)                     |
-| `compileTrusted`             | function | MDX → executable JS                              |
-| `extractFrontmatter`         | function | YAML frontmatter splitter (gray-matter under)    |
-| `extractNextraFrontmatter`   | function | Nextra-specific frontmatter (title, layout, toc) |
-| `KNOWN_GENERIC_COMPONENTS`   | Set      | Set of built-in generic component names          |
-| `VALID_CALLOUT_TYPES`        | array    | Canonical callout type strings                   |
-| `CalloutType`                | type     | Union of valid callout types                     |
-| `GITHUB_ALERT_TYPES`         | array    | Canonical GitHub alert type strings              |
-| `loadPluginsFromConfig`      | function | Load custom remark/rehype plugins from a config  |
-| `mergePlugins`               | function | Concat built-in + custom plugin arrays           |
-| `CompilerConfig`             | type     | Compiler input config                            |
-| `SafeHTMLResult`             | type     | `{ html, frontmatter }`                          |
-| `MdxTranspileResult`         | type     | `{ code, frontmatter }`                          |
-| `FrontmatterResult`          | type     | `{ content, frontmatter }`                       |
-| `UnknownBehavior`            | type     | `'strip' \| 'placeholder' \| 'raw'`              |
-| `PluginSpec`                 | type     | `string \| [string, Record<string, unknown>]`    |
-| `MdxPreviewConfig`           | type     | `.mdx-previewrc.json` schema subset              |
-| `ResolvedConfig`             | type     | Loaded config + `configPath` + `configDir`       |
-| `NextraPageMeta`             | type     | Nextra page-level metadata                       |
-| `CompilerLogger`             | type     | Logger contract (`debug`/`info`/`warn`/`error`)  |
-| `TrustValidator`             | type     | Trust check contract for plugin loading          |
-| `PluginLoader`               | type     | Module-resolution contract for custom plugins    |
-| `ErrorReporter`              | type     | Error reporter for plugin load failures          |
-| `PluginLoadError`            | type     | Plugin load error payload                        |
+| Symbol                     | Kind     | Brief                                                      |
+| -------------------------- | -------- | ---------------------------------------------------------- |
+| `compileSafe`              | function | MDX → HTML (no JS execution)                               |
+| `compileTrusted`           | function | MDX → executable JS                                        |
+| `extractFrontmatter`       | function | YAML frontmatter splitter (gray-matter under)              |
+| `safeMatter`               | function | No-eval gray-matter wrapper                                |
+| `extractNextraFrontmatter` | function | Nextra-specific frontmatter (title, layout, toc)           |
+| `KNOWN_GENERIC_COMPONENTS` | Set      | Set of built-in generic component names                    |
+| `VALID_CALLOUT_TYPES`      | array    | Canonical callout type strings                             |
+| `CalloutType`              | type     | Union of valid callout types                               |
+| `GITHUB_ALERT_TYPES`       | array    | Canonical GitHub alert type strings                        |
+| `loadPluginsFromConfig`    | function | Load custom remark/rehype plugins from a config            |
+| `mergePlugins`             | function | Concat built-in + custom plugin arrays                     |
+| `CompilerConfig`           | type     | Compiler input config                                      |
+| `SafeHTMLResult`           | type     | `{ html, frontmatter }`                                    |
+| `MdxTranspileResult`       | type     | `{ code, frontmatter }`                                    |
+| `FrontmatterResult`        | type     | `{ content, frontmatter, bodyStartLine, bodyStartColumn }` |
+| `UnknownBehavior`          | type     | `'strip' \| 'placeholder' \| 'raw'`                        |
+| `PluginSpec`               | type     | `string \| [string, Record<string, unknown>]`              |
+| `MdxPreviewConfig`         | type     | `.mdx-previewrc.json` schema subset                        |
+| `ResolvedConfig`           | type     | Loaded config + `configPath` + `configDir`                 |
+| `NextraPageMeta`           | type     | Nextra page-level metadata                                 |
+| `CompilerLogger`           | type     | Logger contract (`debug`/`info`/`warn`/`error`)            |
+| `TrustValidator`           | type     | Trust check contract for plugin loading                    |
+| `PluginLoader`             | type     | Module-resolution contract for custom plugins              |
+| `ErrorReporter`            | type     | Error reporter for plugin load failures                    |
+| `PluginLoadError`          | type     | Plugin load error payload                                  |
 
 ## `compileSafe(mdxText, config)`
 
 ```ts
 function compileSafe(
   mdxText: string,
-  config: CompilerConfig,
+  config: CompilerConfig
 ): Promise<SafeHTMLResult>;
 
 interface SafeHTMLResult {
@@ -57,7 +58,7 @@ interface SafeHTMLResult {
 
 The output is a complete HTML fragment. Hosts that render untrusted source
 should still apply DOMPurify or equivalent sanitization & a strict CSP — the
-function name "Safe" refers to the *compile mode* (no JS execution), not to
+function name "Safe" refers to the _compile mode_ (no JS execution), not to
 output trust.
 
 ## `compileTrusted(mdxText, _isEntry, config)`
@@ -65,12 +66,12 @@ output trust.
 ```ts
 function compileTrusted(
   mdxText: string,
-  _isEntry: boolean,            // currently unused; pass `true`
-  config: CompilerConfig,
+  _isEntry: boolean, // currently unused; pass `true`
+  config: CompilerConfig
 ): Promise<MdxTranspileResult>;
 
 interface MdxTranspileResult {
-  code: string;                 // executable JavaScript
+  code: string; // executable JavaScript
   frontmatter: Record<string, unknown>;
 }
 ```
@@ -111,8 +112,8 @@ interface CompilerConfig {
   useWhiteBackground?: boolean;
 
   // generic component handling
-  componentsBuiltins?: boolean;                   // default: true
-  componentsUnknownBehavior?: UnknownBehavior;    // default: 'placeholder'
+  componentsBuiltins?: boolean; // default: true
+  componentsUnknownBehavior?: UnknownBehavior; // default: 'placeholder'
 
   // resolved .mdx-previewrc.json (or equivalent)
   configFile?: ResolvedConfig | null;
@@ -132,11 +133,11 @@ interface CompilerConfig {
 
 ## `UnknownBehavior` (Safe Mode)
 
-| Value           | Effect on unknown JSX                                                |
-| --------------- | -------------------------------------------------------------------- |
-| `'placeholder'` | Render a styled placeholder box w/ component name (default)          |
-| `'strip'`       | Remove the element entirely (children dropped)                       |
-| `'raw'`         | Drop the wrapper but keep children inline                            |
+| Value           | Effect on unknown JSX                                       |
+| --------------- | ----------------------------------------------------------- |
+| `'placeholder'` | Render a styled placeholder box w/ component name (default) |
+| `'strip'`       | Remove the element entirely (children dropped)              |
+| `'raw'`         | Drop the wrapper but keep children inline                   |
 
 ## `extractFrontmatter(mdxText)`
 
@@ -144,13 +145,26 @@ interface CompilerConfig {
 function extractFrontmatter(mdxText: string): FrontmatterResult;
 
 interface FrontmatterResult {
-  content: string;                          // MDX body w/ frontmatter removed
-  frontmatter: Record<string, unknown>;     // parsed YAML object
+  content: string; // MDX body w/ frontmatter removed
+  frontmatter: Record<string, unknown>; // parsed YAML object
+  bodyStartLine: number; // 1-based original-doc body line
+  bodyStartColumn: number; // 1-based original-doc body column
 }
 ```
 
-Uses `gray-matter` under the hood. Safe to call on input without
-frontmatter — returns `{ content: mdxText, frontmatter: {} }`.
+Uses `safeMatter()` under the hood, so `---js` / `---javascript` frontmatter
+does not evaluate. Safe to call on input without frontmatter — returns
+`{ content: mdxText, frontmatter: {}, bodyStartLine: 1, bodyStartColumn: 1 }`.
+
+## `safeMatter(input)`
+
+```ts
+function safeMatter(input: string): GrayMatterFile<string>;
+```
+
+Wraps `gray-matter` with its executable JavaScript engine disabled. Use this
+instead of raw `gray-matter` anywhere caller-authored MDX frontmatter is
+parsed.
 
 ## `extractNextraFrontmatter(mdxText)`
 
@@ -204,13 +218,13 @@ Matches the `> [!TYPE]` blockquote syntax.
 ```ts
 function loadPluginsFromConfig(
   config: ResolvedConfig | undefined,
-  compilerConfig: CompilerConfig,
+  compilerConfig: CompilerConfig
 ): Promise<LoadedPlugins>;
 
 interface ResolvedConfig {
-  config: MdxPreviewConfig;     // the parsed config object
-  configPath: string;           // absolute path to the config file
-  configDir: string;            // dirname of the config file
+  config: MdxPreviewConfig; // the parsed config object
+  configPath: string; // absolute path to the config file
+  configDir: string; // dirname of the config file
 }
 
 interface MdxPreviewConfig {

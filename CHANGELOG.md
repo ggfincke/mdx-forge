@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`mdx-forge/diagnostics`**: New zero-dependency contract leaf — a host-agnostic, JSON-serializable `Diagnostic` shape (`code`, `ruleId`, `severity`, `message`, `source`, unist-native 1-based `range`, discriminated `data`) plus the stable `DIAGNOSTIC_CODES` table (`MDXF###`). Consumed by VS Code and tests today; CLI and MCP consumption is planned
+- **`mdx-forge/diagnostics/analyze`**: New render-free analysis engine — `analyzeMdx(source, ctx)` runs one safe-frontmatter extraction + a single remark/remark-mdx parse and emits `Diagnostic[]` with no compile. Ships the ported unknown-component rule (`MDXF001`) and the reusable, framework-accurate `classifyComponentSource` ladder so every host shares one classification implementation
+- **`FrontmatterResult` offsets**: `extractFrontmatter` now returns the 1-based original-document line and column where the body begins, so lint positions are file-relative without re-evaluating frontmatter
+- **`safeMatter`**: Now exported from `mdx-forge/compiler` so hosts can route diagnostics parses through the no-eval (`---js` / `---javascript`) frontmatter parser
+
+### Changed
+
+- **Dependencies**: Bump root and render-plugin dependency sets to current releases, including `@types/node` 26.x, `eslint` 10.6.x, `vite` 8.1.x, `shiki` 4.3.x, `playwright` 1.61.x, `prettier` 3.9.x, `typescript-eslint` 8.62.x, React type/runtime patches, and `actions/checkout` v7; refresh transitive audit fixes so both package scopes report zero npm audit vulnerabilities
+
 ## [0.6.2] - 2026-06-11
 
 ### Changed
@@ -63,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Dependencies**: Bump patch dependency set, including `@types/node`, `eslint`, `globals`, `playwright`, `react`, `react-dom`, `typescript-eslint`, `vite` & `vitest`
+
 ## [0.4.2] - 2026-05-05
 
 ### Changed

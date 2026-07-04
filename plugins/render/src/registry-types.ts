@@ -56,11 +56,7 @@ export interface RegistryIdentity {
 }
 
 export type FrontmatterFieldType =
-  | 'string'
-  | 'number'
-  | 'boolean'
-  | 'array'
-  | 'object';
+  'string' | 'number' | 'boolean' | 'array' | 'object';
 
 export interface FrontmatterField {
   name: string;

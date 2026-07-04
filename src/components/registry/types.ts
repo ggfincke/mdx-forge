@@ -36,11 +36,7 @@ export interface ComponentPropSpec {
 }
 
 export type ComponentChildrenKind =
-  | 'none'
-  | 'text'
-  | 'block'
-  | 'tabitems'
-  | 'steps';
+  'none' | 'text' | 'block' | 'tabitems' | 'steps';
 
 export interface ComponentExample {
   code: string;
@@ -139,5 +135,4 @@ export interface ComponentBarrelDefinition extends ComponentDefinitionBase {
 }
 
 export type ComponentRegistryEntry =
-  | ComponentDefinition
-  | ComponentBarrelDefinition;
+  ComponentDefinition | ComponentBarrelDefinition;
