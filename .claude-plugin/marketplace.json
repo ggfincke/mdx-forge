@@ -19,6 +19,12 @@
       "source": "./plugins/render/",
       "description": "MCP server that compiles MDX (Safe or Trusted Mode), publishes a live-reloading preview, and optionally captures Playwright screenshots. Ships two tools: render_mdx (compile + render + lint) and list_components (look up framework component contracts).",
       "version": "0.1.0"
+    },
+    {
+      "name": "cartographer",
+      "source": "./plugins/cartographer/",
+      "description": "Local-first architecture cockpit: watches a repo, builds a TS/JS dependency graph, emits MDX architecture artifacts through mdx-forge, and exposes the graph to Claude/Codex via MCP. Spike stage.",
+      "version": "0.1.0"
     }
   ]
 }
