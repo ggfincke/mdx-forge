@@ -2,11 +2,7 @@
 // react-free shim metadata tuples
 
 export type NextraCalloutType =
-  | 'default'
-  | 'info'
-  | 'warning'
-  | 'error'
-  | 'important';
+  'default' | 'info' | 'warning' | 'error' | 'important';
 
 export const NEXTRA_CALLOUT_TYPES: readonly NextraCalloutType[] = [
   'default',
@@ -26,12 +22,7 @@ export const ASIDE_TYPES: readonly AsideType[] = [
 ] as const;
 
 export type BadgeVariant =
-  | 'note'
-  | 'tip'
-  | 'caution'
-  | 'danger'
-  | 'success'
-  | 'default';
+  'note' | 'tip' | 'caution' | 'danger' | 'success' | 'default';
 
 export const BADGE_VARIANTS: readonly BadgeVariant[] = [
   'note',

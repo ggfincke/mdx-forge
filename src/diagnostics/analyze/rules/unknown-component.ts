@@ -18,11 +18,7 @@ export interface ClassifyContext {
 }
 
 export type ComponentSource =
-  | 'import'
-  | 'config'
-  | 'builtin'
-  | 'framework'
-  | 'unknown';
+  'import' | 'config' | 'builtin' | 'framework' | 'unknown';
 
 // port of the extension ladder so every host shares one source of truth
 export function classifyComponentSource(
