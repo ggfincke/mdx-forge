@@ -15,9 +15,6 @@ const SCAN_ENTRIES = [
   'plugins/render/src',
   'plugins/render/harness',
   'plugins/render/scripts',
-  'plugins/cartographer/src',
-  'plugins/cartographer/tests',
-  'plugins/cartographer/scripts',
   'eslint.config.mjs',
   'vitest.config.ts',
 ];

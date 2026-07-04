@@ -161,8 +161,8 @@
     "check:comments": "node ./scripts/check-comment-style.mjs",
     "check:guardrails": "npm run check:legacy-paths && npm run check:frontmatter-imports && npm run check:comments",
     "check:frontmatter-imports": "node ./scripts/check-frontmatter-imports.mjs",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tests/**/*.{ts,tsx}\" \"scripts/**/*.mjs\" \"dev/**/*.{ts,tsx,css}\" \"plugins/render/src/**/*.ts\" \"plugins/render/harness/**/*.ts\" \"plugins/render/scripts/**/*.mjs\" \"plugins/cartographer/src/**/*.{ts,tsx}\" \"plugins/cartographer/tests/**/*.ts\" \"plugins/cartographer/scripts/**/*.mjs\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"tests/**/*.{ts,tsx}\" \"scripts/**/*.mjs\" \"dev/**/*.{ts,tsx,css}\" \"plugins/render/src/**/*.ts\" \"plugins/render/harness/**/*.ts\" \"plugins/render/scripts/**/*.mjs\" \"plugins/cartographer/src/**/*.{ts,tsx}\" \"plugins/cartographer/tests/**/*.ts\" \"plugins/cartographer/scripts/**/*.mjs\"",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tests/**/*.{ts,tsx}\" \"scripts/**/*.mjs\" \"dev/**/*.{ts,tsx,css}\" \"plugins/render/src/**/*.ts\" \"plugins/render/harness/**/*.ts\" \"plugins/render/scripts/**/*.mjs\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"tests/**/*.{ts,tsx}\" \"scripts/**/*.mjs\" \"dev/**/*.{ts,tsx,css}\" \"plugins/render/src/**/*.ts\" \"plugins/render/harness/**/*.ts\" \"plugins/render/scripts/**/*.mjs\"",
     "dev": "vite --config dev/vite.config.ts",
     "prepublishOnly": "npm run build && npm run check:esm-specifiers",
     "version": "node scripts/check-changelog.mjs && git add CHANGELOG.md"
