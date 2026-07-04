@@ -11,7 +11,7 @@ import {
   type Node,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { StrictMode, useEffect, useState } from 'react';
+import { StrictMode, useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { CartographerGraph } from '../types.js';
 
@@ -86,9 +86,43 @@ function toFlow(graph: GraphJson): { nodes: Node[]; edges: Edge[] } {
   return { nodes, edges };
 }
 
+// dim non-matching nodes instead of hiding -> layout stays stable
+const DIM_NODE_OPACITY = 0.15;
+const DIM_EDGE_OPACITY = 0.08;
+
+function applyFilter(
+  flow: { nodes: Node[]; edges: Edge[] },
+  query: string
+): { nodes: Node[]; edges: Edge[]; matchCount: number } {
+  const needle = query.trim().toLowerCase();
+  if (!needle) {
+    return { ...flow, matchCount: flow.nodes.length };
+  }
+  const matched = new Set(
+    flow.nodes
+      .filter((node) => node.id.toLowerCase().includes(needle))
+      .map((node) => node.id)
+  );
+  return {
+    nodes: flow.nodes.map((node) =>
+      matched.has(node.id)
+        ? node
+        : { ...node, style: { ...node.style, opacity: DIM_NODE_OPACITY } }
+    ),
+    edges: flow.edges.map((edge) =>
+      matched.has(edge.source) || matched.has(edge.target)
+        ? edge
+        : { ...edge, style: { ...edge.style, opacity: DIM_EDGE_OPACITY } }
+    ),
+    matchCount: matched.size,
+  };
+}
+
 function App(): React.JSX.Element {
   const [graph, setGraph] = useState<GraphJson | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState('');
+  const flow = useMemo(() => (graph ? toFlow(graph) : null), [graph]);
 
   useEffect(() => {
     let generatedAt = '';
@@ -122,11 +156,11 @@ function App(): React.JSX.Element {
   if (error) {
     return <div className="cartographer-status">error: {error}</div>;
   }
-  if (!graph) {
+  if (!graph || !flow) {
     return <div className="cartographer-status">loading graph.json ...</div>;
   }
 
-  const { nodes, edges } = toFlow(graph);
+  const { nodes, edges, matchCount } = applyFilter(flow, filter);
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
       <header className="cartographer-header">
@@ -136,6 +170,18 @@ function App(): React.JSX.Element {
           {graph.gitRef ? ` @ ${graph.gitRef}` : ''} — {graph.nodes.length}{' '}
           files, {graph.edges.length} imports, {graph.metrics.cycles} cycles
         </span>
+        <input
+          className="cartographer-filter"
+          type="search"
+          placeholder="filter files..."
+          value={filter}
+          onChange={(event) => setFilter(event.target.value)}
+        />
+        {filter.trim() !== '' && (
+          <span className="cartographer-match-count">
+            {matchCount}/{graph.nodes.length}
+          </span>
+        )}
       </header>
       <ReactFlow nodes={nodes} edges={edges} fitView minZoom={0.05}>
         <Background />
