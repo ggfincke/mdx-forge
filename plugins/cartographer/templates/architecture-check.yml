@@ -40,12 +40,10 @@ jobs:
           node /tmp/mdx-forge/plugins/cartographer/dist/cli/index.js build .
           git checkout ${{ github.event.pull_request.head.sha }}
 
-      - name: Diff against baseline
+      - name: Check drift against baseline
         id: drift
         continue-on-error: true
-        run: |
-          node /tmp/mdx-forge/plugins/cartographer/dist/cli/index.js diff . \
-            | tee .cartographer/pr-comment.txt
+        run: node /tmp/mdx-forge/plugins/cartographer/dist/cli/index.js check-pr .
 
       - name: Upload architecture artifacts
         uses: actions/upload-artifact@v4
@@ -58,11 +56,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          {
-            echo '### Architecture drift'
-            echo '```'
-            cat .cartographer/pr-comment.txt
-            echo '```'
-          } > body.md
-          gh pr comment "$PR_NUMBER" --body-file body.md
+        run: gh pr comment "$PR_NUMBER" --body-file .cartographer/pr-summary.md

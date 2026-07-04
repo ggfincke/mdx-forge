@@ -17,7 +17,11 @@ import {
   formatDiffSummary,
   type BlastDirection,
 } from '../analyze/index.js';
-import { emitArchitectureMdx, renderArchitectureHtml } from '../emit/index.js';
+import {
+  emitArchitectureMdx,
+  formatPrSummary,
+  renderArchitectureHtml,
+} from '../emit/index.js';
 import {
   architectureHtmlPath,
   architectureMdxPath,
@@ -27,6 +31,7 @@ import {
   listSnapshots,
   loadGraph,
   loadSnapshot,
+  prSummaryPath,
   recordSnapshot,
   saveGraph,
   suppressSqliteWarning,
@@ -44,6 +49,7 @@ Usage:
   cartographer emit-mdx [root] [--out <dir>]
   cartographer render [root] [--out <dir>] [--open]
   cartographer diff [root] [--scope <dir>] [--out <dir>] [--base <snapshot-id>] [--save]
+  cartographer check-pr [root] [--scope <dir>] [--out <dir>] [--base <snapshot-id>]
   cartographer snapshots [root] [--out <dir>]
   cartographer blast-radius [root] --target <file> [--direction both|upstream|downstream] [--max-depth <n>]
   cartographer watch [root] [--scope <dir>] [--out <dir>] [--emit-mdx] [--render]
@@ -121,6 +127,9 @@ async function main(): Promise<void> {
     case 'diff':
       await runDiff(root, values);
       return;
+    case 'check-pr':
+      await runCheckPr(root, values);
+      return;
     case 'snapshots':
       runSnapshots(root, values);
       return;
@@ -178,6 +187,20 @@ async function runDiff(root: string, values: CliValues): Promise<void> {
       `baseline -> ${saveGraph(head, root, values.out)} (snapshot #${snapshotId})`
     );
   }
+  process.exitCode = diff.changed ? 1 : 0;
+}
+
+async function runCheckPr(root: string, values: CliValues): Promise<void> {
+  const base = values.base
+    ? loadSnapshot(root, parsePositiveInt(values.base, '--base'), values.out)
+    : loadBaseline(root, values.out);
+  const head = await buildGraph({ root, scope: values.scope ?? base.scope });
+  const diff = diffGraphs(base, head);
+  const summary = formatPrSummary(diff, base, head);
+  const summaryPath = prSummaryPath(root, values.out);
+  writeFileSync(summaryPath, summary);
+  process.stdout.write(summary);
+  console.error(`summary -> ${summaryPath}`);
   process.exitCode = diff.changed ? 1 : 0;
 }
 

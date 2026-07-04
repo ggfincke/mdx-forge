@@ -11,6 +11,7 @@ export {
   DEFAULT_OUT_DIR,
   graphJsonPath,
   outDirPath,
+  prSummaryPath,
 } from './paths.js';
 export {
   dbPath,

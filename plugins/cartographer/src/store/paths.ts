@@ -20,3 +20,7 @@ export function architectureMdxPath(root: string, outDir?: string): string {
 export function architectureHtmlPath(root: string, outDir?: string): string {
   return join(outDirPath(root, outDir), 'architecture.html');
 }
+
+export function prSummaryPath(root: string, outDir?: string): string {
+  return join(outDirPath(root, outDir), 'pr-summary.md');
+}
