@@ -3,7 +3,7 @@
 
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
+import type { DatabaseSync } from 'node:sqlite';
 import type { CartographerGraph } from '../types.js';
 import { outDirPath } from './paths.js';
 
@@ -48,7 +48,9 @@ export function suppressSqliteWarning(): void {
 
 function openDb(root: string, outDir?: string): DatabaseSync {
   mkdirSync(outDirPath(root, outDir), { recursive: true });
-  const db = new DatabaseSync(dbPath(root, outDir));
+  // lazy builtin load -> warning fires after suppressSqliteWarning ran
+  const sqlite = process.getBuiltinModule('node:sqlite');
+  const db = new sqlite.DatabaseSync(dbPath(root, outDir));
   db.exec(SCHEMA);
   return db;
 }
