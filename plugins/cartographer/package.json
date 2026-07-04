@@ -1,0 +1,50 @@
+{
+  "name": "cartographer",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Local-first repo graph & MDX architecture cockpit plugin (spike stage).",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "cartographer": "dist/cli/index.js"
+  },
+  "scripts": {
+    "start": "node dist/mcp/server.js",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "npm run clean && tsc -p tsconfig.json && node scripts/build-web.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p src/web/tsconfig.json",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"tests/**/*.ts\" \"scripts/**/*.mjs\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"tests/**/*.ts\" \"scripts/**/*.mjs\"",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^25.9.3",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "esbuild": "^0.28.1",
+    "eslint": "^10.4.1",
+    "globals": "^17.6.0",
+    "prettier": "^3.8.4",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.61.0",
+    "vitest": "^4.1.8"
+  },
+  "dependencies": {
+    "@dagrejs/dagre": "^3.0.0",
+    "@mdx-js/mdx": "^3.1.1",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@xyflow/react": "^12.11.1",
+    "dependency-cruiser": "^18.0.0",
+    "mdx-forge": "^0.7.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "unified": "^11.0.5",
+    "zod": "^4.4.3"
+  }
+}
