@@ -16,6 +16,13 @@ export interface GraphEdge {
   dynamic?: boolean;
 }
 
+export interface GraphGroup {
+  id: string;
+  label: string;
+  description?: string;
+  fileCount: number;
+}
+
 export interface GraphMetrics {
   cycles: number;
   orphans: number;
@@ -32,5 +39,7 @@ export interface CartographerGraph {
   scope: string;
   nodes: GraphNode[];
   edges: GraphEdge[];
+  // optional -> graph.json written before grouping landed lacks it
+  groups?: GraphGroup[];
   metrics: GraphMetrics;
 }

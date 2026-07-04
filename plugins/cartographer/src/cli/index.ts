@@ -401,8 +401,10 @@ function openInBrowser(path: string): void {
 
 function logSummary(graph: CartographerGraph): void {
   const m = graph.metrics;
+  const blocks = graph.groups?.length ?? 0;
   console.log(
-    `${graph.nodes.length} files, ${graph.edges.length} imports | ` +
+    `${graph.nodes.length} files, ${graph.edges.length} imports, ` +
+      `${blocks} block${blocks === 1 ? '' : 's'} | ` +
       `cycles ${m.cycles}, orphans ${m.orphans}, ` +
       `max fan-in ${m.maxFanIn}, max fan-out ${m.maxFanOut}`
   );

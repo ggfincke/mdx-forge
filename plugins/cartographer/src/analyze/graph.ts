@@ -3,14 +3,16 @@
 
 import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { cruise } from 'dependency-cruiser';
 import type {
   CartographerGraph,
   GraphEdge,
+  GraphGroup,
   GraphMetrics,
   GraphNode,
 } from '../types.js';
+import { loadConfig, resolveGroup, type CartographerConfig } from './config.js';
 
 interface CruisedDependency {
   resolved: string;
@@ -62,14 +64,19 @@ export async function buildGraph(
     process.chdir(previousCwd);
   }
 
-  const repoModules = modules.filter((m) => !m.source.includes('node_modules'));
+  // drop builtins & unresolved externals cruise reports as modules (path, shiki/core, ...)
+  const repoModules = modules.filter(
+    (m) =>
+      !m.source.includes('node_modules') && existsSync(resolve(root, m.source))
+  );
   const nodeIds = new Set(repoModules.map((m) => m.source));
 
+  const config = loadConfig(root);
   const nodes: GraphNode[] = repoModules.map((m) => ({
     id: m.source,
     kind: 'file',
     label: m.source.split('/').pop() ?? m.source,
-    group: dirname(m.source),
+    group: resolveGroup(m.source, config).id,
   }));
 
   const edges: GraphEdge[] = [];
@@ -100,8 +107,43 @@ export async function buildGraph(
     scope,
     nodes,
     edges,
+    groups: collectGroups(nodes, config),
     metrics: computeMetrics(nodes, edges),
   };
+}
+
+// config-defined groups in rule order, heuristic groups alphabetical after
+function collectGroups(
+  nodes: GraphNode[],
+  config: CartographerConfig
+): GraphGroup[] {
+  const fileCounts = new Map<string, number>();
+  for (const node of nodes) {
+    fileCounts.set(node.group, (fileCounts.get(node.group) ?? 0) + 1);
+  }
+
+  const groups: GraphGroup[] = [];
+  const seen = new Set<string>();
+  for (const rule of config.groups) {
+    const fileCount = fileCounts.get(rule.name);
+    if (!fileCount || seen.has(rule.name)) {
+      continue;
+    }
+    seen.add(rule.name);
+    groups.push({
+      id: rule.name,
+      label: rule.name,
+      ...(rule.description ? { description: rule.description } : {}),
+      fileCount,
+    });
+  }
+  const heuristic = [...fileCounts.keys()]
+    .filter((id) => !seen.has(id))
+    .sort((a, b) => a.localeCompare(b));
+  for (const id of heuristic) {
+    groups.push({ id, label: id, fileCount: fileCounts.get(id) ?? 0 });
+  }
+  return groups;
 }
 
 function gitRef(root: string): { gitRef?: string } {

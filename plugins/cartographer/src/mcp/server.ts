@@ -7,11 +7,13 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { writeFileSync } from 'node:fs';
 import { z } from 'zod';
 import {
+  aggregateGroupEdges,
   buildGraph,
   computeBlastRadius,
   DEFAULT_MAX_DEPTH,
   diffGraphs,
   formatDiffSummary,
+  graphGroups,
 } from '../analyze/index.js';
 import { emitArchitectureMdx } from '../emit/index.js';
 import {
@@ -37,7 +39,7 @@ const server = new McpServer({
 
 server.tool(
   'graph_repo',
-  'Build the TS/JS imports graph for a repository via dependency-cruiser. Writes graph.json (nodes, edges, metrics) to <root>/.cartographer/ & returns a structured summary: file/import counts, cycles, orphans, fan-in/fan-out hotspots. Optionally also emits architecture.mdx (frontmatter, metrics tables, Mermaid diagram) renderable through mdx-forge. Call this first — blast_radius reuses the saved graph.',
+  'Build the TS/JS imports graph for a repository via dependency-cruiser. Writes graph.json (nodes, edges, groups, metrics) to <root>/.cartographer/ & returns a structured summary: file/import counts, cycles, orphans, fan-in/fan-out hotspots, plus a block-level rollup (named groups from .cartographer.json or folder heuristic, w/ cross-block import counts) — usually the best starting point for architecture questions. Optionally also emits architecture.mdx (frontmatter, metrics tables, Mermaid diagrams) renderable through mdx-forge. Call this first — blast_radius reuses the saved graph.',
   {
     root: z
       .string()
@@ -231,6 +233,8 @@ function summarize(graph: CartographerGraph): Record<string, unknown> {
     files: graph.nodes.length,
     imports: graph.edges.length,
     metrics: graph.metrics,
+    blocks: graphGroups(graph),
+    blockImports: aggregateGroupEdges(graph),
     topFanIn: top(fanIn),
     topFanOut: top(fanOut),
   };

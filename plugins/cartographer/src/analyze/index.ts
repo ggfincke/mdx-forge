@@ -9,3 +9,15 @@ export {
   type BlastRadiusResult,
 } from './blast-radius.js';
 export { diffGraphs, formatDiffSummary, type GraphDiff } from './diff.js';
+export {
+  aggregateGroupEdges,
+  graphGroups,
+  type GroupEdge,
+} from './aggregate.js';
+export {
+  CONFIG_FILE,
+  loadConfig,
+  resolveGroup,
+  type CartographerConfig,
+  type GroupRule,
+} from './config.js';
