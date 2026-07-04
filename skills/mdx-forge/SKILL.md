@@ -6,26 +6,28 @@ description: Use when working with the mdx-forge npm package — compiling MDX w
 # mdx-forge
 
 `mdx-forge` is an ESM-only MDX runtime toolkit (Node >= 22, MIT). It ships
-three independent domains, each with its own subpath export. **There is no
+four independent domains, each with its own subpath export. **There is no
 root import** — `import {} from 'mdx-forge'` will fail.
 
 ## Subpath inventory
 
-| Subpath                                  | Environment | Purpose                                       |
-| ---------------------------------------- | ----------- | --------------------------------------------- |
-| `mdx-forge/compiler`                     | Node        | MDX → HTML (Safe) or MDX → JS (Trusted)       |
-| `mdx-forge/compiler/plugins`             | Node        | Plugin loader, builders, `mergePlugins`       |
-| `mdx-forge/browser`                      | Browser     | `loadModule`, `evaluateModuleToComponent`     |
-| `mdx-forge/browser/registry`             | Browser     | `ModuleRegistry` direct access                |
-| `mdx-forge/components`                   | Both        | Factory primitives (`createCallout`, etc.)    |
-| `mdx-forge/components/generic`           | Both        | Generic shims (Callout, Tabs, CodeGroup…)     |
-| `mdx-forge/components/docusaurus`        | Both        | Docusaurus shims (Tabs, CodeBlock, Details)   |
-| `mdx-forge/components/starlight`         | Both        | Starlight shims (Card, Aside, Steps…)         |
-| `mdx-forge/components/nextra`            | Both        | Nextra shims (Callout, Cards, FileTree…)      |
-| `mdx-forge/components/nextjs`            | Both        | Next.js shims (Image, Link)                   |
-| `mdx-forge/components/registry`          | Both        | `COMPONENT_REGISTRY`, `isGenericComponent`    |
-| `mdx-forge/components/styles/<fw>.css`   | Any         | Framework CSS bundles                         |
-| `mdx-forge/components/styles/tokens.css` | Any         | Shared design tokens                          |
+| Subpath                                  | Environment | Purpose                                     |
+| ---------------------------------------- | ----------- | ------------------------------------------- |
+| `mdx-forge/compiler`                     | Node        | MDX → HTML (Safe) or MDX → JS (Trusted)     |
+| `mdx-forge/compiler/plugins`             | Node        | Plugin loader, builders, `mergePlugins`     |
+| `mdx-forge/diagnostics`                  | Any         | `Diagnostic`, `DIAGNOSTIC_CODES` contract   |
+| `mdx-forge/diagnostics/analyze`          | Any         | `analyzeMdx`, unknown-component rules       |
+| `mdx-forge/browser`                      | Browser     | `loadModule`, `evaluateModuleToComponent`   |
+| `mdx-forge/browser/registry`             | Browser     | `ModuleRegistry` direct access              |
+| `mdx-forge/components`                   | Both        | Factory primitives (`createCallout`, etc.)  |
+| `mdx-forge/components/generic`           | Both        | Generic shims (Callout, Tabs, CodeGroup…)   |
+| `mdx-forge/components/docusaurus`        | Both        | Docusaurus shims (Tabs, CodeBlock, Details) |
+| `mdx-forge/components/starlight`         | Both        | Starlight shims (Card, Aside, Steps…)       |
+| `mdx-forge/components/nextra`            | Both        | Nextra shims (Callout, Cards, FileTree…)    |
+| `mdx-forge/components/nextjs`            | Both        | Next.js shims (Image, Link)                 |
+| `mdx-forge/components/registry`          | Both        | `COMPONENT_REGISTRY`, `isGenericComponent`  |
+| `mdx-forge/components/styles/<fw>.css`   | Any         | Framework CSS bundles                       |
+| `mdx-forge/components/styles/tokens.css` | Any         | Shared design tokens                        |
 
 Frameworks: `generic`, `docusaurus`, `starlight`, `nextra`, `nextjs`.
 
@@ -97,17 +99,21 @@ setModuleFetcher(async (request, isBare, parentId) => {
 });
 
 const Component = await evaluateModuleToComponent(
-  code,            // from compileTrusted
-  '/preview.mdx',  // entry file path
-  [],              // dependencies — pass [] to let the fetcher discover them
+  code, // from compileTrusted
+  '/preview.mdx', // entry file path
+  [] // dependencies — pass [] to let the fetcher discover them
 );
 ```
 
 ## Need more detail?
 
 - **Compiler API & config** (full `CompilerConfig`, `extractFrontmatter`,
-  `KNOWN_GENERIC_COMPONENTS`, `VALID_CALLOUT_TYPES`, `GITHUB_ALERT_TYPES`)
+  `safeMatter`, `KNOWN_GENERIC_COMPONENTS`, `VALID_CALLOUT_TYPES`,
+  `GITHUB_ALERT_TYPES`)
   → read `references/compiler.md`
+- **Diagnostics API** (`Diagnostic`, `DIAGNOSTIC_CODES`, `analyzeMdx`,
+  `classifyComponentSource`, unknown-component data)
+  → use `mdx-forge/diagnostics` and `mdx-forge/diagnostics/analyze`
 - **Browser runtime setup** (`registerPreloadEntries`, `setModuleFetcher`,
   invalidation, framework-shim loading, security caveats)
   → read `references/browser-runtime.md`
@@ -134,7 +140,7 @@ const Component = await evaluateModuleToComponent(
   gives unstyled output. Next.js is the exception — it has no bundled CSS.
 - **`compileTrusted` takes 3 args, not 2** — the middle `_isEntry: boolean`
   is currently ignored but required positionally. Pass `true`.
-- **`sideEffects` is `["**/*.css"]`** — bundlers can tree-shake everything
+- **`sideEffects` is `["**/\*.css"]`\*\* — bundlers can tree-shake everything
   else aggressively, which is intended; just don't be surprised when CSS is
   the only side-effecting file.
 - **Trusted Mode evaluation uses `new Function()`** — the host is

@@ -7,9 +7,15 @@ import { extractFrontmatter } from '../../compiler/pipeline/common/mdx-common';
 import { parseMdxForAnalysis, type ParsedMdx } from './parse';
 import { analyzeUnknownComponents } from './rules/unknown-component';
 
-// re-export pure rules + parse types so hosts reuse them off this entry
-export * from './parse';
-export * from './rules/unknown-component';
+export {
+  analyzeUnknownComponents,
+  classifyComponentSource,
+} from './rules/unknown-component';
+export type {
+  ClassifyContext,
+  ComponentSource,
+} from './rules/unknown-component';
+export type { DetectedComponent } from './parse';
 
 export interface AnalyzeContext {
   // resolved framework for shim-aware classification ('generic' when unknown)
@@ -27,10 +33,10 @@ export interface AnalyzeContext {
 export function analyzeMdx(source: string, ctx: AnalyzeContext): Diagnostic[] {
   let parsed: ParsedMdx;
   try {
-    const { content, bodyStartLine } = extractFrontmatter(source);
-    parsed = parseMdxForAnalysis(content, bodyStartLine);
+    const { content, bodyStartLine, bodyStartColumn } =
+      extractFrontmatter(source);
+    parsed = parseMdxForAnalysis(content, bodyStartLine, bodyStartColumn);
   } catch {
-    // fatal MDX/frontmatter parse failures are a deferred Source-A concern (MDXF100)
     return [];
   }
   const classifyCtx = {
@@ -38,8 +44,5 @@ export function analyzeMdx(source: string, ctx: AnalyzeContext): Diagnostic[] {
     configComponents: new Set(ctx.configComponents ?? []),
     framework: ctx.framework,
   };
-  return [
-    ...analyzeUnknownComponents(parsed.components, classifyCtx),
-    // append later rules here; keep each pure & independently testable
-  ];
+  return [...analyzeUnknownComponents(parsed.components, classifyCtx)];
 }

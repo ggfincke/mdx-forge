@@ -7,7 +7,16 @@ import remarkMdx from 'remark-mdx';
 import { visit } from 'unist-util-visit';
 import type { Root } from 'mdast';
 import type { Position } from 'unist';
-import type { Program } from 'estree';
+import type {
+  ClassDeclaration,
+  ExportNamedDeclaration,
+  FunctionDeclaration,
+  Identifier,
+  ImportDeclaration,
+  Pattern,
+  Program,
+  VariableDeclaration,
+} from 'estree';
 import type { DiagnosticRange } from '../types';
 
 export interface DetectedComponent {
@@ -20,52 +29,150 @@ export interface ParsedMdx {
   components: DetectedComponent[];
 }
 
-// reusable stateless parser; same wiring the Safe pipeline uses (no full compile)
 const parser = unified().use(remarkParse).use(remarkMdx);
 
-// PascalCase = React component convention; also excludes html & dotted member names
 const PASCAL_CASE = /^[A-Z][a-zA-Z0-9]*$/;
+const HTML_ELEMENTS = new Set([
+  'a',
+  'abbr',
+  'address',
+  'area',
+  'article',
+  'aside',
+  'audio',
+  'b',
+  'base',
+  'bdi',
+  'bdo',
+  'blockquote',
+  'body',
+  'br',
+  'button',
+  'canvas',
+  'caption',
+  'cite',
+  'code',
+  'col',
+  'colgroup',
+  'data',
+  'datalist',
+  'dd',
+  'del',
+  'details',
+  'dfn',
+  'dialog',
+  'div',
+  'dl',
+  'dt',
+  'em',
+  'embed',
+  'fieldset',
+  'figcaption',
+  'figure',
+  'footer',
+  'form',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'head',
+  'header',
+  'hgroup',
+  'hr',
+  'html',
+  'i',
+  'iframe',
+  'img',
+  'input',
+  'ins',
+  'kbd',
+  'label',
+  'legend',
+  'li',
+  'link',
+  'main',
+  'map',
+  'mark',
+  'menu',
+  'meta',
+  'meter',
+  'nav',
+  'noscript',
+  'object',
+  'ol',
+  'optgroup',
+  'option',
+  'output',
+  'p',
+  'picture',
+  'pre',
+  'progress',
+  'q',
+  'rp',
+  'rt',
+  'ruby',
+  's',
+  'samp',
+  'script',
+  'section',
+  'select',
+  'slot',
+  'small',
+  'source',
+  'span',
+  'strong',
+  'style',
+  'sub',
+  'summary',
+  'sup',
+  'svg',
+  'table',
+  'tbody',
+  'td',
+  'template',
+  'textarea',
+  'tfoot',
+  'th',
+  'thead',
+  'time',
+  'title',
+  'tr',
+  'track',
+  'u',
+  'ul',
+  'var',
+  'video',
+  'wbr',
+]);
 
-// mdxjsEsm node: estree is attached at parse time by mdast-util-mdxjs-esm
 interface MdxEsmNode {
-  type: 'mdxjsEsm';
-  value: string;
   data?: { estree?: Program };
 }
 
-// mdxJsxFlowElement / mdxJsxTextElement carry a tag name & position
 interface MdxJsxNode {
-  type: 'mdxJsxFlowElement' | 'mdxJsxTextElement';
   name: string | null;
   position?: Position;
 }
 
-// parse stripped content & shift positions back to original-file ranges
 export function parseMdxForAnalysis(
   content: string,
-  bodyStartLine: number
+  bodyStartLine: number,
+  bodyStartColumn = 1
 ): ParsedMdx {
   const tree = parser.parse(content) as Root;
   const lineOffset = bodyStartLine - 1;
 
-  // first pass: collect ESM import binding names from the estree program
   const imports = new Set<string>();
   visit(tree, 'mdxjsEsm', (node) => {
-    const estree = (node as unknown as MdxEsmNode).data?.estree;
+    const estree = (node as MdxEsmNode).data?.estree;
     if (!estree) {
       return;
     }
-    for (const stmt of estree.body) {
-      if (stmt.type !== 'ImportDeclaration') {
-        continue;
-      }
-      for (const spec of stmt.specifiers) {
-        imports.add(spec.local.name);
-      }
-    }
+    collectLocalBindings(estree, imports);
   });
 
-  // second pass: collect PascalCase JSX element names w/ file-relative ranges
   const components: DetectedComponent[] = [];
   visit(tree, (node) => {
     if (
@@ -74,30 +181,140 @@ export function parseMdxForAnalysis(
     ) {
       return;
     }
-    const jsx = node as unknown as MdxJsxNode;
-    if (!jsx.name || !PASCAL_CASE.test(jsx.name) || !jsx.position) {
+    const jsx = node as MdxJsxNode;
+    if (
+      !jsx.name ||
+      !PASCAL_CASE.test(jsx.name) ||
+      isHtmlElement(jsx.name) ||
+      !jsx.position
+    ) {
       return;
     }
     components.push({
       name: jsx.name,
-      range: toRange(jsx.position, lineOffset),
+      range: toRange(jsx.position, lineOffset, bodyStartColumn),
     });
   });
 
   return { imports, components };
 }
 
-// convert a 1-based unist position to a 1-based DiagnosticRange
-// offset is omitted; the helper only sees stripped content w/o the original index
-function toRange(position: Position, lineOffset: number): DiagnosticRange {
+function collectLocalBindings(program: Program, bindings: Set<string>): void {
+  for (const stmt of program.body) {
+    if (stmt.type === 'ImportDeclaration') {
+      collectImportBindings(stmt, bindings);
+      continue;
+    }
+    if (stmt.type === 'ExportNamedDeclaration') {
+      collectExportBindings(stmt, bindings);
+    }
+  }
+}
+
+function collectImportBindings(
+  stmt: ImportDeclaration,
+  bindings: Set<string>
+): void {
+  for (const spec of stmt.specifiers) {
+    bindings.add(spec.local.name);
+  }
+}
+
+function collectExportBindings(
+  stmt: ExportNamedDeclaration,
+  bindings: Set<string>
+): void {
+  if (stmt.declaration) {
+    collectDeclarationBindings(stmt.declaration, bindings);
+    return;
+  }
+  if (stmt.source) {
+    return;
+  }
+  for (const spec of stmt.specifiers) {
+    if (isIdentifier(spec.local)) {
+      bindings.add(spec.local.name);
+    }
+  }
+}
+
+function collectDeclarationBindings(
+  declaration: ExportNamedDeclaration['declaration'],
+  bindings: Set<string>
+): void {
+  if (!declaration) {
+    return;
+  }
+  if (declaration.type === 'VariableDeclaration') {
+    collectVariableBindings(declaration, bindings);
+    return;
+  }
+  if (isNamedDeclaration(declaration)) {
+    bindings.add(declaration.id.name);
+  }
+}
+
+function collectVariableBindings(
+  declaration: VariableDeclaration,
+  bindings: Set<string>
+): void {
+  for (const variable of declaration.declarations) {
+    collectPatternBindings(variable.id, bindings);
+  }
+}
+
+function collectPatternBindings(pattern: Pattern, bindings: Set<string>): void {
+  if (pattern.type === 'Identifier') {
+    bindings.add(pattern.name);
+  }
+}
+
+function isNamedDeclaration(
+  declaration: ExportNamedDeclaration['declaration']
+): declaration is FunctionDeclaration | ClassDeclaration {
+  return (
+    (declaration?.type === 'FunctionDeclaration' ||
+      declaration?.type === 'ClassDeclaration') &&
+    isIdentifier(declaration.id)
+  );
+}
+
+function isIdentifier(node: unknown): node is Identifier {
+  return (
+    typeof node === 'object' &&
+    node !== null &&
+    'type' in node &&
+    node.type === 'Identifier' &&
+    'name' in node &&
+    typeof node.name === 'string'
+  );
+}
+
+function isHtmlElement(name: string): boolean {
+  return HTML_ELEMENTS.has(name.toLowerCase());
+}
+
+function toRange(
+  position: Position,
+  lineOffset: number,
+  bodyStartColumn: number
+): DiagnosticRange {
+  const startColumn =
+    position.start.line === 1
+      ? position.start.column + bodyStartColumn - 1
+      : position.start.column;
+  const endColumn =
+    position.end.line === 1
+      ? position.end.column + bodyStartColumn - 1
+      : position.end.column;
   return {
     start: {
       line: position.start.line + lineOffset,
-      column: position.start.column,
+      column: startColumn,
     },
     end: {
       line: position.end.line + lineOffset,
-      column: position.end.column,
+      column: endColumn,
     },
   };
 }

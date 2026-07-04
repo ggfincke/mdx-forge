@@ -23,6 +23,19 @@ export default tseslint.config(
       'no-unused-expressions': 'warn',
       curly: 'error',
       eqeqeq: ['error', 'always'],
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'gray-matter',
+              message:
+                'Use src/internal/frontmatter.ts safeMatter() instead of raw gray-matter.',
+            },
+          ],
+          patterns: ['gray-matter/*'],
+        },
+      ],
 
       '@typescript-eslint/no-unused-vars': [
         'warn',
@@ -41,5 +54,11 @@ export default tseslint.config(
       '**/vitest.config.ts',
       '**/*.test.ts',
     ],
+  },
+  {
+    files: ['src/internal/frontmatter.ts'],
+    rules: {
+      'no-restricted-imports': 'off',
+    },
   }
 );

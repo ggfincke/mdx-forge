@@ -126,6 +126,18 @@ check(
   unknownDiag?.component === 'WidgetFoo'
 );
 
+const pwnedKey = '__mdxForgeRenderPwned';
+globalThis[pwnedKey] = undefined;
+const safeFrontmatterLint = await lintMdxSource(
+  `---js\n((globalThis['${pwnedKey}'] = true), {})\n---\n# Safe\n`,
+  'generic'
+);
+check('---js frontmatter does not eval', globalThis[pwnedKey] === undefined);
+check(
+  '---js frontmatter still lints',
+  Array.isArray(safeFrontmatterLint.diagnostics)
+);
+
 // did-you-mean for close typo
 const typoLint = await lintMdxSource(
   '<Calout type="tip">body</Calout>',

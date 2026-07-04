@@ -48,6 +48,10 @@ describe('classifyComponentSource', () => {
     expect(classifyComponentSource('Callout', ctx())).toBe('builtin');
   });
 
+  it('classifies generic aliases as builtin', () => {
+    expect(classifyComponentSource('Alert', ctx())).toBe('builtin');
+  });
+
   it('classifies framework-only components as framework under that framework', () => {
     expect(
       classifyComponentSource('CodeBlock', ctx({ framework: 'docusaurus' }))

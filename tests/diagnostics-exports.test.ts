@@ -36,6 +36,7 @@ describe('diagnostics analyze exports', () => {
     expect(typeof analyze.analyzeMdx).toBe('function');
     expect(typeof analyze.classifyComponentSource).toBe('function');
     expect(typeof analyze.analyzeUnknownComponents).toBe('function');
-    expect(typeof analyze.parseMdxForAnalysis).toBe('function');
+    expect('parseMdxForAnalysis' in analyze).toBe(false);
+    expect('ParsedMdx' in analyze).toBe(false);
   });
 });

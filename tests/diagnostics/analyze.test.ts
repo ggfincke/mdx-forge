@@ -40,6 +40,19 @@ describe('analyzeMdx', () => {
     expect(analyzeMdx(src, { framework: 'generic' })).toEqual([]);
   });
 
+  it('treats doc-local exported components as known', () => {
+    expect(
+      analyzeMdx('export const Fancy = () => null;\n\n<Fancy />\n', {
+        framework: 'generic',
+      })
+    ).toEqual([]);
+    expect(
+      analyzeMdx('export function Widget() { return null; }\n\n<Widget />\n', {
+        framework: 'generic',
+      })
+    ).toEqual([]);
+  });
+
   it('treats config-declared components as known', () => {
     const src = '<MyWidget />\n';
     expect(
@@ -55,8 +68,14 @@ describe('analyzeMdx', () => {
   });
 
   it('ignores html elements and lowercase tags', () => {
-    const src = '<div>hi</div>\n\nplain text\n';
+    const src = '<div>hi</div>\n\n<Button />\n\n<Table />\n\nplain text\n';
     expect(analyzeMdx(src, { framework: 'generic' })).toEqual([]);
+  });
+
+  it('handles unknown framework strings without throwing', () => {
+    const src = '<Frobnicate />\n';
+    expect(() => analyzeMdx(src, { framework: 'next' as never })).not.toThrow();
+    expect(analyzeMdx(src, { framework: 'next' as never })).toHaveLength(1);
   });
 
   it('positions correctly past empty & trailing-whitespace frontmatter fences', () => {
@@ -73,10 +92,45 @@ describe('analyzeMdx', () => {
     ).toBe(4);
   });
 
+  it('positions correctly past CRLF and lone-CR frontmatter fences', () => {
+    expect(
+      analyzeMdx('---\r\ntitle: x\r\n---\r\n<Frobnicate />\r\n', {
+        framework: 'generic',
+      })[0]?.range?.start.line
+    ).toBe(4);
+    expect(
+      analyzeMdx('---\ntitle: x\n---\r<Frobnicate />\r', {
+        framework: 'generic',
+      })[0]?.range?.start.line
+    ).toBe(4);
+  });
+
+  it('keeps same-line frontmatter body columns file-relative', () => {
+    const [diag] = analyzeMdx('---\ntitle: x\n--- <Frobnicate />\n', {
+      framework: 'generic',
+    });
+    expect(diag.range?.start).toEqual({ line: 3, column: 5 });
+  });
+
+  it('does not treat a stripped BOM as frontmatter', () => {
+    const [diag] = analyzeMdx('\uFEFFintro\n\n---\n\n<Frobnicate />\n', {
+      framework: 'generic',
+    });
+    expect(diag.range?.start.line).toBe(5);
+  });
+
+  it('coerces buffer input from untyped callers', () => {
+    const src = Buffer.from('<Frobnicate />\n') as unknown as string;
+    expect(analyzeMdx(src, { framework: 'generic' })).toHaveLength(1);
+  });
+
   it('returns no diagnostics for unparseable MDX rather than throwing', () => {
     // unterminated expression & ts type-only imports both throw; swallowed for v1
     // (a deferred Source-A / MDXF100 concern; these inputs do not compile either)
-    for (const src of ['# Title\n\n<Foo {...\n', 'import type { T } from "./a";\n\n<Frobnicate />\n']) {
+    for (const src of [
+      '# Title\n\n<Foo {...\n',
+      'import type { T } from "./a";\n\n<Frobnicate />\n',
+    ]) {
       expect(() => analyzeMdx(src, { framework: 'generic' })).not.toThrow();
       expect(analyzeMdx(src, { framework: 'generic' })).toEqual([]);
     }
