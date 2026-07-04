@@ -5,9 +5,9 @@ imports graph via dependency-cruiser, emits MDX architecture artifacts
 rendered through mdx-forge, and exposes the graph to Claude Code / Codex
 via MCP.
 
-**Status: MVP core.** Graph build, MDX + HTML emission, diff, blast radius,
-watch mode, SQLite snapshot history, React Flow preview, CLI, MCP tools, and
-a GitHub Action template all work. See
+**Status: MVP complete.** Graph build, MDX + HTML emission, diff, blast
+radius, watch mode, SQLite snapshot history, React Flow preview w/ filtering,
+CLI (incl `check-pr`), MCP tools, and a GitHub Action template all work. See
 `dev-docs/cartographer-research-report.md` at the repo root for the plan.
 
 ## CLI
@@ -27,6 +27,9 @@ cartographer diff . --save
 cartographer snapshots .
 cartographer diff . --base 3
 
+# CI-friendly drift check -> writes .cartographer/pr-summary.md, exits 1 on drift
+cartographer check-pr .
+
 # impacted files from a change to one file
 cartographer blast-radius . --target src/auth/session.ts --direction both --max-depth 4
 
@@ -34,6 +37,7 @@ cartographer blast-radius . --target src/auth/session.ts --direction both --max-
 cartographer watch . --emit-mdx --render
 
 # interactive React Flow graph at http://127.0.0.1:4977/ (pair w/ watch for live updates)
+# header filter box dims non-matching files & shows the match count
 cartographer serve . --open
 ```
 
@@ -56,6 +60,8 @@ Everything lands in `<root>/.cartographer/` (gitignored):
 - `architecture.mdx` — frontmatter, metrics tables, hotspots, Mermaid graph
 - `architecture.html` — self-contained Safe Mode render (mermaid diagrams
   render live via the `mdx-forge-render` plugin's preview instead)
+- `pr-summary.md` — markdown drift report from `check-pr` (metrics deltas,
+  added/removed files & imports) sized for a PR comment
 
 ## Layout
 
