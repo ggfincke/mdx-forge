@@ -5,10 +5,35 @@ imports graph via dependency-cruiser, emits MDX architecture artifacts
 rendered through mdx-forge, and exposes the graph to Claude Code / Codex
 via MCP.
 
-**Status: MVP complete.** Graph build, MDX + HTML emission, diff, blast
-radius, watch mode, SQLite snapshot history, React Flow preview w/ filtering,
-CLI (incl `check-pr`), MCP tools, and a GitHub Action template all work. See
-`dev-docs/cartographer-research-report.md` at the repo root for the plan.
+**Status: MVP complete + blocks.** Graph build, MDX + HTML emission, diff,
+blast radius, watch mode, SQLite snapshot history, React Flow preview w/
+blocks view + filtering, CLI (incl `check-pr`), MCP tools, and a GitHub
+Action template all work. See `dev-docs/cartographer-research-report.md` at
+the repo root for the plan.
+
+## Blocks
+
+Every file belongs to a block — a named group from `.cartographer.json` at
+the target repo root, or a folder-prefix heuristic (`groupDepth` path
+segments, default 2) when no rule matches:
+
+```json
+{
+  "groups": [
+    {
+      "match": "src/compiler/**",
+      "name": "Compiler",
+      "description": "MDX -> HTML/JS pipeline"
+    }
+  ],
+  "groupDepth": 2
+}
+```
+
+`match` is a glob (`*` within a segment, `**` across) or a plain path prefix;
+first rule wins. Blocks feed every surface: `graph.json` (`groups[]`), the
+preview's blocks view, the Blocks section + Mermaid subgraphs in
+`architecture.mdx`, and `graph_repo`'s `blocks`/`blockImports` MCP output.
 
 ## CLI
 
@@ -37,14 +62,16 @@ cartographer blast-radius . --target src/auth/session.ts --direction both --max-
 cartographer watch . --emit-mdx --render
 
 # interactive React Flow graph at http://127.0.0.1:4977/ (pair w/ watch for live updates)
-# header filter box dims non-matching files & shows the match count
+# blocks view by default (click a block to drill into its files);
+# header filter box dims non-matching nodes & shows the match count
 cartographer serve . --open
 ```
 
 ## MCP tools
 
 - `graph_repo` — build the imports graph, write `graph.json` (and optionally
-  `architecture.mdx`), record a snapshot, return metrics + hotspots.
+  `architecture.mdx`), record a snapshot, return metrics + hotspots + the
+  block-level rollup (`blocks`, `blockImports`).
 - `graph_diff` — fresh build vs the saved baseline (or a historical snapshot
   via `baseSnapshotId`): added/removed files & imports, drift summary.
 - `blast_radius` — upstream (dependents) and downstream (dependencies) of a
@@ -55,7 +82,7 @@ cartographer serve . --open
 
 Everything lands in `<root>/.cartographer/` (gitignored):
 
-- `graph.json` — nodes, edges, metrics (cycles, orphans, fan-in/out)
+- `graph.json` — nodes, edges, blocks, metrics (cycles, orphans, fan-in/out)
 - `graph.db` — SQLite snapshot history (via `node:sqlite`, zero deps)
 - `architecture.mdx` — frontmatter, metrics tables, hotspots, Mermaid graph
 - `architecture.html` — self-contained Safe Mode render (mermaid diagrams

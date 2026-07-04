@@ -1,13 +1,15 @@
 // plugins/cartographer/src/emit/architecture.ts
 // render a CartographerGraph as an architecture.mdx artifact
 
-import type { CartographerGraph } from '../types.js';
+import { aggregateGroupEdges, graphGroups } from '../analyze/index.js';
+import type { CartographerGraph, GraphGroup } from '../types.js';
 
 // keep Mermaid readable -> truncate past this many edges
 const MERMAID_EDGE_CAP = 150;
 const HOTSPOT_COUNT = 5;
 
 export function emitArchitectureMdx(graph: CartographerGraph): string {
+  const groups = graphGroups(graph);
   return [
     frontmatter(graph),
     '',
@@ -19,12 +21,13 @@ export function emitArchitectureMdx(graph: CartographerGraph): string {
     '',
     metricsTable(graph),
     '',
+    ...blocksSection(graph, groups),
     '## Hotspots',
     '',
     hotspotTables(graph),
     '## Import graph',
     '',
-    mermaidBlock(graph),
+    mermaidBlock(graph, groups),
     '',
   ].join('\n');
 }
@@ -72,6 +75,46 @@ function metricsTable(graph: CartographerGraph): string {
   ].join('\n');
 }
 
+// block-level rollup -> table + aggregated mermaid, skipped for single-group graphs
+function blocksSection(
+  graph: CartographerGraph,
+  groups: GraphGroup[]
+): string[] {
+  if (groups.length < 2) {
+    return [];
+  }
+  const groupEdges = aggregateGroupEdges(graph);
+  const shortId = new Map(groups.map((g, index) => [g.id, `g${index}`]));
+
+  const table = [
+    '| Block | Files | Description |',
+    '| --- | ---: | --- |',
+    ...groups.map(
+      (g) =>
+        `| ${mermaidLabel(g.label)} | ${g.fileCount} | ${g.description ?? ''} |`
+    ),
+  ];
+
+  const diagram = ['```mermaid', 'flowchart LR'];
+  for (const group of groups) {
+    diagram.push(
+      `  ${shortId.get(group.id)}["${mermaidLabel(group.label)} (${group.fileCount})"]`
+    );
+  }
+  for (const edge of groupEdges) {
+    diagram.push(
+      `  ${shortId.get(edge.from)} -->|${edge.count}| ${shortId.get(edge.to)}`
+    );
+  }
+  diagram.push('```');
+
+  return ['## Blocks', '', ...table, '', ...diagram, '', ''];
+}
+
+function mermaidLabel(text: string): string {
+  return text.replaceAll('"', "'");
+}
+
 function hotspotTables(graph: CartographerGraph): string {
   const fanIn = new Map<string, number>();
   const fanOut = new Map<string, number>();
@@ -107,14 +150,15 @@ function hotspotTables(graph: CartographerGraph): string {
   ].join('\n');
 }
 
-function mermaidBlock(graph: CartographerGraph): string {
+function mermaidBlock(graph: CartographerGraph, groups: GraphGroup[]): string {
   if (graph.edges.length === 0) {
     return '_No internal imports found._';
   }
 
   const shown = graph.edges.slice(0, MERMAID_EDGE_CAP);
+  const shownIds = new Set(shown.flatMap((edge) => [edge.from, edge.to]));
   const ids = new Map<string, string>();
-  const nodeLine = (id: string): string => {
+  const shortId = (id: string): string => {
     let short = ids.get(id);
     if (!short) {
       short = `n${ids.size}`;
@@ -123,17 +167,30 @@ function mermaidBlock(graph: CartographerGraph): string {
     return short;
   };
 
+  const groupOf = new Map(graph.nodes.map((n) => [n.id, n.group]));
   const lines = ['```mermaid', 'flowchart TD'];
-  const declared = new Set<string>();
-  for (const edge of shown) {
-    for (const id of [edge.from, edge.to]) {
-      const short = nodeLine(id);
-      if (!declared.has(short)) {
-        declared.add(short);
-        lines.push(`  ${short}["${id}"]`);
-      }
+
+  // declare shown nodes inside a subgraph per block
+  for (const [index, group] of groups.entries()) {
+    const members = [...shownIds].filter((id) => groupOf.get(id) === group.id);
+    if (members.length === 0) {
+      continue;
     }
-    lines.push(`  ${nodeLine(edge.from)} --> ${nodeLine(edge.to)}`);
+    lines.push(`  subgraph sg${index}["${mermaidLabel(group.label)}"]`);
+    for (const id of members) {
+      lines.push(`    ${shortId(id)}["${id}"]`);
+    }
+    lines.push('  end');
+  }
+  // nodes outside any known group (stale graph.json) -> declare flat
+  for (const id of shownIds) {
+    if (!ids.has(id)) {
+      lines.push(`  ${shortId(id)}["${id}"]`);
+    }
+  }
+
+  for (const edge of shown) {
+    lines.push(`  ${shortId(edge.from)} --> ${shortId(edge.to)}`);
   }
   lines.push('```');
 
