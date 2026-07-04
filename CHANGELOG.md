@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.7.0] - 2026-07-03
+## [0.7.1] - 2026-07-03
+
+Republish of the withdrawn `0.7.0` release; npm permanently reserves that version slot after first publish.
 
 ### Added
 
