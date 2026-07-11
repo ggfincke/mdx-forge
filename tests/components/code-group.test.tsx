@@ -47,6 +47,29 @@ describe('CodeGroup', () => {
       expect(buttons[1]?.textContent).toBe('app.tsx');
     });
 
+    it('derives labels from compiled fence data-title attributes', () => {
+      // compiled fences expose title="..." meta as data-title on the wrapper
+      const { container } = render(
+        React.createElement(
+          CodeGroup,
+          null,
+          React.createElement(
+            'div',
+            { 'data-title': 'file.js', className: 'mdx-preview-codeblock' },
+            React.createElement('pre', null, 'a')
+          ),
+          React.createElement(
+            'div',
+            { 'data-title': 'file.ts', className: 'mdx-preview-codeblock' },
+            React.createElement('pre', null, 'b')
+          )
+        )
+      );
+      const buttons = container.querySelectorAll('[role="tab"]');
+      expect(buttons[0]?.textContent).toBe('file.js');
+      expect(buttons[1]?.textContent).toBe('file.ts');
+    });
+
     it('extracts language from className pattern', () => {
       const { container } = render(
         React.createElement(

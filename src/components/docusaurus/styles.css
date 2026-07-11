@@ -325,3 +325,29 @@
 .vscode-dark .details-content {
   border-top-color: var(--vscode-panel-border, var(--mdx-border-color));
 }
+
+/* ==================== Accessibility ==================== */
+
+/* Reveal the copy button & language badge for keyboard users */
+.docusaurus-codeblock-copy:focus-visible,
+.docusaurus-codeblock:focus-within .docusaurus-codeblock-copy,
+.docusaurus-codeblock:focus-within .docusaurus-codeblock-lang {
+  opacity: 1;
+}
+
+/* Disable panel fade & chevron rotation motion when reduced motion is set */
+@media (prefers-reduced-motion: reduce) {
+  .mdx-preview-tabs-panel {
+    animation: none;
+  }
+
+  .details-toggle-icon,
+  .details-toggle-icon svg {
+    transition: none;
+  }
+
+  .docusaurus-codeblock-copy,
+  .docusaurus-codeblock-lang {
+    transition: none;
+  }
+}

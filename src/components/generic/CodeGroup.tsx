@@ -9,6 +9,7 @@ import React, {
   isValidElement,
   useRef,
   useCallback,
+  useId,
   KeyboardEvent,
 } from 'react';
 import { CodeGroupProps } from './types';
@@ -28,6 +29,10 @@ function extractLabelFromCodeBlock(child: ReactElement): string {
   }
   if (typeof props.filename === 'string') {
     return props.filename;
+  }
+  // compiled fences expose their title="..." meta as data-title
+  if (typeof props['data-title'] === 'string') {
+    return props['data-title'] as string;
   }
   if (typeof props.language === 'string') {
     return props.language;
@@ -85,6 +90,11 @@ export function CodeGroup({ children, labels }: CodeGroupProps): ReactElement {
     [tabs.length, setActiveIndex]
   );
 
+  // reciprocal tab/panel ids for aria-controls & aria-labelledby
+  const baseId = useId();
+  const tabId = (index: number) => `${baseId}-tab-${index}`;
+  const panelId = (index: number) => `${baseId}-panel-${index}`;
+
   if (tabs.length === 0) {
     return (
       <div className="mdx-preview-generic-code-group-empty">{children}</div>
@@ -108,7 +118,10 @@ export function CodeGroup({ children, labels }: CodeGroupProps): ReactElement {
             ref={(el) => {
               tabRefs.current[index] = el;
             }}
+            type="button"
+            id={tabId(index)}
             role="tab"
+            aria-controls={panelId(index)}
             className={cn(
               'mdx-preview-generic-code-group-button',
               index === activeIndex && 'active'
@@ -128,7 +141,9 @@ export function CodeGroup({ children, labels }: CodeGroupProps): ReactElement {
         {tabs.map((tab, index) => (
           <div
             key={index}
+            id={panelId(index)}
             role="tabpanel"
+            aria-labelledby={tabId(index)}
             className={cn(
               'mdx-preview-generic-code-group-panel',
               index === activeIndex && 'active'

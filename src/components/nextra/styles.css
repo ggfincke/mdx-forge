@@ -267,19 +267,99 @@ a.mdx-preview-nextra-card:hover .mdx-preview-nextra-card-arrow {
 }
 
 /* ============================================================================
- * FileTree Component (wrapper for Starlight FileTree)
+ * FileTree Component (compound Folder/File + Starlight list fallback)
  * ============================================================================ */
 
 .mdx-preview-nextra-file-tree {
   margin: 16px 0;
 }
 
+.mdx-preview-nextra-file-tree .mdx-preview-starlight-file-tree ul {
+  margin: 0;
+  padding-left: 20px;
+  list-style: none;
+}
+
+.mdx-preview-nextra-file-tree .mdx-preview-starlight-file-tree > ul {
+  padding-left: 0;
+}
+
+.mdx-preview-nextra-file-tree .mdx-preview-starlight-file-tree summary {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.mdx-preview-nextra-file-tree
+  .mdx-preview-starlight-file-tree
+  summary::-webkit-details-marker {
+  display: none;
+}
+
+.mdx-preview-nextra-file-tree
+  .mdx-preview-starlight-file-tree
+  .mdx-preview-starlight-file-tree-file {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mdx-preview-nextra-file-tree .mdx-preview-starlight-file-tree .icon {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+}
+
+.mdx-preview-nextra-file-tree .mdx-preview-starlight-file-tree .icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.mdx-preview-nextra-file-tree
+  .mdx-preview-starlight-file-tree
+  details[open]
+  > summary
+  .icon.chevron {
+  transform: rotate(90deg);
+}
+
 /* ============================================================================
- * Steps Component (wrapper for Starlight Steps)
+ * Steps Component (numbered rail around heading-delimited content)
  * ============================================================================ */
 
 .mdx-preview-nextra-steps {
-  margin: 16px 0;
+  margin: 16px 0 16px 14px;
+  padding-left: 24px;
+  border-left: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+  counter-reset: nextra-step;
+}
+
+.mdx-preview-nextra-steps :is(h2, h3, h4) {
+  counter-increment: nextra-step;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 24px 0 8px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.mdx-preview-nextra-steps :is(h2, h3, h4)::before {
+  content: counter(nextra-step);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  margin-left: -39px;
+  border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+  border-radius: 50%;
+  background: var(--vscode-editor-background, rgba(128, 128, 128, 0.1));
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 /* ============================================================================
@@ -288,113 +368,27 @@ a.mdx-preview-nextra-card:hover .mdx-preview-nextra-card-arrow {
 
 .mdx-preview-nextra-bleed {
   position: relative;
+  margin: 16px -1.5rem;
+  padding: 1rem 1.5rem;
+  background: rgba(128, 128, 128, 0.08);
+}
+
+/* full mode stretches edge-to-edge across the viewport */
+.mdx-preview-nextra-bleed-full {
   margin-left: calc(-50vw + 50%);
   margin-right: calc(-50vw + 50%);
-  padding: 1.5rem calc(50vw - 50%);
-  background: rgba(128, 128, 128, 0.08);
-  text-align: center;
+  padding-left: calc(50vw - 50%);
+  padding-right: calc(50vw - 50%);
 }
 
-/* Horizontal alignment */
-.mdx-preview-nextra-bleed-align-left {
-  text-align: left;
-}
+/* ============================================================================
+ * Accessibility
+ * ============================================================================ */
 
-.mdx-preview-nextra-bleed-align-center {
-  text-align: center;
-}
-
-.mdx-preview-nextra-bleed-align-right {
-  text-align: right;
-}
-
-/* Vertical alignment - auto min-height when valign is used (can be overridden by height prop) */
-.mdx-preview-nextra-bleed-valign-top,
-.mdx-preview-nextra-bleed-valign-middle,
-.mdx-preview-nextra-bleed-valign-bottom {
-  display: flex;
-  flex-direction: column;
-  min-height: 150px; /* default height for valign to work */
-}
-
-.mdx-preview-nextra-bleed-valign-top {
-  justify-content: flex-start;
-}
-
-.mdx-preview-nextra-bleed-valign-middle {
-  justify-content: center;
-}
-
-.mdx-preview-nextra-bleed-valign-bottom {
-  justify-content: flex-end;
-}
-
-/* Text sizes */
-.mdx-preview-nextra-bleed-size-sm {
-  font-size: 0.875rem;
-  line-height: 1.5;
-}
-
-.mdx-preview-nextra-bleed-size-base {
-  font-size: 1rem;
-  line-height: 1.6;
-}
-
-.mdx-preview-nextra-bleed-size-lg {
-  font-size: 1.125rem;
-  line-height: 1.7;
-}
-
-.mdx-preview-nextra-bleed-size-xl {
-  font-size: 1.25rem;
-  line-height: 1.6;
-}
-
-/* Font weights */
-.mdx-preview-nextra-bleed-weight-normal {
-  font-weight: 400;
-}
-
-.mdx-preview-nextra-bleed-weight-medium {
-  font-weight: 500;
-}
-
-.mdx-preview-nextra-bleed-weight-semibold {
-  font-weight: 600;
-}
-
-.mdx-preview-nextra-bleed-weight-bold {
-  font-weight: 700;
-}
-
-/* Italic */
-.mdx-preview-nextra-bleed-italic {
-  font-style: italic;
-}
-
-/* Height presets */
-.mdx-preview-nextra-bleed-height-sm {
-  min-height: 100px;
-}
-
-.mdx-preview-nextra-bleed-height-md {
-  min-height: 200px;
-}
-
-.mdx-preview-nextra-bleed-height-lg {
-  min-height: 300px;
-}
-
-.mdx-preview-nextra-bleed-height-xl {
-  min-height: 400px;
-}
-
-.mdx-preview-nextra-bleed-height-half {
-  min-height: 50vh;
-}
-
-.mdx-preview-nextra-bleed-height-screen {
-  min-height: 100vh;
+@media (prefers-reduced-motion: reduce) {
+  .mdx-preview-nextra-tabs-panel {
+    animation: none;
+  }
 }
 
 /* ============================================================================

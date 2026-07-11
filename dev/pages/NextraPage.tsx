@@ -124,67 +124,44 @@ export function NextraPage() {
 
       <Section
         title="FileTree"
-        description="Directory structure (wraps Starlight FileTree)"
+        description="Compound FileTree.Folder / FileTree.File entries"
       >
         <FileTree>
-          <ul>
-            <li>
-              pages/
-              <ul>
-                <li>index.mdx</li>
-                <li>
-                  docs/
-                  <ul>
-                    <li>getting-started.mdx</li>
-                    <li>
-                      <strong>api-reference.mdx</strong>
-                    </li>
-                  </ul>
-                </li>
-                <li>_meta.json</li>
-              </ul>
-            </li>
-            <li>next.config.mjs</li>
-            <li>package.json</li>
-          </ul>
+          <FileTree.Folder name="pages" defaultOpen>
+            <FileTree.File name="index.mdx" />
+            <FileTree.Folder name="docs" defaultOpen>
+              <FileTree.File name="getting-started.mdx" />
+              <FileTree.File name="api-reference.mdx" />
+            </FileTree.Folder>
+            <FileTree.File name="_meta.json" />
+          </FileTree.Folder>
+          <FileTree.File name="next.config.mjs" />
+          <FileTree.File name="package.json" />
         </FileTree>
       </Section>
 
       <Section
         title="Steps"
-        description="Numbered steps (wraps Starlight Steps)"
+        description="Numbered rail around heading-delimited content"
       >
         <Steps>
-          <ol>
-            <li>
-              <strong>Create a Nextra project</strong>
-              <p>
-                Run <code>npx create-nextra-app</code> to scaffold a new
-                project.
-              </p>
-            </li>
-            <li>
-              <strong>Add your content</strong>
-              <p>
-                Create <code>.mdx</code> files in the <code>pages/</code>{' '}
-                directory.
-              </p>
-            </li>
-            <li>
-              <strong>Start the dev server</strong>
-              <p>
-                Run <code>npm run dev</code> and open{' '}
-                <code>http://localhost:3000</code>.
-              </p>
-            </li>
-          </ol>
+          <h3>Create a Nextra project</h3>
+          <p>
+            Run <code>npx create-nextra-app</code> to scaffold a new project.
+          </p>
+          <h3>Add your content</h3>
+          <p>
+            Create <code>.mdx</code> files in the <code>pages/</code> directory.
+          </p>
+          <h3>Start the dev server</h3>
+          <p>
+            Run <code>npm run dev</code> and open{' '}
+            <code>http://localhost:3000</code>.
+          </p>
         </Steps>
       </Section>
 
-      <Section
-        title="Bleed"
-        description="Full-width content w/ typography options"
-      >
+      <Section title="Bleed" description="Break out of the content width">
         <Bleed>
           <div
             style={{
@@ -194,14 +171,16 @@ export function NextraPage() {
               textAlign: 'center',
             }}
           >
-            Full-width bleed content — breaks out of the content container.
+            Bleed content — breaks out of the content container.
           </div>
         </Bleed>
       </Section>
 
-      <Section title="Bleed w/ size & weight">
-        <Bleed size="lg" weight="semibold" align="center" height="sm">
-          Large, semibold, centered bleed content.
+      <Section title="Bleed (full)">
+        <Bleed full>
+          <div style={{ textAlign: 'center' }}>
+            Edge-to-edge full-bleed content.
+          </div>
         </Bleed>
       </Section>
     </div>

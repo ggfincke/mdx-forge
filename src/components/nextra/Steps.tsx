@@ -1,20 +1,25 @@
 // src/components/nextra/Steps.tsx
-// Nextra Steps component shim for MDX Preview
+// Nextra Steps shim: numbered rail around heading-delimited content
 
-import { Steps as StarlightSteps } from '../starlight/Steps';
-import {
-  createNextraWrapper,
-  type NextraWrapperProps,
-} from './createNextraWrapper';
+import React, { ReactNode, ReactElement, HTMLAttributes } from 'react';
+import { cn } from '../internal/cn';
 
-// Steps props (compatible w/ Nextra)
-export type StepsProps = NextraWrapperProps;
+// steps props (compatible w/ Nextra)
+export type StepsProps = HTMLAttributes<HTMLDivElement> & {
+  children: ReactNode;
+};
 
-// Steps component - wrap Starlight's implementation w/ Nextra styling
-export const Steps = createNextraWrapper({
-  StarlightComponent: StarlightSteps,
-  wrapperClassName: 'mdx-preview-nextra-steps',
-  displayName: 'NextraSteps',
-});
+// steps component - CSS counters number the h2/h3/h4 headings inside
+export function Steps({
+  children,
+  className,
+  ...props
+}: StepsProps): ReactElement {
+  return (
+    <div className={cn('mdx-preview-nextra-steps', className)} {...props}>
+      {children}
+    </div>
+  );
+}
 
 export default Steps;

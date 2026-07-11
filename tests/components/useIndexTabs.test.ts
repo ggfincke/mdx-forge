@@ -139,4 +139,94 @@ describe('useIndexTabs', () => {
 
     expect(result.current.activeIndex).toBe(0);
   });
+
+  // impossible-state normalization (F13)
+
+  it('normalizes an out-of-range defaultIndex to the first enabled item', () => {
+    const { result } = renderHook(() =>
+      useIndexTabs({ items: ['A', 'B'], defaultIndex: 9 })
+    );
+    expect(result.current.activeIndex).toBe(0);
+  });
+
+  it('normalizes an invalid controlled index to the first enabled item', () => {
+    const { result } = renderHook(() =>
+      useIndexTabs({ items: ['A', 'B'], controlledIndex: 5 })
+    );
+    expect(result.current.activeIndex).toBe(0);
+  });
+
+  it('normalizes a stored index that exceeds the shrunken item list', () => {
+    storage.setItem('nextra-tabs-test-tabs', '4');
+
+    const { result } = renderHook(() =>
+      useIndexTabs({ items: ['A', 'B'], storageKey: 'test-tabs' })
+    );
+
+    expect(result.current.activeIndex).toBe(0);
+  });
+
+  it('re-normalizes when items shrink below the active index', () => {
+    const { result, rerender } = renderHook(
+      ({ items }: { items: string[] }) => useIndexTabs({ items }),
+      { initialProps: { items: ['A', 'B', 'C'] } }
+    );
+
+    act(() => {
+      result.current.setActiveIndex(2);
+    });
+    expect(result.current.activeIndex).toBe(2);
+
+    rerender({ items: ['A'] });
+    expect(result.current.activeIndex).toBe(0);
+  });
+
+  it('skips a disabled default & lands on the first enabled item', () => {
+    const { result } = renderHook(() =>
+      useIndexTabs({
+        items: ['A', 'B', 'C'],
+        defaultIndex: 0,
+        isDisabled: (item) => item === 'A',
+      })
+    );
+    expect(result.current.activeIndex).toBe(1);
+  });
+
+  it('falls back to index 0 when every item is disabled', () => {
+    const { result } = renderHook(() =>
+      useIndexTabs({ items: ['A', 'B'], isDisabled: () => true })
+    );
+    expect(result.current.activeIndex).toBe(0);
+  });
+
+  it('returns 0 for an empty item list', () => {
+    const { result } = renderHook(() => useIndexTabs({ items: [] }));
+    expect(result.current.activeIndex).toBe(0);
+  });
+
+  it('survives storage read & write errors', () => {
+    const throwingStorage = {
+      ...storage,
+      getItem() {
+        throw new Error('blocked');
+      },
+      setItem() {
+        throw new Error('blocked');
+      },
+    };
+    Object.defineProperty(window, 'localStorage', {
+      value: throwingStorage,
+      configurable: true,
+    });
+
+    const { result } = renderHook(() =>
+      useIndexTabs({ items: ['A', 'B'], storageKey: 'test-tabs' })
+    );
+    expect(result.current.activeIndex).toBe(0);
+
+    act(() => {
+      result.current.setActiveIndex(1);
+    });
+    expect(result.current.activeIndex).toBe(1);
+  });
 });

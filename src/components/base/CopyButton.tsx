@@ -27,6 +27,7 @@ export function CopyButton({
 
   return (
     <button
+      type="button"
       className={buttonClass}
       onClick={() => copy(text)}
       title={copied ? 'Copied!' : 'Copy code'}

@@ -4,6 +4,8 @@
 import {
   useState,
   useCallback,
+  useEffect,
+  useRef,
   ReactNode,
   isValidElement,
   Children,
@@ -13,13 +15,15 @@ import {
 export interface TabItem {
   value: string;
   label: string;
+  icon?: ReactNode;
   content: ReactNode;
 }
 
-// tab definition (value & label only)
+// tab definition (value, label & optional icon)
 export interface TabDefinition {
   value: string;
   label: string;
+  icon?: ReactNode;
 }
 
 // props for a TabItem component
@@ -29,6 +33,8 @@ export interface TabItemProps {
   value?: string;
   label?: string;
   default?: boolean;
+  // optional icon (Starlight icon name or custom node)
+  icon?: ReactNode;
 }
 
 // options for useTabState hook
@@ -62,6 +68,7 @@ export function extractTabItems(children: ReactNode): TabItem[] {
       items.push({
         value,
         label: props.label || value,
+        icon: props.icon,
         content: props.children,
       });
     }
@@ -78,9 +85,14 @@ function findDefaultFromChildren(
   const childArray = Children.toArray(children);
 
   for (const item of tabItems) {
-    const child = childArray.find(
-      (c) => isValidElement(c) && (c.props as TabItemProps).value === item.value
-    );
+    // match w/ the same value-extraction fallback chain as extractTabItems
+    const child = childArray.find((c) => {
+      if (!isValidElement(c)) {
+        return false;
+      }
+      const props = c.props as TabItemProps;
+      return (props.value ?? props.label) === item.value;
+    });
     if (
       child &&
       isValidElement(child) &&
@@ -166,6 +178,7 @@ export function useTabState(options: UseTabStateOptions): UseTabStateResult {
     tabItems.map((item) => ({
       value: item.value,
       label: item.label,
+      icon: item.icon,
     }));
 
   // determine initial active value lazily (read only on mount)
@@ -214,7 +227,32 @@ export interface UseIndexTabsResult {
   setActiveIndex: (index: number) => void;
 }
 
+// normalize a candidate index against the currently-enabled items
+// invalid, out-of-range & disabled candidates fall back to the first
+// enabled item (or 0 when all items are disabled) so a panel always shows
+function normalizeEnabledIndex<T>(
+  candidate: number,
+  items: T[],
+  isDisabled: (item: T) => boolean
+): number {
+  if (items.length === 0) {
+    return 0;
+  }
+  if (
+    Number.isInteger(candidate) &&
+    candidate >= 0 &&
+    candidate < items.length &&
+    !isDisabled(items[candidate])
+  ) {
+    return candidate;
+  }
+  const firstEnabled = items.findIndex((item) => !isDisabled(item));
+  return firstEnabled >= 0 ? firstEnabled : 0;
+}
+
 // hook for index-based tab state management
+// server & first client render are deterministic (no storage read in
+// render); stored indices restore after hydration & indices normalize
 export function useIndexTabs<T>({
   items,
   defaultIndex = 0,
@@ -223,24 +261,40 @@ export function useIndexTabs<T>({
   onChange,
   isDisabled = () => false,
 }: UseIndexTabsOptions<T>): UseIndexTabsResult {
-  // get initial index from localStorage if storageKey is provided
-  const [internalIndex, setInternalIndex] = useState((): number => {
-    if (storageKey && typeof window !== 'undefined') {
-      try {
-        const stored = window.localStorage.getItem(`nextra-tabs-${storageKey}`);
-        if (stored !== null) {
-          const parsed = parseInt(stored, 10);
-          if (!isNaN(parsed) && parsed >= 0 && parsed < items.length) {
-            return parsed;
-          }
-        }
-      } catch {
-        // ignore localStorage errors
-      }
+  const [internalIndex, setInternalIndex] = useState(defaultIndex);
+
+  // restore persisted index once after hydration; storage errors are ignored
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current || !storageKey) {
+      return;
     }
-    return defaultIndex;
-  });
-  const activeIndex = controlledIndex ?? internalIndex;
+    restoredRef.current = true;
+    try {
+      const stored = window.localStorage.getItem(`nextra-tabs-${storageKey}`);
+      if (stored === null) {
+        return;
+      }
+      const parsed = Number.parseInt(stored, 10);
+      if (
+        Number.isInteger(parsed) &&
+        parsed >= 0 &&
+        parsed < items.length &&
+        !isDisabled(items[parsed])
+      ) {
+        setInternalIndex(parsed);
+      }
+    } catch {
+      // ignore localStorage errors
+    }
+  }, [storageKey, items, isDisabled]);
+
+  // controlled wins over internal; invalid values normalize to first enabled
+  const activeIndex = normalizeEnabledIndex(
+    controlledIndex ?? internalIndex,
+    items,
+    isDisabled
+  );
 
   // handle tab selection
   const setActiveIndex = useCallback(

@@ -24,8 +24,8 @@ export function getStaticStringProp(
 }
 
 // extract a static boolean prop from an MDX JSX element
-// support boolean shorthand (e.g., `<Comp open />` = true)
-// only processes literal values; expression values are ignored
+// support boolean shorthand (e.g., `<Comp open />` = true) & the literal
+// expression forms {true}/{false}; other expressions are ignored
 export function getStaticBooleanProp(
   node: MdxJsxElement,
   propName: string
@@ -45,6 +45,17 @@ export function getStaticBooleanProp(
       return true;
     }
     if (attr.value === 'false') {
+      return false;
+    }
+    return undefined;
+  }
+  // literal boolean expressions match the React runtime contract
+  if (attr.value && typeof attr.value === 'object') {
+    const expression = attr.value.value?.trim();
+    if (expression === 'true') {
+      return true;
+    }
+    if (expression === 'false') {
       return false;
     }
   }

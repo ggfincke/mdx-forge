@@ -18,11 +18,12 @@ export interface FileTreeProps {
 }
 
 // internal representation of a file tree entry
+// comments keep their original inline nodes (formatting preserved)
 interface FileTreeEntry {
   name: string;
   isDirectory: boolean;
   isHighlighted: boolean;
-  comment?: string;
+  comment?: ReactNode[];
   isPlaceholder: boolean;
   children?: FileTreeEntry[];
 }
@@ -35,17 +36,19 @@ function isBoldElement(node: ReactNode): boolean {
   return node.type === 'strong' || node.type === 'b';
 }
 
-// parse li element content to extract name, highlight status, & comment
+// parse li element content: the first significant inline node is the
+// filename (text/code/bold wrappers all valid, spaces preserved inside
+// wrappers); everything after stays comment content w/ its formatting
 function parseLiContent(children: ReactNode): {
   name: string;
   isHighlighted: boolean;
-  comment?: string;
+  comment?: ReactNode[];
   nestedList?: ReactNode;
 } {
   const childArray = Children.toArray(children);
   let name = '';
   let isHighlighted = false;
-  let comment: string | undefined;
+  const comment: ReactNode[] = [];
   let nestedList: ReactNode | undefined;
 
   for (const child of childArray) {
@@ -55,42 +58,46 @@ function parseLiContent(children: ReactNode): {
       continue;
     }
 
-    // check for bold (highlighted)
-    if (isBoldElement(child)) {
-      isHighlighted = true;
-      const boldText = extractTextContent(child);
-      // bold text is the name, any text after is comment
-      const parts = boldText.split(/\s+/);
-      name = parts[0] || '';
-      if (parts.length > 1) {
-        comment = parts.slice(1).join(' ');
-      }
-      continue;
-    }
-
-    // handle plain text
-    if (typeof child === 'string') {
-      const text = child.trim();
-      if (!text) {
+    if (!name) {
+      // plain text: first whitespace-separated token is the filename
+      if (typeof child === 'string') {
+        const text = child.replace(/^\s+/, '');
+        if (!text) {
+          continue;
+        }
+        const match = text.match(/^(\S+)([\s\S]*)$/);
+        name = match?.[1] ?? '';
+        const rest = match?.[2].replace(/^\s+/, '');
+        if (rest) {
+          comment.push(rest);
+        }
         continue;
       }
 
-      if (!name) {
-        // first text segment is the name
-        const parts = text.split(/\s+/);
-        name = parts[0] || '';
-        if (parts.length > 1) {
-          const restText = parts.slice(1).join(' ');
-          comment = comment ? `${comment} ${restText}` : restText;
-        }
-      } else {
-        // additional text is comment
-        comment = comment ? `${comment} ${text}` : text;
+      // formatted wrapper (code/strong/em/...): whole content is the name
+      if (isValidElement(child)) {
+        name = extractTextContent(child).trim();
+        isHighlighted = isBoldElement(child);
+        continue;
       }
+
+      continue;
     }
+
+    // after the filename everything stays comment content; later bold or
+    // other formatting is never reinterpreted as a replacement filename
+    if (typeof child === 'string' && !child.trim()) {
+      continue;
+    }
+    comment.push(child);
   }
 
-  return { name, isHighlighted, comment, nestedList };
+  return {
+    name,
+    isHighlighted,
+    comment: comment.length > 0 ? comment : undefined,
+    nestedList,
+  };
 }
 
 // parse a single <li> element into a FileTreeEntry
@@ -129,7 +136,7 @@ function parseLiElement(li: ReactElement): FileTreeEntry | null {
     name: cleanName,
     isDirectory,
     isHighlighted,
-    comment: comment || undefined,
+    comment,
     isPlaceholder: false,
     children: entryChildren,
   };
