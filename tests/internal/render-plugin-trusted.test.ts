@@ -23,7 +23,7 @@ describe('render plugin trusted compile pipeline', () => {
       componentsBuiltins: false,
     });
 
-    // automatic JSX runtime output carries no unused classic React import;
+    // automatic JSX runtime output carries no unused classic React import
     // react still arrives transitively via react/jsx-runtime
     const deps = extractDependencies(result.code);
     expect(new Set(deps)).toEqual(
