@@ -360,8 +360,9 @@ export async function compileSafe(
     config.componentsUnknownBehavior ?? 'placeholder';
 
   // get rehype plugin sets from plugin-builder
-  const { fenceMeta, raw, preMath, math, postMath } =
-    getSafeRehypePluginSets();
+  const { fenceMeta, raw, preMath, math, postMath } = getSafeRehypePluginSets(
+    config.diagramBehavior
+  );
 
   // build unified pipeline w/ shared plugins via plugin-builder
   const remarkPlugins = getSafeRemarkPlugins();

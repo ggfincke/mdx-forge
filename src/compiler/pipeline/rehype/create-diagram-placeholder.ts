@@ -3,6 +3,11 @@
 
 import { visit } from 'unist-util-visit';
 import type { Root, Element, Text } from 'hast';
+import type { DiagramBehavior } from '../../types';
+
+// container modifier & label classes for the visible code fallback
+export const DIAGRAM_CODE_CLASS = 'mdx-diagram-code';
+export const DIAGRAM_CODE_LABEL_CLASS = 'mdx-diagram-code-label';
 
 // language alias configuration for a diagram type
 interface LanguageAlias {
@@ -26,6 +31,12 @@ export interface DiagramPlaceholderConfig {
   idAttr: string;
   // optional extra attributes derived from matched language
   extraAttributes?: (languageId: string) => Record<string, string>;
+}
+
+// per-use options accepted by the created rehype plugin
+export interface DiagramPlaceholderOptions {
+  // defaults to 'placeholder' (renderer-owning host contract)
+  behavior?: DiagramBehavior;
 }
 
 // collect raw code text from all text children of a code node
@@ -71,9 +82,37 @@ function getSourceLine(node: Element): string | null {
   return null;
 }
 
+// build the visible code fallback: labeled container keeping the original fence
+function buildCodeFallback(
+  properties: Record<string, string | string[]>,
+  languageId: string,
+  original: Element
+): Element {
+  const label: Element = {
+    type: 'element',
+    tagName: 'div',
+    properties: { className: [DIAGRAM_CODE_LABEL_CLASS] },
+    children: [{ type: 'text', value: languageId }],
+  };
+  return {
+    type: 'element',
+    tagName: 'div',
+    properties: {
+      ...properties,
+      className: [...(properties.className as string[]), DIAGRAM_CODE_CLASS],
+      'data-diagram-language': languageId,
+    },
+    children: [label, original],
+  };
+}
+
 // create a rehype plugin that transforms code blocks into placeholder divs
+// or, in 'code' behavior, into visible language-labeled code fallbacks
 export function createDiagramPlaceholder(config: DiagramPlaceholderConfig) {
-  return function rehypeDiagramPlaceholder() {
+  return function rehypeDiagramPlaceholder(
+    options: DiagramPlaceholderOptions = {}
+  ) {
+    const behavior: DiagramBehavior = options.behavior ?? 'placeholder';
     return (tree: Root) => {
       visit(tree, 'element', (node: Element, index, parent) => {
         if (node.tagName !== 'pre') {
@@ -128,16 +167,19 @@ export function createDiagramPlaceholder(config: DiagramPlaceholderConfig) {
           Object.assign(properties, config.extraAttributes(languageId));
         }
 
-        // replace pre/code w/ placeholder div
-        const placeholder: Element = {
-          type: 'element',
-          tagName: 'div',
-          properties,
-          children: [],
-        };
+        // replace pre/code w/ empty placeholder div or visible code fallback
+        const replacement: Element =
+          behavior === 'code'
+            ? buildCodeFallback(properties, languageId, node)
+            : {
+                type: 'element',
+                tagName: 'div',
+                properties,
+                children: [],
+              };
 
         if (parent && typeof index === 'number') {
-          (parent as Element).children[index] = placeholder;
+          (parent as Element).children[index] = replacement;
         }
       });
     };

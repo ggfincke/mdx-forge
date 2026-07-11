@@ -50,8 +50,11 @@ function hasKnownExtension(specifier) {
   return KNOWN_EXTENSIONS.some((ext) => specifier.endsWith(ext));
 }
 
+// relative specifiers, including bare '.' & '..' directory references
+const RELATIVE_SPECIFIER = /^\.\.?(\/|$)/;
+
 function resolveSpecifier(filePath, specifier, config) {
-  if (!specifier.startsWith('./') && !specifier.startsWith('../')) {
+  if (!RELATIVE_SPECIFIER.test(specifier)) {
     return specifier;
   }
 
@@ -80,7 +83,7 @@ function resolveSpecifier(filePath, specifier, config) {
 function rewriteSpecifiers(filePath, source, config) {
   // import/export ... from '...'
   let next = source.replace(
-    /(from\s+)(['"])(\.{1,2}\/[^'"]+)\2/g,
+    /(from\s+)(['"])(\.{1,2}(?:\/[^'"]*)?)\2/g,
     (match, prefix, quote, specifier) => {
       const resolved = resolveSpecifier(filePath, specifier, config);
       return `${prefix}${quote}${resolved}${quote}`;
@@ -89,7 +92,7 @@ function rewriteSpecifiers(filePath, source, config) {
 
   // dynamic import() & declaration import('...') type references
   next = next.replace(
-    /(import\s*\(\s*)(['"])(\.{1,2}\/[^'"]+)\2(\s*\))/g,
+    /(import\s*\(\s*)(['"])(\.{1,2}(?:\/[^'"]*)?)\2(\s*\))/g,
     (match, prefix, quote, specifier, suffix) => {
       const resolved = resolveSpecifier(filePath, specifier, config);
       return `${prefix}${quote}${resolved}${quote}${suffix}`;
@@ -98,7 +101,7 @@ function rewriteSpecifiers(filePath, source, config) {
 
   // side-effect imports: import './x'
   next = next.replace(
-    /(\bimport\s+)(['"])(\.{1,2}\/[^'"]+)\2/g,
+    /(\bimport\s+)(['"])(\.{1,2}(?:\/[^'"]*)?)\2/g,
     (match, prefix, quote, specifier) => {
       const resolved = resolveSpecifier(filePath, specifier, config);
       return `${prefix}${quote}${resolved}${quote}`;

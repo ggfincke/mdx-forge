@@ -142,27 +142,35 @@ returns the name.
 ## Trusted Mode pipeline builders
 
 ```ts
-function buildTrustedPluginPipeline(custom: LoadedPlugins): {
+function buildTrustedPluginPipeline(
+  custom: LoadedPlugins,
+  diagramBehavior?: DiagramBehavior,
+): {
   remarkPlugins: Pluggable[];
   rehypePlugins: Pluggable[];
 };
 
-function buildTrustedRemarkPlugins(custom: Pluggable[]): Pluggable[];
-function buildTrustedRehypePlugins(custom: Pluggable[]): Pluggable[];
+function buildTrustedRemarkPlugins(custom: LoadedPlugins): Pluggable[];
+function buildTrustedRehypePlugins(
+  custom: LoadedPlugins,
+  diagramBehavior?: DiagramBehavior,
+): Pluggable[];
 ```
 
-These assemble the full Trusted Mode pipeline (built-ins + custom). Used
-internally by `compileTrusted`. Call directly only when building custom
-pipelines outside the compile functions (e.g., for testing or codegen).
+These assemble the full Trusted Mode pipeline (built-ins + custom) from a
+`LoadedPlugins` result. `diagramBehavior` selects empty diagram
+placeholders (default) or the visible code fallback. Used internally by
+`compileTrusted`. Call directly only when building custom pipelines
+outside the compile functions (e.g., for testing or codegen).
 
 ## Safe Mode pipeline builders
 
 ```ts
 function getSafeRemarkPlugins(): Pluggable[];
 
-function getSafeRehypePluginSets(): {
+function getSafeRehypePluginSets(diagramBehavior?: DiagramBehavior): {
   raw: Pluggable;            // rehype-raw config
-  preMath: Pluggable[];      // plugins before KaTeX
+  preMath: Pluggable[];      // diagram fences (placeholder or code fallback)
   math: Pluggable;           // KaTeX
   postMath: Pluggable[];     // plugins after KaTeX (slug, autolink, shiki, etc.)
 };
@@ -187,17 +195,17 @@ Override via `compilerConfig.pluginLoader` when:
 - Resolving from a virtual filesystem
 - Sandboxing plugin loads behind a permission system
 
-## Pipeline phases (advanced)
+## Pipeline types (advanced)
 
-For pipeline introspection (e.g., listing every plugin & its position), see
-`src/compiler/types/pipeline.ts`:
+The pipeline-related types exported through the `mdx-forge/compiler` type
+barrel are:
 
-- `RemarkPhase` — `'pre' | 'mdx' | 'shared' | 'custom'`
-- `RehypePhase` — `'raw' | 'preMath' | 'math' | 'postMath' | 'custom'`
-- `AnnotatedPlugin` — `{ plugin, phase, trustedOnly?, safeOnly?, description? }`
-- `PipelineDescription` — full annotated pipeline for both phases
+- `LoadedPlugins` — `{ remarkPlugins, rehypePlugins, errorCount }`
+- `ParsedPluginSpec` — `{ name, options }` from `parsePluginSpec`
+- `PluginPipeline` — `{ remarkPlugins, rehypePlugins }`
+- `PipelineWarning` / `PipelineWarningCode` — structured Safe Mode &
+  markdown-format warnings (`MDX001`, `MDX002`, `MDX009`)
 
-These types aren't yet exposed via a public introspection API; they're
-internal to the builders. Consumers wanting plugin-level visibility today
-should observe via `CompilerLogger` (`debug`-level logs name each loaded
-plugin).
+There is no annotated per-phase introspection API. Consumers wanting
+plugin-level visibility should observe via `CompilerLogger`
+(`debug`-level logs name each loaded plugin).

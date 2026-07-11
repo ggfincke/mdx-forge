@@ -289,8 +289,10 @@ export async function compileTrusted(
   }
 
   // build plugin pipeline (merges built-in & custom plugins)
-  const { remarkPlugins, rehypePlugins } =
-    buildTrustedPluginPipeline(customPlugins);
+  const { remarkPlugins, rehypePlugins } = buildTrustedPluginPipeline(
+    customPlugins,
+    config.diagramBehavior
+  );
 
   const compiled = await compile(mdxTextToCompile, {
     // lenient CommonMark for .md, strict MDX for .mdx
