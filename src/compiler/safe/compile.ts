@@ -24,9 +24,8 @@ import {
   warnIgnoredSafeModeConfig,
   warnMarkdownModeIgnoredConfig,
 } from '../pipeline/common/pipeline-warnings';
-import remarkGenericComponents, {
-  KNOWN_GENERIC_COMPONENTS,
-} from '../pipeline/remark/generic-components';
+import remarkGenericComponents from '../pipeline/remark/generic-components';
+import { isGenericComponent } from '../../components/registry/queries';
 import { escapeHtml, isMdxJsxElement } from '../pipeline/transforms/utils';
 import { getLogger } from '../internal/logging';
 
@@ -179,8 +178,7 @@ function remarkStripMdx(options: RemarkStripMdxOptions = {}) {
           return;
         }
 
-        const isKnownComponent =
-          builtinsEnabled && KNOWN_GENERIC_COMPONENTS.has(name);
+        const isKnownComponent = builtinsEnabled && isGenericComponent(name);
         const resolvedName = componentNameResolver?.(name) ?? name;
 
         const replacement = createJsxReplacement(

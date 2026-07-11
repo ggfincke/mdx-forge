@@ -16,11 +16,14 @@ import {
   type FrameworkId,
 } from './types';
 
-// eager constants for O(1) lookups (registry data is built at module load)
-const ALL_GENERIC_NAMES: string[] = Object.entries(GENERIC_COMPONENTS).flatMap(
-  ([name, config]) => [name, ...config.aliases]
+// private immutable lookup state; public helpers return defensive copies
+const ALL_GENERIC_NAMES: readonly string[] = Object.freeze(
+  Object.entries(GENERIC_COMPONENTS).flatMap(([name, config]) => [
+    name,
+    ...config.aliases,
+  ])
 );
-const GENERIC_NAME_SET = new Set(ALL_GENERIC_NAMES);
+const GENERIC_NAME_SET: ReadonlySet<string> = new Set(ALL_GENERIC_NAMES);
 const REGISTRY_ENTRIES: readonly ComponentRegistryEntry[] = COMPONENT_REGISTRY;
 const FRAMEWORK_COMPONENTS_BY_ID: Readonly<Record<string, readonly string[]>> =
   FRAMEWORK_COMPONENTS;
@@ -32,20 +35,23 @@ function isComponentEntry(
 }
 
 // get all generic component names including aliases
+// returns a copy; mutation cannot alter canonical lookup state
 export function getAllGenericComponentNames(): string[] {
-  return ALL_GENERIC_NAMES;
+  return [...ALL_GENERIC_NAMES];
 }
 
 // get Set of all generic component names for O(1) lookup
+// returns a copy; mutation cannot alter canonical lookup state
 export function getGenericComponentSet(): Set<string> {
-  return GENERIC_NAME_SET;
+  return new Set(GENERIC_NAME_SET);
 }
 
 // get aliases for a generic component by primary name
+// returns a copy; mutation cannot alter registry data
 export function getGenericComponentAliases(
   name: GenericComponentName
 ): string[] {
-  return GENERIC_COMPONENTS[name]?.aliases ?? [];
+  return [...(GENERIC_COMPONENTS[name]?.aliases ?? [])];
 }
 
 // get primary generic component names only (no aliases)
@@ -116,7 +122,7 @@ export function getComponentMetadata(
 
 // check if component name is known generic component (including aliases)
 export function isGenericComponent(name: string): boolean {
-  return getGenericComponentSet().has(name);
+  return GENERIC_NAME_SET.has(name);
 }
 
 // check if component name is framework-specific component

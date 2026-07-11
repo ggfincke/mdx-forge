@@ -12,6 +12,7 @@ import {
   createCircularDependencyError,
   createModuleNotFoundError,
   createModuleDepthExceededError,
+  createStaleGenerationError,
 } from '../errors';
 import type {
   Module,
@@ -55,15 +56,24 @@ function getFetchSemaphore(): Semaphore {
   return fetchSemaphore;
 }
 
+// reject commits from loads that started before a cache clear/invalidation
+function assertCurrentGeneration(epoch: number, id: string): void {
+  if (registry.generation !== epoch) {
+    throw createStaleGenerationError(id);
+  }
+}
+
 // recursively load a module & all its dependencies
 // track depth to prevent stack overflow from deep dependency chains
+// epoch pins the load to the cache generation it started in
 export async function loadModule(
   id: string,
   code: string,
   dependencies: string[],
   fetcher: ModuleFetcher,
   depth: number = 0,
-  importChain: string[] = []
+  importChain: string[] = [],
+  epoch: number = registry.generation
 ): Promise<Module> {
   const config = getModuleLoaderConfig();
 
@@ -71,6 +81,9 @@ export async function loadModule(
   if (depth > config.maxModuleLoadDepth) {
     throw createModuleDepthExceededError(id, depth);
   }
+
+  // stale generation cannot register pending state or reuse mixed caches
+  assertCurrentGeneration(epoch, id);
 
   // check cache
   const cached = registry.get(id);
@@ -99,7 +112,8 @@ export async function loadModule(
     dependencies,
     fetcher,
     depth,
-    [...importChain, id]
+    [...importChain, id],
+    epoch
   );
 
   // register as pending for circular dependency detection
@@ -120,7 +134,8 @@ async function loadModuleAsync(
   dependencies: string[],
   fetcher: ModuleFetcher,
   depth: number,
-  importChain: string[]
+  importChain: string[],
+  epoch: number
 ): Promise<Module> {
   // phase 1: categorize dependencies (cached vs needs fetching)
   interface ToFetch {
@@ -188,6 +203,9 @@ async function loadModuleAsync(
   // wait for all fetches in parallel (main performance win)
   const fetchResults = await Promise.all(fetchPromises);
 
+  // caches may have been cleared while fetches were in flight
+  assertCurrentGeneration(epoch, id);
+
   // phase 3: handle fetch errors
   const failed = fetchResults.filter((r) => !r.result);
   if (failed.length > 0) {
@@ -239,7 +257,8 @@ async function loadModuleAsync(
         result.dependencies,
         fetcher,
         depth + 1,
-        importChain
+        importChain,
+        epoch
       ).then(() => {
         registry.addDependency(id, result.fsPath);
       })
@@ -248,6 +267,9 @@ async function loadModuleAsync(
 
   // phase 5: wait for all recursive loads (parallel)
   await Promise.all(loadPromises);
+
+  // stale generation must not evaluate & commit into a newer cache
+  assertCurrentGeneration(epoch, id);
 
   // phase 6: evaluate this module now that all dependencies are loaded
   const runtimeBase = getModuleLoaderConfig().runtime;

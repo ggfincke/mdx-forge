@@ -42,7 +42,9 @@ const CODEGROUP_COMPONENTS = new Set([
 ]);
 
 // export the full set of known generic components
-export const KNOWN_GENERIC_COMPONENTS = getGenericComponentSet();
+// snapshot decoupled from registry internals; compiler paths use isGenericComponent()
+export const KNOWN_GENERIC_COMPONENTS: ReadonlySet<string> =
+  getGenericComponentSet();
 
 export interface RemarkGenericComponentsOptions {
   enabled?: boolean;

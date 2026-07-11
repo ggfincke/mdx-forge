@@ -2,6 +2,7 @@
 // facade over ModuleCache, StyleCache & DependencyTracker subsystems
 
 import type { Module } from '../types';
+import { getStyleInjector } from '../internal/style-injector';
 import { ModuleCache, type ModuleCacheConfig } from './ModuleCache';
 import { StyleCache, type StyleCacheConfig } from './StyleCache';
 import { DependencyTracker } from './DependencyTracker';
@@ -10,19 +11,37 @@ import { DependencyTracker } from './DependencyTracker';
 export interface LRUConfig extends ModuleCacheConfig, StyleCacheConfig {}
 
 // coordinate module cache, style cache & dependency tracker
-// ModuleCache owns modules; StyleCache owns CSS refs
+// ModuleCache owns modules; a cached CSS module owns its injected style
 // DependencyTracker owns dependency graph & resolution map
 export class ModuleRegistry {
   private moduleCache = new ModuleCache();
   private styleCache = new StyleCache();
   private dependencyTracker = new DependencyTracker();
 
+  // cache generation; bumped at every clear boundary so in-flight loads
+  // from an older generation cannot commit stale state
+  private cacheGeneration = 0;
+
   constructor() {
     // wire up eviction callback for coordinated cleanup
+    // module removal also removes its owned style (tracking + DOM node)
     this.moduleCache.onEvict = (id: string) => {
       this.dependencyTracker.cleanDependentsFor(id);
       this.dependencyTracker.cleanResolutionMapFor(id);
+      this.styleCache.untrackStyle(id);
     };
+    // dependencies of live cached modules never auto-evict (graph coherence)
+    this.moduleCache.isDependencyProtected = (id: string) =>
+      this.dependencyTracker.hasDependents(id);
+    // style eviction removes the DOM node; live owning module protects style
+    this.styleCache.onEvict = (id: string) =>
+      getStyleInjector().removeModuleCss(id);
+    this.styleCache.isProtected = (id: string) => this.moduleCache.has(id);
+  }
+
+  // current cache generation for stale-commit detection
+  get generation(): number {
+    return this.cacheGeneration;
   }
 
   // lru configuration
@@ -83,7 +102,7 @@ export class ModuleRegistry {
   // invalidate cached module (for hot reload)
   // clean up all related metadata to prevent memory leaks
   invalidate(id: string): void {
-    // delete from cache (return freed bytes for non-preloaded)
+    // delete from cache; onEvict removes tracker metadata & owned style
     this.moduleCache.delete(id);
     // clean up dependency tracking
     this.dependencyTracker.cleanDependentsFor(id);
@@ -137,14 +156,14 @@ export class ModuleRegistry {
     return this.styleCache.hasInjectedStyle(id);
   }
 
-  // mark CSS as injected for module (w/ reference counting)
-  markStyleInjected(id: string): void {
-    this.styleCache.markStyleInjected(id);
+  // get injected CSS bytes for module (for changed-bytes detection)
+  getInjectedCss(id: string): string | undefined {
+    return this.styleCache.getInjectedCss(id);
   }
 
-  // decrement style reference count
-  decrementStyleRef(id: string): void {
-    this.styleCache.decrementStyleRef(id);
+  // track injected CSS for module
+  trackStyleInjected(id: string, css: string): void {
+    this.styleCache.trackStyle(id, css);
   }
 
   // clear injected styles tracking
@@ -152,22 +171,19 @@ export class ModuleRegistry {
     this.styleCache.clear();
   }
 
-  // remove style tracking for a single module (for incremental updates)
-  unmarkStyleInjected(id: string): void {
-    this.styleCache.unmarkStyleInjected(id);
-  }
-
   // bulk operations (coordinated across subsystems)
 
   // clear all cached modules except preloaded ones
   // clear tracker first so per-module onEvict cleanup runs on empty maps
   clearNonPreloaded(): void {
+    this.cacheGeneration++;
     this.dependencyTracker.clear();
     this.moduleCache.clearNonPreloaded();
   }
 
   // clear all cached modules & metadata
   clear(): void {
+    this.cacheGeneration++;
     this.moduleCache.clear();
     this.styleCache.clear();
     this.dependencyTracker.clear();

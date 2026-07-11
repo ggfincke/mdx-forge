@@ -33,7 +33,31 @@ const state: RuntimeState = {
   runtime: defaultRuntime,
 };
 
+// validate budget at the public config boundary; zero/negative/non-finite
+// values would stall the semaphore or disable loading entirely
+function assertPositiveIntegerBudget(name: string, value: number): void {
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new RangeError(
+      `${name} must be a finite positive integer, got ${String(value)}`
+    );
+  }
+}
+
 export function configureModuleLoader(config: ModuleLoaderConfig): void {
+  // validate all budgets before mutating state (invalid config changes nothing)
+  if (config.maxModuleLoadDepth !== undefined) {
+    assertPositiveIntegerBudget(
+      'maxModuleLoadDepth',
+      config.maxModuleLoadDepth
+    );
+  }
+  if (config.maxConcurrentFetches !== undefined) {
+    assertPositiveIntegerBudget(
+      'maxConcurrentFetches',
+      config.maxConcurrentFetches
+    );
+  }
+
   if (config.maxModuleLoadDepth !== undefined) {
     state.maxModuleLoadDepth = config.maxModuleLoadDepth;
   }

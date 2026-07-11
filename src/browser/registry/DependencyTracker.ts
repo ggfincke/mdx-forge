@@ -76,6 +76,12 @@ export class DependencyTracker {
     return this.dependents.size;
   }
 
+  // check if any tracked module depends on moduleId
+  // used to protect live dependencies from lru eviction
+  hasDependents(moduleId: string): boolean {
+    return (this.dependents.get(moduleId)?.size ?? 0) > 0;
+  }
+
   // get number of resolution mappings
   get resolutionsCount(): number {
     return this.resolutionMap.size;
