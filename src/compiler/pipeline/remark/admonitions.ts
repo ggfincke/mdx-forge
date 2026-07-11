@@ -159,7 +159,6 @@ function createAdmonitionNode(
     iconClassName: PREVIEW_ADMONITION_ICON,
     icon: config.icon,
     title,
-    escapeTitle: false,
     contentType: 'admonitionContent',
     contentClassName: PREVIEW_ADMONITION_CONTENT,
     contentChildren: contentChildren as RootContent[],

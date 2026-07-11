@@ -30,6 +30,9 @@ export interface ComponentImportsOptions {
 // built-in generic component names derived from shared component registry
 const BUILTIN_GENERIC_COMPONENTS = getAllGenericComponentNames();
 
+// supported component keys: plain JS identifiers usable as MDX shortcodes
+const VALID_COMPONENT_KEY = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+
 // generate import statements & components object for custom component mapping (only generates in Trusted Mode)
 export function generateComponentImports(
   config: ResolvedConfig | undefined,
@@ -79,6 +82,18 @@ export function generateComponentImports(
   // process user-defined components from config first
   const components = config?.config.components;
   if (components && Object.keys(components).length > 0) {
+    // reject unsupported keys before compilation so codegen stays hygienic
+    const invalidNames = Object.keys(components).filter(
+      (name) => !VALID_COMPONENT_KEY.test(name)
+    );
+    if (invalidNames.length > 0) {
+      throw new Error(
+        `Unsupported component name(s) in config: ${invalidNames.join(', ')}. ` +
+          'Component names must be valid JavaScript identifiers ' +
+          '(letters, digits, _ or $, not starting w/ a digit).'
+      );
+    }
+
     const configDir = config.configDir;
 
     for (const [componentName, componentPath] of Object.entries(components)) {
@@ -90,10 +105,16 @@ export function generateComponentImports(
       // convert to relative import path from document directory
       const relativePath = toRelativeImportPath(absolutePath, documentDir);
 
-      // generate import statement w/ a safe variable name
-      const safeVarName = `_component_${componentName.replace(/[^a-zA-Z0-9_]/g, '_')}`;
-      importStatements.push(`import ${safeVarName} from '${relativePath}';`);
-      componentEntries.push(`  ${componentName}: ${safeVarName}`);
+      // validated keys are identifiers, so prefixed var names cannot collide
+      // quote the specifier via JSON.stringify so literal-sensitive paths
+      // (apostrophes, backslashes) cannot break the generated import
+      const safeVarName = `_component_${componentName}`;
+      importStatements.push(
+        `import ${safeVarName} from ${JSON.stringify(relativePath)};`
+      );
+      componentEntries.push(
+        `  ${JSON.stringify(componentName)}: ${safeVarName}`
+      );
     }
   }
 
@@ -107,8 +128,12 @@ export function generateComponentImports(
 
       // generate import from the component name (resolved via preload aliases in webview)
       const safeVarName = `_builtin_${componentName}`;
-      importStatements.push(`import ${safeVarName} from '${componentName}';`);
-      componentEntries.push(`  ${componentName}: ${safeVarName}`);
+      importStatements.push(
+        `import ${safeVarName} from ${JSON.stringify(componentName)};`
+      );
+      componentEntries.push(
+        `  ${JSON.stringify(componentName)}: ${safeVarName}`
+      );
     }
   }
 

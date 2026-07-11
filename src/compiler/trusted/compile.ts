@@ -22,6 +22,17 @@ const stripDefaultMdxExport = (compiledMDX: string): string =>
     .replace(/^export default function MDXContent/m, 'function MDXContent')
     .replace(/^export default MDXContent;?$/m, '');
 
+// pick an identifier absent from the generated source (word-boundary scan)
+// keeps wrapper bindings hygienic against authored imports/declarations
+const createUniqueIdentifier = (source: string, base: string): string => {
+  let name = base;
+  let counter = 1;
+  while (new RegExp(`\\b${name}\\b`).test(source)) {
+    name = `${base}_${counter++}`;
+  }
+  return name;
+};
+
 // resolved layout source shared by the mdx-source & compiled-js wrap paths
 // custom: an import specifier literal; host: the createLayout options string
 type LayoutResolution =
@@ -92,25 +103,36 @@ const wrapCompiledMdx = (
     // remove original "export default" to avoid duplicate exports (MDX 3 output)
     const strippedMDX = stripDefaultMdxExport(compiledMDX);
 
+    // hygienic wrapper bindings: never collide w/ authored identifiers
+    const scanSource = strippedMDX + componentsObject;
+    const reactVar = createUniqueIdentifier(scanSource, 'React');
+    const providerVar = createUniqueIdentifier(scanSource, 'MDXProvider');
+    const componentsVar = createUniqueIdentifier(scanSource, '_MDXComponents');
+    const originalVar = createUniqueIdentifier(scanSource, '_OriginalDefault');
+    const wrapperVar = createUniqueIdentifier(
+      scanSource,
+      'MDXContentWithComponents'
+    );
+
     // wrap w/ MDXProvider to make custom components available as shortcodes
     return `
 // MDX 3 compiled output w/ custom components
-import React from 'react';
-import { MDXProvider } from '@mdx-js/react';
+import ${reactVar} from 'react';
+import { MDXProvider as ${providerVar} } from '@mdx-js/react';
 ${strippedMDX}
 
-const _MDXComponents = ${componentsObject};
-const _OriginalDefault = MDXContent;
-export default function MDXContentWithComponents(props) {
-  return React.createElement(MDXProvider, { components: _MDXComponents },
-    React.createElement(_OriginalDefault, props)
+const ${componentsVar} = ${componentsObject};
+const ${originalVar} = MDXContent;
+export default function ${wrapperVar}(props) {
+  return ${reactVar}.createElement(${providerVar}, { components: ${componentsVar} },
+    ${reactVar}.createElement(${originalVar}, props)
   );
 }
 `;
   }
+  // automatic JSX runtime output needs no classic React import
   return `
 // MDX 3 compiled output
-import React from 'react';
 ${compiledMDX}
 `;
 };
@@ -152,9 +174,9 @@ const wrapCompiledMd = (
 ): string => {
   const layout = resolveMarkdownLayout(config);
   if (!layout) {
+    // automatic JSX runtime output needs no classic React import
     return `
 // markdown compiled output (no layout)
-import React from 'react';
 ${compiledMDX}
 `;
   }
@@ -162,17 +184,24 @@ ${compiledMDX}
   // strip the default export so the content component can be wrapped
   const strippedMDX = stripDefaultMdxExport(compiledMDX);
 
+  // markdown carries no authored ESM, but keep bindings hygienic anyway
+  const scanSource = strippedMDX + layout.layoutImport + layout.layoutExpr;
+  const reactVar = createUniqueIdentifier(scanSource, 'React');
+  const layoutVar = createUniqueIdentifier(scanSource, '_MDXLayout');
+  const innerVar = createUniqueIdentifier(scanSource, '_MDXInner');
+  const wrapperVar = createUniqueIdentifier(scanSource, 'MDXContentWithLayout');
+
   return `
 // markdown compiled output w/ layout
-import React from 'react';
+import ${reactVar} from 'react';
 ${layout.layoutImport}
 ${strippedMDX}
 
-const _MDXLayout = ${layout.layoutExpr};
-const _MDXInner = MDXContent;
-export default function MDXContentWithLayout(props) {
-  return React.createElement(_MDXLayout, props,
-    React.createElement(_MDXInner, props)
+const ${layoutVar} = ${layout.layoutExpr};
+const ${innerVar} = MDXContent;
+export default function ${wrapperVar}(props) {
+  return ${reactVar}.createElement(${layoutVar}, props,
+    ${reactVar}.createElement(${innerVar}, props)
   );
 }
 `;
