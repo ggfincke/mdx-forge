@@ -167,9 +167,7 @@ if (checkOnly) {
     process.exit(1);
   }
 
-  console.log(
-    `ESM import/export specifiers are valid in ${totalFiles} files.`
-  );
+  console.log(`ESM import/export specifiers are valid in ${totalFiles} files.`);
   process.exit(0);
 }
 
