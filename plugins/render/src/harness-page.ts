@@ -3,7 +3,12 @@
 
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { chromium, type Browser, type Page } from 'playwright';
+import {
+  chromium,
+  type Browser,
+  type BrowserContext,
+  type Page,
+} from 'playwright';
 import type { FrameworkId } from './css.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -35,6 +40,24 @@ async function getBrowser(): Promise<Browser> {
   return browserPromise;
 }
 
+// single plugin-level Browser shared by harness eval & screenshot capture (F27)
+export function getPluginBrowser(): Promise<Browser> {
+  return getBrowser();
+}
+
+// default-deny resource route; only file:// & data: continue (F1)
+// screenshot/preview contexts install this before loading any content
+export async function applyDenyRoute(context: BrowserContext): Promise<void> {
+  await context.route('**/*', (route) => {
+    const url = route.request().url();
+    if (url.startsWith('file://') || url.startsWith('data:')) {
+      route.continue();
+      return;
+    }
+    route.abort();
+  });
+}
+
 export function configureHarnessBrowserLauncher(
   launcher?: BrowserLauncher
 ): void {
@@ -62,14 +85,7 @@ async function openHarnessPage(framework: FrameworkId): Promise<HarnessEntry> {
     serviceWorkers: 'block',
   });
 
-  await context.route('**/*', (route) => {
-    const url = route.request().url();
-    if (url.startsWith('file://') || url.startsWith('data:')) {
-      route.continue();
-      return;
-    }
-    route.abort();
-  });
+  await applyDenyRoute(context);
 
   const page = await context.newPage();
 

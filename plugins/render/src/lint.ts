@@ -28,6 +28,7 @@ import {
   isCompoundChild,
   isIntrinsicTag,
 } from './registry.js';
+import { normalizeFrontmatterData } from './frontmatter-bounds.js';
 
 // get owner id from lowercase-start JSX member names like Tabs.Tab
 function rootIdentifier(name: string): string {
@@ -440,12 +441,18 @@ export function lintFrontmatter(
 // frozen processor reused across calls; parse() is stateless
 const mdxProcessor = unified().use(remarkParse).use(remarkMdx).freeze();
 
+// bounded parse: neutralize the eval engine & clamp the parsed graph so cyclic
+// or amplified YAML aliases can't reach downstream JSON.stringify (F22)
 function safeMatter(source: string) {
-  return matter(source, {
+  const parsed = matter(source, {
     engines: {
       javascript: () => ({}),
     },
   });
+  parsed.data = normalizeFrontmatterData(
+    parsed.data as Record<string, unknown>
+  );
+  return parsed;
 }
 
 export async function lintMdxSource(

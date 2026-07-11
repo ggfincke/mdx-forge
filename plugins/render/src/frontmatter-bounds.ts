@@ -1,16 +1,12 @@
-// src/internal/frontmatter.ts
-// gray-matter wrapper that disables executable JS frontmatter (eval) & bounds
-// the parsed data into acyclic plain values to stop amplification / cycles
+// plugins/render/src/frontmatter-bounds.ts
+// local defense-in-depth bounds for frontmatter graphs
+// ! duplicates core src/internal/frontmatter.ts; plugin uses published 0.6.2 & can't import it - consolidate in Group B/E
 
-import matter from 'gray-matter';
-
-// bounds for normalized frontmatter; reject graphs that exceed any of them
-// depth guards deep alias nesting; nodes/bytes guard exponential alias fan-out
+// bounds mirror the core normalizer; keep them in sync until consolidation
 export const MAX_FRONTMATTER_DEPTH = 8;
 export const MAX_FRONTMATTER_NODES = 5000;
 export const MAX_FRONTMATTER_SERIALIZED_BYTES = 256 * 1024;
 
-// ! thrown deterministically when frontmatter is cyclic or over the caps above
 export class FrontmatterBoundsError extends Error {
   constructor(message: string) {
     super(message);
@@ -23,7 +19,6 @@ interface NormalizeState {
   bytes: number;
 }
 
-// approximate serialized size of a scalar so we can bound projected JSON output
 function scalarBytes(value: unknown): number {
   if (typeof value === 'string') {
     return value.length + 2;
@@ -31,8 +26,6 @@ function scalarBytes(value: unknown): number {
   return String(value).length;
 }
 
-// deep-clone into plain acyclic data; throw once any bound is exceeded
-// ancestors set rejects true cycles; nodes/bytes reject DAG fan-out amplification
 function cloneBounded(
   value: unknown,
   depth: number,
@@ -44,12 +37,12 @@ function cloneBounded(
     state.bytes += scalarBytes(value);
     if (state.nodes > MAX_FRONTMATTER_NODES) {
       throw new FrontmatterBoundsError(
-        `frontmatter exceeds ${MAX_FRONTMATTER_NODES} nodes; refusing to expand YAML aliases`
+        `frontmatter exceeds ${MAX_FRONTMATTER_NODES} nodes`
       );
     }
     if (state.bytes > MAX_FRONTMATTER_SERIALIZED_BYTES) {
       throw new FrontmatterBoundsError(
-        `frontmatter projected size exceeds ${MAX_FRONTMATTER_SERIALIZED_BYTES} bytes; refusing to expand YAML aliases`
+        `frontmatter projected size exceeds ${MAX_FRONTMATTER_SERIALIZED_BYTES} bytes`
       );
     }
     return value;
@@ -77,7 +70,7 @@ function cloneBounded(
   state.nodes++;
   if (state.nodes > MAX_FRONTMATTER_NODES) {
     throw new FrontmatterBoundsError(
-      `frontmatter exceeds ${MAX_FRONTMATTER_NODES} nodes; refusing to expand YAML aliases`
+      `frontmatter exceeds ${MAX_FRONTMATTER_NODES} nodes`
     );
   }
 
@@ -107,17 +100,11 @@ export function normalizeFrontmatterData(
   return cloneBounded(data, 0, new Set(), state) as Record<string, unknown>;
 }
 
-// neutralize gray-matter's default `javascript` engine (runs eval) w/ a no-op
-// covers `---js` & `---javascript` fences (engine aliases js -> javascript)
-export function safeMatter(input: string) {
-  const parsed = matter(input, {
-    engines: {
-      javascript: () => ({}),
-    },
-  });
-  // bound the parsed graph so downstream JSON.stringify / consumers stay safe
-  parsed.data = normalizeFrontmatterData(
-    parsed.data as Record<string, unknown>
-  );
-  return parsed;
+// guarded JSON.stringify; normalizes first so cyclic/oversized data can't throw
+// deep inside the MCP response path
+export function boundedStringify(
+  data: Record<string, unknown>,
+  space?: number
+): string {
+  return JSON.stringify(normalizeFrontmatterData(data), null, space);
 }

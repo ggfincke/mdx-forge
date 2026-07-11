@@ -29,6 +29,8 @@ async function bundleFramework(framework) {
     format: 'iife',
     platform: 'browser',
     target: ['chrome120'],
+    // minify to shrink inlined MCP payloads (F28)
+    minify: true,
     sourcemap: 'linked',
     define: {
       'process.env.NODE_ENV': '"production"',

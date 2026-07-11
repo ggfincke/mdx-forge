@@ -39,14 +39,34 @@ npm run build
 | `screenshot`| boolean                                                           | `false`       |
 | `theme`     | `'light' \| 'dark'`                                               | `'light'`     |
 | `viewport`  | `{ width?, height? }`                                             | `1024 x 768`  |
+| `inlineHtml`| boolean                                                           | `false`       |
 
 Returns three content blocks:
 1. **Lead-in text** with a live preview URL + `file://` fallback.
 2. **PNG screenshot** (only when `screenshot: true`).
 3. **Trailing text** with a `### Warnings` section (plain-text
-   diagnostics), a `### Diagnostics (structured)` JSON block, the
-   frontmatter (JSON), compiled HTML body, and self-contained HTML for
-   claude.ai artifacts.
+   diagnostics), the frontmatter (JSON), and a `### Summary` of body /
+   full-HTML byte sizes. The full self-contained HTML for claude.ai
+   artifacts is only inlined when `inlineHtml: true` — the default keeps
+   responses small and points at the preview URL instead.
+
+## Render budgets
+
+Inputs and outputs are bounded in both the MCP schema and the direct
+`renderMdx()` API; oversized requests are rejected before allocation.
+
+| Budget                     | Constant                    | Default   |
+| -------------------------- | --------------------------- | --------- |
+| Max source size            | `MAX_SOURCE_BYTES`          | 1 MiB     |
+| Max viewport width/height  | `MAX_VIEWPORT_DIMENSION`    | 4000 px   |
+| Max per-variant pixels     | `MAX_VARIANT_PIXELS`        | 10 MP     |
+| Max aggregate pixels       | `MAX_AGGREGATE_PIXELS`      | 48 MP     |
+| Max full-page scroll height| `MAX_FULLPAGE_SCROLL_HEIGHT`| 20000 px  |
+| Max PNG size               | `MAX_PNG_BYTES`             | 8 MiB     |
+| Max response size          | `MAX_RESPONSE_BYTES`        | 24 MiB    |
+
+Temp preview artifacts are pruned on server start and after each render
+beyond `MAX_PREVIEW_ARTIFACTS` (50) and `PREVIEW_ARTIFACT_TTL_MS` (24h).
 
 When MDX fails to compile or render, the tool returns `isError: true`
 with a structured payload:

@@ -81,7 +81,7 @@ check(
 );
 check(
   'fullHtml inlines harness bundle',
-  out.fullHtml.includes('__mdxForgeMount') && out.fullHtml.length > 500_000
+  out.fullHtml.includes('__mdxForgeMount') && out.fullHtml.length > 150_000
 );
 check(
   'fullHtml inlines compiled MDX',
