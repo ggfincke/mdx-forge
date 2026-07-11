@@ -19,6 +19,7 @@ import rehypeSlug from 'rehype-slug';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import rehypeLazyImages from '../pipeline/rehype/lazy-images';
 import type { Pluggable } from 'unified';
+import type { DiagramBehavior } from '../types';
 
 // shared autolink headings config for both pipelines
 export const autolinkHeadingsConfig = {
@@ -39,12 +40,17 @@ export const sharedRemarkPlugins: Pluggable[] = [
   remarkMath,
 ];
 
-// shared rehype plugins before math rendering (diagram placeholders for lazy rendering)
-export const sharedRehypePluginsPreMath: Pluggable[] = [
-  rehypeMermaidPlaceholder,
-  rehypePlantUmlPlaceholder,
-  rehypeGraphvizPlaceholder,
-];
+// shared rehype plugins before math rendering (diagram fences for lazy
+// rendering or visible code fallback, per the configured behavior)
+export function getSharedRehypePluginsPreMath(
+  behavior: DiagramBehavior = 'placeholder'
+): Pluggable[] {
+  return [
+    [rehypeMermaidPlaceholder, { behavior }],
+    [rehypePlantUmlPlaceholder, { behavior }],
+    [rehypeGraphvizPlaceholder, { behavior }],
+  ];
+}
 
 // rehype-katex plugin (shared between both pipelines)
 export { rehypeKatex };

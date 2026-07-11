@@ -31,8 +31,10 @@ Sourced from `SHIM_BARREL_CONFIG` in `src/components/registry/shim-config.ts`.
 | `TabItem`       | `Tab`                           |
 | `CodeGroup`     | —                               |
 
-Side-effecting CSS import: `mdx-forge/components/styles/generic.css`
-(imported by the barrel itself when consumed via the shim path).
+Required CSS: `mdx-forge/components/styles/generic.css` + `tokens.css`.
+Barrels do **not** import CSS themselves — the consumer imports the CSS
+bundle once at app entry (a side-effect import bundlers honor via the
+package's `sideEffects` declaration).
 
 ### `mdx-forge/components/docusaurus`
 

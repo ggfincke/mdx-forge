@@ -72,6 +72,11 @@ export interface ErrorReporter {
 // from the documentPath extension (.md -> md, otherwise mdx)
 export type DocumentFormat = 'detect' | 'md' | 'mdx';
 
+// how diagram fences (mermaid/plantuml/graphviz) are emitted
+// 'placeholder' keeps empty data-attribute divs for renderer-owning hosts
+// 'code' emits a visible, language-labeled code fallback for static hosts
+export type DiagramBehavior = 'placeholder' | 'code';
+
 // compiler configuration
 export interface CompilerConfig {
   // canonical document path used for relative import generation
@@ -83,6 +88,9 @@ export interface CompilerConfig {
 
   // parse mode; defaults to 'detect' (extension-based)
   format?: DocumentFormat;
+
+  // diagram fence output; defaults to 'placeholder' (VS Code host contract)
+  diagramBehavior?: DiagramBehavior;
 
   customLayoutFilePath?: string;
   useHostMarkdownStyles?: boolean;

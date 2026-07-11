@@ -29,6 +29,32 @@ npm install
 npm run build
 ```
 
+## Supported mdx-forge core range
+
+This package is versioned independently from the `mdx-forge` core — the
+plugin version, the core version, and the marketplace metadata version are
+deliberately **not** coupled.
+
+- **Declared range:** the `mdx-forge` entry in `package.json` (`^0.6.2`)
+  is the minimum-supported core line. The lockfile pins the exact minimum
+  the plugin is proven against.
+- **Current core:** the repository's `check:plugin-compat` gate also
+  installs the current packed core tarball into a clean copy of this
+  plugin and re-runs typecheck, build, and bounded smokes — so every core
+  release candidate is proven against this plugin before publishing.
+- **Bumping the range:** raising the minimum (or absorbing a new major or
+  minor line) is a deliberate release step, made after the compat gate
+  passes, never an implicit side effect of a core release.
+
+### Diagram fences
+
+The plugin ships no Mermaid/PlantUML/Graphviz runtime, so it requests
+`diagramBehavior: 'code'` from the compiler: diagram fences render as
+visible, language-labeled code blocks instead of empty placeholder divs.
+Cores older than the option (the current `0.6.x` minimum) ignore the key
+and keep emitting empty placeholders — a documented gap of the minimum
+line that closes when the declared range is bumped.
+
 ## Tool: `render_mdx`
 
 | Param       | Type                                                              | Default       |

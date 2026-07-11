@@ -99,6 +99,14 @@ export async function shutdownBrowser(): Promise<void> {
   await shutdownHarnessPages();
 }
 
+// this plugin has no diagram runtime, so ask the core for visible code
+// fallbacks (F34); cores w/o the option (<= 0.6.x) ignore the extra key
+// & keep emitting empty placeholders — a documented minimum-core gap
+const SAFE_COMPILE_CONFIG = {
+  documentPath: '/virtual/render.mdx',
+  diagramBehavior: 'code',
+} as const;
+
 // fallback CSS-variable values for code blocks when consumers omit a theme
 const SHIKI_DEFAULTS = `
 [data-theme="light"] {
@@ -159,6 +167,26 @@ function baseStyles(): string {
     [data-theme="light"] body { background: #ffffff; color: #1a1a1a; }
     [data-theme="dark"] body { background: #1e1e1e; color: #e6e6e6; }
     pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .mdx-diagram-code {
+      margin: 1rem 0;
+      border: 1px solid rgba(128,128,128,0.35);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .mdx-diagram-code-label {
+      padding: 0.25rem 0.75rem;
+      font-size: 0.75rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      opacity: 0.7;
+      border-bottom: 1px solid rgba(128,128,128,0.35);
+    }
+    .mdx-diagram-code pre {
+      margin: 0;
+      padding: 0.75rem 1rem;
+      overflow-x: auto;
+    }
   `;
 }
 
@@ -362,9 +390,7 @@ async function buildModeDocs(
 
   let compiled: Awaited<ReturnType<typeof compileSafe>>;
   try {
-    compiled = await compileSafe(source, {
-      documentPath: '/virtual/render.mdx',
-    });
+    compiled = await compileSafe(source, SAFE_COMPILE_CONFIG);
   } catch (err) {
     throw new RenderDiagnosticError(
       normalizeCompileError(err, { source, framework }),

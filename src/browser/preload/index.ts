@@ -1,7 +1,10 @@
 // src/browser/preload/index.ts
 // preload API entry point & framework shim loading
 
-import type { ModuleRegistry } from '../registry/ModuleRegistry';
+import {
+  registry as sharedRegistry,
+  type ModuleRegistry,
+} from '../registry/ModuleRegistry';
 import type { FrameworkId, HostPreloadCallbacks, PreloadEntry } from '../types';
 import { preloadCoreModules } from './core';
 import { configureModuleLoader } from '../internal/runtime-config';
@@ -60,10 +63,25 @@ export function setPreloadEntries(entries: readonly PreloadEntry[]): void {
   syncRuntimeAliases();
 }
 
+// one-arg form targets the singleton registry (typical standalone hosts)
+// two-arg form lets embedders supply their own ModuleRegistry instance
+export function registerPreloadEntries(entries: readonly PreloadEntry[]): void;
 export function registerPreloadEntries(
   registry: ModuleRegistry,
   entries: readonly PreloadEntry[]
+): void;
+export function registerPreloadEntries(
+  registryOrEntries: ModuleRegistry | readonly PreloadEntry[],
+  maybeEntries?: readonly PreloadEntry[]
 ): void {
+  const usesSharedRegistry = Array.isArray(registryOrEntries);
+  const registry = usesSharedRegistry
+    ? sharedRegistry
+    : (registryOrEntries as ModuleRegistry);
+  const entries = usesSharedRegistry
+    ? (registryOrEntries as readonly PreloadEntry[])
+    : (maybeEntries ?? []);
+
   for (const entry of entries) {
     registerEntry(entry);
     registry.preload(entry.id, entry.exports);

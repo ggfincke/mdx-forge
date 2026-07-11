@@ -1,6 +1,7 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
+    "types": ["node", "react", "vite/client"],
     "paths": {
       "@forge/*": ["../src/*"]
     }

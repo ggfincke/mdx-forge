@@ -5,11 +5,11 @@ import type { Pluggable } from 'unified';
 import rehypeRawPkg from 'rehype-raw';
 import {
   sharedRemarkPlugins,
-  sharedRehypePluginsPreMath,
+  getSharedRehypePluginsPreMath,
   sharedRehypePluginsPostMath,
   rehypeKatex,
 } from './shared-plugins';
-import type { LoadedPlugins, PluginPipeline } from '../types';
+import type { DiagramBehavior, LoadedPlugins, PluginPipeline } from '../types';
 import { REHYPE_RAW_CONFIG } from '../pipeline/common/pipeline-config';
 import { mergePlugins } from './loader';
 
@@ -22,11 +22,12 @@ export function buildTrustedRemarkPlugins(
 
 // build the rehype plugin array for Trusted Mode (rehype-raw, math, shiki, custom)
 export function buildTrustedRehypePlugins(
-  customPlugins: LoadedPlugins
+  customPlugins: LoadedPlugins,
+  diagramBehavior?: DiagramBehavior
 ): Pluggable[] {
   const basePlugins: Pluggable[] = [
     [rehypeRawPkg, REHYPE_RAW_CONFIG],
-    ...sharedRehypePluginsPreMath,
+    ...getSharedRehypePluginsPreMath(diagramBehavior),
     rehypeKatex,
     ...sharedRehypePluginsPostMath,
   ];
@@ -36,11 +37,12 @@ export function buildTrustedRehypePlugins(
 
 // build the complete plugin pipeline for Trusted Mode
 export function buildTrustedPluginPipeline(
-  customPlugins: LoadedPlugins
+  customPlugins: LoadedPlugins,
+  diagramBehavior?: DiagramBehavior
 ): PluginPipeline {
   return {
     remarkPlugins: buildTrustedRemarkPlugins(customPlugins),
-    rehypePlugins: buildTrustedRehypePlugins(customPlugins),
+    rehypePlugins: buildTrustedRehypePlugins(customPlugins, diagramBehavior),
   };
 }
 
@@ -50,7 +52,7 @@ export function getSafeRemarkPlugins(): Pluggable[] {
 }
 
 // get rehype plugins for Safe Mode (rehype-raw, diagram, math & post-math)
-export function getSafeRehypePluginSets(): {
+export function getSafeRehypePluginSets(diagramBehavior?: DiagramBehavior): {
   raw: Pluggable;
   preMath: Pluggable[];
   math: Pluggable;
@@ -58,7 +60,7 @@ export function getSafeRehypePluginSets(): {
 } {
   return {
     raw: [rehypeRawPkg, REHYPE_RAW_CONFIG] as Pluggable,
-    preMath: sharedRehypePluginsPreMath,
+    preMath: getSharedRehypePluginsPreMath(diagramBehavior),
     math: rehypeKatex,
     postMath: sharedRehypePluginsPostMath,
   };

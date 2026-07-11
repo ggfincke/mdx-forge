@@ -51,16 +51,21 @@ function uniqueEntryId(): string {
   return `virtual://mdx-forge-render/${randomBytes(8).toString('hex')}.mdx`;
 }
 
+// no diagram runtime in the harness either: request visible code fallbacks
+// (F34); older cores w/o the option ignore the key (graceful pass-through)
+const TRUSTED_COMPILE_CONFIG = {
+  documentPath: '/virtual/render.mdx',
+  componentsBuiltins: false,
+  diagramBehavior: 'code',
+} as const;
+
 export async function compileTrustedModule(
   source: string,
   framework: FrameworkId
 ): Promise<TrustedCompiledModule> {
   // disable builtin imports; harness preloads React, jsx-runtime & MDXProvider
   // shims are supplied at render time via MDXProvider components
-  const compiled = await compileTrusted(source, true, {
-    documentPath: '/virtual/render.mdx',
-    componentsBuiltins: false,
-  });
+  const compiled = await compileTrusted(source, true, TRUSTED_COMPILE_CONFIG);
 
   const dependencies = extractDependencies(compiled.code);
   const cjsCode = await esmToCjs(compiled.code);

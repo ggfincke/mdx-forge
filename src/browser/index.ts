@@ -26,11 +26,17 @@ export { evaluateModule } from './eval/evaluateModule';
 export { createSyncRequire } from './runtime/require';
 export type {
   FetchResult,
+  Framework,
+  FrameworkId,
   HostPreloadCallbacks,
+  MDXRuntime,
   Module,
+  ModuleFetcher,
+  ModuleLoaderConfig,
   ModuleRuntime,
   PreloadEntry,
 } from './types';
+export { PRELOADED_MODULE_IDS } from './types';
 export {
   setPreloadEntries,
   registerPreloadEntries,

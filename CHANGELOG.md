@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`diagramBehavior` compiler option**: New typed `CompilerConfig` field (`'placeholder' | 'code'`, default `'placeholder'`). The default preserves the existing empty-placeholder contract for renderer-owning hosts; `'code'` emits a visible, selectable, language-labeled code fallback for hosts without a diagram runtime. Threaded through the Safe/Trusted plugin builders (`getSafeRehypePluginSets`, `buildTrustedRehypePlugins`, `buildTrustedPluginPipeline`)
+- **One-argument `registerPreloadEntries(entries)`**: New overload targeting the singleton module registry, matching the documented high-level browser setup; the two-argument `(registry, entries)` form is unchanged
+- **Browser runtime exports**: `PRELOADED_MODULE_IDS` and the `ModuleFetcher`, `ModuleLoaderConfig`, `MDXRuntime`, `Framework`, and `FrameworkId` types are now exported from `mdx-forge/browser`
+- **Consumer matrix gate**: `check:consumers` builds and packs the artifact, typechecks every public export subpath in clean NodeNext consumers under both `skipLibCheck` settings (with a `compileSafe`-not-`any` assertion), bundles every CSS subpath, compiles the shipped skill examples and dev app against the packed declarations, and drives the plugin compatibility legs
+- **Plugin compatibility gate**: `check:plugin-compat` clean-installs the render plugin against its locked minimum core and the current packed core, runs typecheck/build/bounded smokes, and asserts diagram fences are visible and non-zero-height in code mode
+
+### Fixed
+
+- **Published NodeNext declarations**: The post-build specifier fixer and `check:esm-specifiers` now rewrite emitted `.d.ts` files (including bare `'.'`/`'..'` directory references) so NodeNext consumers resolve every public export with `skipLibCheck` on or off, instead of TS2834/TS2835 errors or silent `any` degradation
+- **Render plugin dependencies**: Directly imported runtime packages (`esbuild`, `gray-matter`, `remark-parse`, `remark-mdx`, `unist-util-visit`) are now declared production dependencies of the render plugin
+- **Dev app typecheck**: `npx tsc -p dev/tsconfig.json --noEmit` passes (CSS side-effect imports resolved via `vite/client` types) and runs in CI as `typecheck:dev`
+
 ## [0.7.1] - 2026-07-03
 
 Republish of the withdrawn `0.7.0` release; npm permanently reserves that version slot after first publish.
