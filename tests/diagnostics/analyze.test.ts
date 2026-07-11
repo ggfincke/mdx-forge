@@ -67,9 +67,75 @@ describe('analyzeMdx', () => {
     expect(analyzeMdx(src, { framework: 'generic' })).toHaveLength(1);
   });
 
-  it('ignores html elements and lowercase tags', () => {
-    const src = '<div>hi</div>\n\n<Button />\n\n<Table />\n\nplain text\n';
+  it('ignores intrinsic lowercase, dashed & namespaced tags', () => {
+    const src =
+      '<div>hi</div>\n\n<my-element>web component</my-element>\n\n<svg:path />\n\nplain text\n';
     expect(analyzeMdx(src, { framework: 'generic' })).toEqual([]);
+  });
+
+  it('flags capitalized components even when they case-fold to html names', () => {
+    // <Button>/<Table> are component references in JSX, not intrinsic tags
+    const src = '<Button />\n\n<Table />\n';
+    const diags = analyzeMdx(src, { framework: 'generic' });
+    expect(diags.map((d) => d.code)).toEqual([
+      DIAGNOSTIC_CODES.UNKNOWN_COMPONENT,
+      DIAGNOSTIC_CODES.UNKNOWN_COMPONENT,
+    ]);
+    expect(
+      diags.map((d) => (d.data as { componentName: string }).componentName)
+    ).toEqual(['Button', 'Table']);
+  });
+
+  it('flags member expressions by their unknown root identifier', () => {
+    const [diag] = analyzeMdx('<Frobnicate.Item />\n', {
+      framework: 'generic',
+    });
+    expect(diag.code).toBe(DIAGNOSTIC_CODES.UNKNOWN_COMPONENT);
+    expect(diag.data).toMatchObject({ componentName: 'Frobnicate' });
+  });
+
+  it('flags underscore & dollar identifier components', () => {
+    expect(
+      analyzeMdx('<Frobnicate_Thing />\n', { framework: 'generic' })
+    ).toHaveLength(1);
+    expect(analyzeMdx('<$Widget />\n', { framework: 'generic' })).toHaveLength(
+      1
+    );
+  });
+
+  it('treats member expressions with imported or config roots as known', () => {
+    expect(
+      analyzeMdx("import Tabs from './tabs';\n\n<Tabs.Tab>x</Tabs.Tab>\n", {
+        framework: 'generic',
+      })
+    ).toEqual([]);
+    expect(
+      analyzeMdx('<Widget.Panel />\n', {
+        framework: 'generic',
+        configComponents: ['Widget'],
+      })
+    ).toEqual([]);
+  });
+
+  it('accepts known compound members & rejects unknown ones', () => {
+    expect(
+      analyzeMdx(
+        '<FileTree.Folder name="src"><FileTree.File name="a" /></FileTree.Folder>\n',
+        { framework: 'nextra' }
+      )
+    ).toEqual([]);
+    const [diag] = analyzeMdx('<FileTree.Nope />\n', { framework: 'nextra' });
+    expect(diag.code).toBe(DIAGNOSTIC_CODES.UNKNOWN_COMPOUND_MEMBER);
+    expect(diag.data).toMatchObject({
+      rootName: 'FileTree',
+      memberName: 'Nope',
+      allowedMembers: ['Folder', 'File'],
+    });
+    // known roots without compound members reject every dotted child
+    const [calloutDiag] = analyzeMdx('<Callout.Nope />\n', {
+      framework: 'generic',
+    });
+    expect(calloutDiag.code).toBe(DIAGNOSTIC_CODES.UNKNOWN_COMPOUND_MEMBER);
   });
 
   it('handles unknown framework strings without throwing', () => {

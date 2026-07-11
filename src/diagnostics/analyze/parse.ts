@@ -19,9 +19,26 @@ import type {
 } from 'estree';
 import type { DiagnosticRange } from '../types';
 
+export type DetectedAttributeKind =
+  'shorthand' | 'string' | 'expression' | 'spread';
+
+export interface DetectedAttribute {
+  kind: DetectedAttributeKind;
+  // absent for spread attributes ({...rest})
+  name?: string;
+  // literal string value or raw expression source
+  value?: string;
+}
+
 export interface DetectedComponent {
+  // full name as written (e.g. Tabs.Tab)
   name: string;
+  // root identifier of the reference (Tabs for Tabs.Tab)
+  root: string;
+  // member path segments after the root (['Tab'] for Tabs.Tab)
+  members: string[];
   range: DiagnosticRange;
+  attributes: DetectedAttribute[];
 }
 
 export interface ParsedMdx {
@@ -31,129 +48,62 @@ export interface ParsedMdx {
 
 const parser = unified().use(remarkParse).use(remarkMdx);
 
-const PASCAL_CASE = /^[A-Z][a-zA-Z0-9]*$/;
-const HTML_ELEMENTS = new Set([
-  'a',
-  'abbr',
-  'address',
-  'area',
-  'article',
-  'aside',
-  'audio',
-  'b',
-  'base',
-  'bdi',
-  'bdo',
-  'blockquote',
-  'body',
-  'br',
-  'button',
-  'canvas',
-  'caption',
-  'cite',
-  'code',
-  'col',
-  'colgroup',
-  'data',
-  'datalist',
-  'dd',
-  'del',
-  'details',
-  'dfn',
-  'dialog',
-  'div',
-  'dl',
-  'dt',
-  'em',
-  'embed',
-  'fieldset',
-  'figcaption',
-  'figure',
-  'footer',
-  'form',
-  'h1',
-  'h2',
-  'h3',
-  'h4',
-  'h5',
-  'h6',
-  'head',
-  'header',
-  'hgroup',
-  'hr',
-  'html',
-  'i',
-  'iframe',
-  'img',
-  'input',
-  'ins',
-  'kbd',
-  'label',
-  'legend',
-  'li',
-  'link',
-  'main',
-  'map',
-  'mark',
-  'menu',
-  'meta',
-  'meter',
-  'nav',
-  'noscript',
-  'object',
-  'ol',
-  'optgroup',
-  'option',
-  'output',
-  'p',
-  'picture',
-  'pre',
-  'progress',
-  'q',
-  'rp',
-  'rt',
-  'ruby',
-  's',
-  'samp',
-  'script',
-  'section',
-  'select',
-  'slot',
-  'small',
-  'source',
-  'span',
-  'strong',
-  'style',
-  'sub',
-  'summary',
-  'sup',
-  'svg',
-  'table',
-  'tbody',
-  'td',
-  'template',
-  'textarea',
-  'tfoot',
-  'th',
-  'thead',
-  'time',
-  'title',
-  'tr',
-  'track',
-  'u',
-  'ul',
-  'var',
-  'video',
-  'wbr',
-]);
-
 interface MdxEsmNode {
   data?: { estree?: Program };
 }
 
+interface MdxJsxAttributeValueExpression {
+  type: string;
+  value?: string;
+}
+
+interface MdxJsxAttributeNode {
+  type: 'mdxJsxAttribute' | 'mdxJsxExpressionAttribute';
+  name?: string;
+  value?: string | null | MdxJsxAttributeValueExpression;
+}
+
 interface MdxJsxNode {
   name: string | null;
+  attributes?: MdxJsxAttributeNode[];
   position?: Position;
+}
+
+// JSX name semantics: lowercase-start & dashed single identifiers are
+// intrinsic tags, namespace names (svg:path) compile to literal tags &
+// everything else (capitalized/_/$ roots & member expressions) is a component
+function componentNameInfo(
+  name: string
+): { root: string; members: string[] } | null {
+  if (name.includes(':')) {
+    return null;
+  }
+  const segments = name.split('.');
+  const root = segments[0];
+  if (segments.length === 1 && (/^[a-z]/.test(root) || root.includes('-'))) {
+    return null;
+  }
+  return { root, members: segments.slice(1) };
+}
+
+function collectAttributes(node: MdxJsxNode): DetectedAttribute[] {
+  const out: DetectedAttribute[] = [];
+  for (const attr of node.attributes ?? []) {
+    if (attr.type !== 'mdxJsxAttribute' || typeof attr.name !== 'string') {
+      out.push({ kind: 'spread' });
+      continue;
+    }
+    if (attr.value === null || attr.value === undefined) {
+      out.push({ kind: 'shorthand', name: attr.name });
+      continue;
+    }
+    if (typeof attr.value === 'string') {
+      out.push({ kind: 'string', name: attr.name, value: attr.value });
+      continue;
+    }
+    out.push({ kind: 'expression', name: attr.name, value: attr.value.value });
+  }
+  return out;
 }
 
 export function parseMdxForAnalysis(
@@ -182,17 +132,19 @@ export function parseMdxForAnalysis(
       return;
     }
     const jsx = node as MdxJsxNode;
-    if (
-      !jsx.name ||
-      !PASCAL_CASE.test(jsx.name) ||
-      isHtmlElement(jsx.name) ||
-      !jsx.position
-    ) {
+    if (!jsx.name || !jsx.position) {
+      return;
+    }
+    const info = componentNameInfo(jsx.name);
+    if (!info) {
       return;
     }
     components.push({
       name: jsx.name,
+      root: info.root,
+      members: info.members,
       range: toRange(jsx.position, lineOffset, bodyStartColumn),
+      attributes: collectAttributes(jsx),
     });
   });
 
@@ -288,10 +240,6 @@ function isIdentifier(node: unknown): node is Identifier {
     'name' in node &&
     typeof node.name === 'string'
   );
-}
-
-function isHtmlElement(name: string): boolean {
-  return HTML_ELEMENTS.has(name.toLowerCase());
 }
 
 function toRange(

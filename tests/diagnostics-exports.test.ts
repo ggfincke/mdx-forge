@@ -8,7 +8,7 @@ import * as analyze from '../src/diagnostics/analyze/index';
 describe('diagnostics contract exports', () => {
   it('exposes the stable code table', () => {
     expect(contract.DIAGNOSTIC_CODES.UNKNOWN_COMPONENT).toBe('MDXF001');
-    expect(Object.keys(contract.DIAGNOSTIC_CODES)).toHaveLength(14);
+    expect(Object.keys(contract.DIAGNOSTIC_CODES)).toHaveLength(16);
   });
 
   it('locks the full MDXF code set', () => {
@@ -19,6 +19,8 @@ describe('diagnostics contract exports', () => {
       DEPRECATED_PROP: 'MDXF004',
       DEPRECATED_ALIAS: 'MDXF005',
       MISSING_REQUIRED_PROP: 'MDXF006',
+      INVALID_PROP_VALUE: 'MDXF007',
+      UNKNOWN_COMPOUND_MEMBER: 'MDXF008',
       INVALID_FRONTMATTER: 'MDXF020',
       DUPLICATE_HEADING_ID: 'MDXF021',
       BROKEN_LINK: 'MDXF030',
@@ -34,8 +36,11 @@ describe('diagnostics contract exports', () => {
 describe('diagnostics analyze exports', () => {
   it('exposes the engine entry & reusable pure rules', () => {
     expect(typeof analyze.analyzeMdx).toBe('function');
+    expect(typeof analyze.analyzeMdxDocument).toBe('function');
     expect(typeof analyze.classifyComponentSource).toBe('function');
     expect(typeof analyze.analyzeUnknownComponents).toBe('function');
+    expect(typeof analyze.analyzeCompoundMember).toBe('function');
+    expect(typeof analyze.analyzeComponentProps).toBe('function');
     expect('parseMdxForAnalysis' in analyze).toBe(false);
     expect('ParsedMdx' in analyze).toBe(false);
   });

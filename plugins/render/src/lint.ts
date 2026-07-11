@@ -29,6 +29,11 @@ import {
   isIntrinsicTag,
 } from './registry.js';
 import { normalizeFrontmatterData } from './frontmatter-bounds.js';
+import {
+  fromCoreDiagnostic,
+  loadCoreEngine,
+  type CoreAnalyzeEngine,
+} from './core-engine.js';
 
 // get owner id from lowercase-start JSX member names like Tabs.Tab
 function rootIdentifier(name: string): string {
@@ -455,7 +460,72 @@ function safeMatter(source: string) {
   return parsed;
 }
 
+function frontmatterFatal(err: unknown): Diagnostic {
+  return {
+    kind: 'mdx-syntax',
+    severity: 'error',
+    message: `frontmatter parse failed: ${err instanceof Error ? err.message : String(err)}`,
+  };
+}
+
+// unified path: one core parse feeds component, member & prop rules w/
+// file-relative positions; frontmatter schema lint stays plugin-owned
+function lintWithCoreEngine(
+  engine: CoreAnalyzeEngine,
+  source: string,
+  framework: FrameworkId
+): LintResult {
+  const result = engine.analyzeMdxDocument(source, { framework });
+  if (result.parseError?.phase === 'frontmatter') {
+    return {
+      frontmatter: {},
+      content: source,
+      diagnostics: [],
+      fatal: frontmatterFatal(result.parseError.error),
+    };
+  }
+  const frontmatter = result.frontmatter;
+  const content = result.content;
+  const frontmatterDiagnostics = lintFrontmatter(frontmatter, framework);
+  if (result.parseError) {
+    return {
+      frontmatter,
+      content,
+      diagnostics: frontmatterDiagnostics,
+      fatal: normalizeCompileError(result.parseError.error, {
+        source,
+        framework,
+      }),
+    };
+  }
+  const componentDiagnostics: Diagnostic[] = [];
+  for (const diag of result.diagnostics) {
+    const mapped = fromCoreDiagnostic(diag, framework);
+    if (mapped) {
+      componentDiagnostics.push(mapped);
+    }
+  }
+  return {
+    frontmatter,
+    content,
+    diagnostics: [...frontmatterDiagnostics, ...componentDiagnostics],
+  };
+}
+
 export async function lintMdxSource(
+  source: string,
+  framework: FrameworkId
+): Promise<LintResult> {
+  const engine = await loadCoreEngine();
+  if (engine) {
+    return lintWithCoreEngine(engine, source, framework);
+  }
+  return lintLegacyMdxSource(source, framework);
+}
+
+// legacy path for the locked minimum core (0.6.2, no analyze subpath)
+// body reparse + kind-based walk; positions stay body-relative
+async function lintLegacyMdxSource(
   source: string,
   framework: FrameworkId
 ): Promise<LintResult> {
@@ -471,11 +541,7 @@ export async function lintMdxSource(
       frontmatter: {},
       content: source,
       diagnostics: [],
-      fatal: {
-        kind: 'mdx-syntax',
-        severity: 'error',
-        message: `frontmatter parse failed: ${err instanceof Error ? err.message : String(err)}`,
-      },
+      fatal: frontmatterFatal(err),
     };
   }
 

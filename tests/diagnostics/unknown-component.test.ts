@@ -25,7 +25,8 @@ function ctx(overrides: Partial<ClassifyContext> = {}): ClassifyContext {
 }
 
 function detected(name: string): DetectedComponent {
-  return { name, range };
+  const [root, ...members] = name.split('.');
+  return { name, root, members, range, attributes: [] };
 }
 
 describe('classifyComponentSource', () => {

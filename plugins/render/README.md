@@ -55,6 +55,20 @@ Cores older than the option (the current `0.6.x` minimum) ignore the key
 and keep emitting empty placeholders — a documented gap of the minimum
 line that closes when the declared range is bumped.
 
+### Unified diagnostics engine
+
+The lint pass feature-detects the core's extended analysis API
+(`mdx-forge/diagnostics/analyze` with `analyzeMdxDocument`, shipping in
+the next core release). When present, one core parse powers every
+diagnostic rule — correct JSX name grammar, prop validation, compound
+member checks, and file-relative positions across frontmatter — and the
+plugin only adapts stable `MDXF###` codes to its MCP shape. With the
+current `0.6.x` minimum the plugin falls back to its legacy analyzer,
+which keeps the previous behavior (body-relative line numbers after
+frontmatter; `open="false"`, `only=`, and unknown dotted members like
+`FileTree.Nope` are not flagged). Bumping the minimum core to close this
+gap is a pending deliberate release step, gated on `check:plugin-compat`.
+
 ## Tool: `render_mdx`
 
 | Param       | Type                                                              | Default       |
@@ -156,10 +170,15 @@ interface Diagnostic {
 }
 ```
 
-The lint pass walks the MDX AST before compiling, so unknown
-components and malformed props are caught cheaply and reported with
-positions. Frontmatter is validated against per-framework schemas
-(e.g., Starlight requires `title`, Docusaurus accepts
+The lint pass analyzes the MDX before compiling, so unknown components
+and malformed props are caught cheaply and reported with positions.
+With a core that ships the unified diagnostics engine (see “Unified
+diagnostics engine” above), positions are original-file line numbers
+even below frontmatter, string values on boolean props
+(`open="false"`) and non-event `on*` names (`only=`) are flagged, and
+dotted members are validated against the known compound components.
+Frontmatter is validated against per-framework schemas (e.g.,
+Starlight requires `title`, Docusaurus accepts
 `sidebar_position: number`).
 
 Chat-surface compatibility:

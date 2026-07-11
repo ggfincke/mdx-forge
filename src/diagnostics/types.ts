@@ -23,6 +23,8 @@ export const DIAGNOSTIC_CODES = {
   DEPRECATED_PROP: 'MDXF004',
   DEPRECATED_ALIAS: 'MDXF005',
   MISSING_REQUIRED_PROP: 'MDXF006',
+  INVALID_PROP_VALUE: 'MDXF007',
+  UNKNOWN_COMPOUND_MEMBER: 'MDXF008',
   INVALID_FRONTMATTER: 'MDXF020',
   DUPLICATE_HEADING_ID: 'MDXF021',
   BROKEN_LINK: 'MDXF030',
@@ -42,6 +44,25 @@ export interface UnknownComponentData {
   suggestions: string[];
 }
 
+// prop rules (MDXF002-MDXF007) carry enough context for host suggestions
+export interface PropDiagnosticData {
+  componentName: string;
+  propName: string;
+  knownProps?: string[];
+  value?: string;
+  values?: string[];
+  canonical?: string;
+  expectedType?: string;
+}
+
+// compound-member rule (MDXF008) payload
+export interface CompoundMemberData {
+  componentName: string;
+  rootName: string;
+  memberName: string;
+  allowedMembers: string[];
+}
+
 export interface Diagnostic {
   code: DiagnosticCode;
   ruleId: string;
@@ -49,5 +70,9 @@ export interface Diagnostic {
   message: string;
   source: 'mdx-forge';
   range?: DiagnosticRange;
-  data?: UnknownComponentData | Record<string, unknown>;
+  data?:
+    | UnknownComponentData
+    | PropDiagnosticData
+    | CompoundMemberData
+    | Record<string, unknown>;
 }

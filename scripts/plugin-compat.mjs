@@ -30,14 +30,20 @@ function run(command, commandArgs, cwd, env = {}) {
 }
 
 // bounded smoke set: diagnostics (no browser), safe render & diagram fences
-function runBoundedSmokes(pluginCopy, expectDiagramCode) {
-  run('node', ['scripts/smoke-diagnostics.mjs'], pluginCopy);
+// currentCore additionally asserts the unified diagnostics engine behaviors
+function runBoundedSmokes(pluginCopy, currentCore) {
+  run(
+    'node',
+    ['scripts/smoke-diagnostics.mjs'],
+    pluginCopy,
+    currentCore ? { MDX_FORGE_EXPECT_UNIFIED_DIAGNOSTICS: '1' } : {}
+  );
   run('node', ['scripts/smoke.mjs'], pluginCopy);
   run(
     'node',
     ['scripts/smoke-diagrams.mjs'],
     pluginCopy,
-    expectDiagramCode ? { MDX_FORGE_EXPECT_DIAGRAM_CODE: '1' } : {}
+    currentCore ? { MDX_FORGE_EXPECT_DIAGRAM_CODE: '1' } : {}
   );
 }
 
