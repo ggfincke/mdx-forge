@@ -3,11 +3,7 @@
 
 import type { RootContent } from 'mdast';
 import type { MdxJsxElement } from '../../types';
-import {
-  getStaticStringProp,
-  getStaticBooleanProp,
-  createNode,
-} from './utils';
+import { getStaticStringProp, getStaticBooleanProp, createNode } from './utils';
 import {
   SAFE_COLLAPSIBLE,
   SAFE_COLLAPSIBLE_SUMMARY,

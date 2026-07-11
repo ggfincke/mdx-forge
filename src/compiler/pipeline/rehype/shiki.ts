@@ -415,7 +415,10 @@ export default function rehypeShiki() {
         return;
       }
 
-      const meta = parseMeta(getFenceMeta(node, codeChild), countCodeLines(code));
+      const meta = parseMeta(
+        getFenceMeta(node, codeChild),
+        countCodeLines(code)
+      );
       const sourceLine =
         typeof node.properties?.['data-source-line'] === 'string'
           ? (node.properties?.['data-source-line'] as string)

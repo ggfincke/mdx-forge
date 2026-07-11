@@ -24,7 +24,9 @@ describe('Safe intrinsic JSX structural crossing (F8)', () => {
     );
 
     expect(result.html).toMatch(/<strong[^>]*>bold<\/strong>/);
-    expect(result.html).toMatch(/<a href="https:\/\/example\.com"[^>]*>link<\/a>/);
+    expect(result.html).toMatch(
+      /<a href="https:\/\/example\.com"[^>]*>link<\/a>/
+    );
     // no empty paragraph artifacts around the block element
     expect(result.html).not.toMatch(/<p[^>]*><\/p>/);
   });
@@ -67,7 +69,9 @@ describe('Safe intrinsic JSX structural crossing (F8)', () => {
 
     expect(result.html).toMatch(/<section[^>]*>/);
     expect(result.html).toMatch(/<ul[^>]*>/);
-    expect(result.html).toMatch(/<li[^>]*>item <strong[^>]*>one<\/strong><\/li>/);
+    expect(result.html).toMatch(
+      /<li[^>]*>item <strong[^>]*>one<\/strong><\/li>/
+    );
   });
 
   it('serializes static attributes exactly once at the HTML sink', async () => {

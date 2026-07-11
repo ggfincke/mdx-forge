@@ -41,8 +41,10 @@ const hasDefaultExport = (source: string): boolean => {
 
   let children: unknown[];
   try {
-    children = unified().use(remarkParse).use(remarkMdx).parse(content)
-      .children;
+    children = unified()
+      .use(remarkParse)
+      .use(remarkMdx)
+      .parse(content).children;
   } catch {
     // invalid MDX: let the real compile surface the parse error
     return false;
