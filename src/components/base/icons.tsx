@@ -77,12 +77,6 @@ export function ArrowIcon({
   return <LucideArrowIcon size={size} className={className} />;
 }
 
-// copy icon (Lucide style) - used for copy buttons
-export const CopyIcon = createIconComponent(LUCIDE_ICONS.copy, 16);
-
-// check icon (Lucide style) - used for copy confirmation
-export const CheckIcon = createIconComponent(LUCIDE_ICONS.check, 16);
-
 export const NEXTRA_CALLOUT_ICONS: Record<
   NextraCalloutType,
   React.FC<IconProps>

@@ -7,7 +7,6 @@ import React, {
   useRef,
   useCallback,
   useEffect,
-  useId,
   useSyncExternalStore,
   ReactNode,
   ReactElement,
@@ -15,16 +14,15 @@ import React, {
   Children,
   isValidElement,
   HTMLAttributes,
-  KeyboardEvent,
 } from 'react';
 import { cn } from '../internal/cn';
 import {
   useTabState,
   useIndexTabs,
-  resolveTabNavIndex,
   type TabDefinition,
   type TabItemProps,
 } from './useTabState';
+import { useTabListInteraction } from './useTabListInteraction';
 import {
   subscribeTabGroup,
   getTabGroupChoice,
@@ -188,28 +186,15 @@ export function createTabs(config: BaseTabsConfig): CreateTabsResult {
       [setActiveValue, storeKey, queryParam]
     );
 
-    // refs for tab buttons to enable focus management
-    const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-
-    // handle keyboard navigation for tabs
-    const handleKeyDown = useCallback(
-      (e: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
-        const newIndex = resolveTabNavIndex(e.key, currentIndex, tabs.length);
-        if (newIndex === undefined) {
-          return;
-        }
-
-        e.preventDefault();
-        selectValue(tabs[newIndex].value);
-        tabRefs.current[newIndex]?.focus();
-      },
+    // shared interaction machinery; selection maps index -> tab value
+    const selectIndex = useCallback(
+      (index: number) => selectValue(tabs[index].value),
       [tabs, selectValue]
     );
-
-    // reciprocal tab/panel ids for aria-controls & aria-labelledby
-    const baseId = useId();
-    const tabId = (index: number) => `${baseId}-tab-${index}`;
-    const panelId = (index: number) => `${baseId}-panel-${index}`;
+    const { tabId, panelId, tabButtonProps } = useTabListInteraction({
+      count: tabs.length,
+      onSelect: selectIndex,
+    });
     const tabIndexOf = (value: string) =>
       tabs.findIndex((tab) => tab.value === value);
 
@@ -228,21 +213,11 @@ export function createTabs(config: BaseTabsConfig): CreateTabsResult {
             {tabs.map((tab, index) => (
               <button
                 key={tab.value}
-                ref={(el) => {
-                  tabRefs.current[index] = el;
-                }}
-                type="button"
-                id={tabId(index)}
-                role="tab"
-                aria-controls={panelId(index)}
+                {...tabButtonProps(index, tab.value === currentValue)}
                 className={cn(
                   `${classPrefix}-button`,
                   tab.value === currentValue && 'active'
                 )}
-                aria-selected={tab.value === currentValue}
-                onClick={() => selectValue(tab.value)}
-                onKeyDown={(e) => handleKeyDown(e, index)}
-                tabIndex={tab.value === currentValue ? 0 : -1}
               >
                 {renderTabIcon && tab.icon !== undefined && (
                   <span className={`${classPrefix}-icon`} aria-hidden="true">
@@ -380,38 +355,21 @@ export function createIndexTabs<T>(
       isDisabled,
     });
 
-    // refs for tab buttons to enable focus management
-    const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-
-    // handle keyboard navigation for tabs (disabled-aware)
-    const handleKeyDown = useCallback(
-      (e: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
-        const newIndex = resolveTabNavIndex(
-          e.key,
-          currentIndex,
-          items.length,
-          (idx) => isDisabled(items[idx])
-        );
-        if (newIndex === undefined) {
-          return;
-        }
-
-        e.preventDefault();
-        setActiveIndex(newIndex);
-        tabRefs.current[newIndex]?.focus();
-      },
-      [items, setActiveIndex]
+    // shared interaction machinery (disabled-aware)
+    const itemDisabled = useCallback(
+      (index: number) => isDisabled(items[index]),
+      [items]
     );
+    const { tabId, panelId, tabButtonProps } = useTabListInteraction({
+      count: items.length,
+      onSelect: setActiveIndex,
+      isDisabled: itemDisabled,
+    });
 
     // get Tab children for content panels
     const tabChildren = Children.toArray(children).filter(
       (child) => isValidElement(child) && child.type === Tab
     );
-
-    // reciprocal tab/panel ids for aria-controls & aria-labelledby
-    const baseId = useId();
-    const tabId = (index: number) => `${baseId}-tab-${index}`;
-    const panelId = (index: number) => `${baseId}-panel-${index}`;
 
     return (
       <TabsContext.Provider value={true}>
@@ -431,24 +389,14 @@ export function createIndexTabs<T>(
               return (
                 <button
                   key={index}
-                  ref={(el) => {
-                    tabRefs.current[index] = el;
-                  }}
-                  type="button"
-                  id={tabId(index)}
-                  role="tab"
-                  aria-controls={panelId(index)}
-                  aria-selected={selected}
+                  {...tabButtonProps(index, selected)}
                   aria-disabled={disabled}
-                  tabIndex={selected ? 0 : -1}
                   className={cn(
                     `${classPrefix}-button`,
                     selected && `${classPrefix}-button-active`,
                     disabled && `${classPrefix}-button-disabled`,
                     customClass
                   )}
-                  onClick={() => setActiveIndex(index)}
-                  onKeyDown={(e) => handleKeyDown(e, index)}
                   disabled={disabled}
                 >
                   {label}

@@ -2,8 +2,9 @@
 // scripts/check-legacy-path-prefixes.mjs
 // fail if deprecated extracted-repo paths appear in active files
 
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { extname, join, relative } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { relative } from 'node:path';
+import { collectFiles, normalizePath } from './lib/collect-files.mjs';
 
 const SCAN_ENTRIES = [
   'src',
@@ -49,44 +50,6 @@ const LEGACY_PATTERNS = [
   },
 ];
 
-function normalizePath(filePath) {
-  return filePath.replaceAll('\\', '/');
-}
-
-function collectFiles(rootDir, currentPath, output) {
-  if (!existsSync(currentPath)) {
-    return;
-  }
-
-  const stats = statSync(currentPath);
-  if (stats.isFile()) {
-    if (ALLOWED_EXTENSIONS.has(extname(currentPath))) {
-      output.push(currentPath);
-    }
-    return;
-  }
-
-  const entries = readdirSync(currentPath, { withFileTypes: true });
-  for (const entry of entries) {
-    const absolutePath = join(currentPath, entry.name);
-
-    if (entry.isDirectory()) {
-      if (IGNORED_DIRECTORIES.has(entry.name)) {
-        continue;
-      }
-
-      collectFiles(rootDir, absolutePath, output);
-      continue;
-    }
-
-    if (!ALLOWED_EXTENSIONS.has(extname(entry.name))) {
-      continue;
-    }
-
-    output.push(absolutePath);
-  }
-}
-
 function scanFile(rootDir, absolutePath) {
   const violations = [];
   const contents = readFileSync(absolutePath, 'utf-8');
@@ -115,11 +78,10 @@ function scanFile(rootDir, absolutePath) {
 
 try {
   const rootDir = process.cwd();
-  const filesToScan = [];
-
-  for (const entry of SCAN_ENTRIES) {
-    collectFiles(rootDir, join(rootDir, entry), filesToScan);
-  }
+  const filesToScan = collectFiles(rootDir, SCAN_ENTRIES, {
+    extensions: ALLOWED_EXTENSIONS,
+    ignoredDirectories: IGNORED_DIRECTORIES,
+  });
 
   const uniqueFiles = Array.from(new Set(filesToScan)).sort();
   const violations = [];

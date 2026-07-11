@@ -7,14 +7,11 @@ import React, {
   ReactNode,
   Children,
   isValidElement,
-  useRef,
-  useCallback,
-  useId,
-  KeyboardEvent,
 } from 'react';
 import { CodeGroupProps } from './types';
 import { cn } from '../internal/cn';
-import { useIndexTabs, resolveTabNavIndex } from '../base/useTabState';
+import { useIndexTabs } from '../base/useTabState';
+import { useTabListInteraction } from '../base/useTabListInteraction';
 
 // extract label from code block element
 function extractLabelFromCodeBlock(child: ReactElement): string {
@@ -72,28 +69,11 @@ export function CodeGroup({ children, labels }: CodeGroupProps): ReactElement {
   // shared index-based tab state (matches base tabs factory)
   const { activeIndex, setActiveIndex } = useIndexTabs({ items: tabs });
 
-  // refs for tab buttons to enable focus management
-  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-
-  // handle keyboard navigation for tabs
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
-      const newIndex = resolveTabNavIndex(e.key, currentIndex, tabs.length);
-      if (newIndex === undefined) {
-        return;
-      }
-
-      e.preventDefault();
-      setActiveIndex(newIndex);
-      tabRefs.current[newIndex]?.focus();
-    },
-    [tabs.length, setActiveIndex]
-  );
-
-  // reciprocal tab/panel ids for aria-controls & aria-labelledby
-  const baseId = useId();
-  const tabId = (index: number) => `${baseId}-tab-${index}`;
-  const panelId = (index: number) => `${baseId}-panel-${index}`;
+  // shared interaction machinery
+  const { tabId, panelId, tabButtonProps } = useTabListInteraction({
+    count: tabs.length,
+    onSelect: setActiveIndex,
+  });
 
   if (tabs.length === 0) {
     return (
@@ -115,21 +95,11 @@ export function CodeGroup({ children, labels }: CodeGroupProps): ReactElement {
         {tabs.map((tab, index) => (
           <button
             key={index}
-            ref={(el) => {
-              tabRefs.current[index] = el;
-            }}
-            type="button"
-            id={tabId(index)}
-            role="tab"
-            aria-controls={panelId(index)}
+            {...tabButtonProps(index, index === activeIndex)}
             className={cn(
               'mdx-preview-generic-code-group-button',
               index === activeIndex && 'active'
             )}
-            aria-selected={index === activeIndex}
-            onClick={() => setActiveIndex(index)}
-            onKeyDown={(e) => handleKeyDown(e, index)}
-            tabIndex={index === activeIndex ? 0 : -1}
           >
             {tab.label}
           </button>

@@ -1,7 +1,9 @@
 /* src/components/base/styles/index.css */
-/* Base component styles - imported by App.tsx */
+/* Base component styles - imported by the styles/ framework entries */
 /* These provide shared styles for all framework shims via data-attribute selectors */
 
+/* Tokens are imported once here so leaf sheets stay token-free */
+@import '../../shared/tokens.css';
 @import './callout.css';
 @import './tabs.css';
 @import './collapsible.css';

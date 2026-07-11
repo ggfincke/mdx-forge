@@ -9,16 +9,14 @@ import { FRAMEWORK_IDS } from 'mdx-forge/components/registry';
 // generic-inclusive framework id, derived from the core registry tuple
 export type FrameworkId = (typeof FRAMEWORK_IDS)[number];
 
-const cache = new Map<string, string>();
+const fileCache = new Map<string, string>();
+const bundleCache = new Map<string, string>();
 const __filename = fileURLToPath(import.meta.url);
 const REPO_ROOT = resolve(dirname(__filename), '..', '..', '..');
 const CSS_SUBPATH_PREFIX = 'mdx-forge/components/styles/';
+const TOKENS_SUBPATH = 'mdx-forge/components/styles/tokens.css';
 const CSS_IMPORT_PATTERN =
   /@import\s+(?:url\(\s*)?(?:(['"])([^'"]+)\1|([^'")\s]+))(?:\s*\))?\s*([^;]*);/g;
-
-async function loadCss(subpath: string): Promise<string> {
-  return loadCssFile(await resolveCssPath(subpath), new Set<string>());
-}
 
 async function resolveCssPath(subpath: string): Promise<string> {
   const sourcePath = sourceCssPath(subpath);
@@ -50,33 +48,33 @@ async function fileExists(filePath: string): Promise<boolean> {
   }
 }
 
-async function loadCssFile(
-  filePath: string,
-  stack: Set<string>
-): Promise<string> {
-  const cached = cache.get(filePath);
+async function readCssFile(filePath: string): Promise<string> {
+  const cached = fileCache.get(filePath);
   if (cached !== undefined) {
     return cached;
   }
-  if (stack.has(filePath)) {
-    throw new Error(`circular CSS @import detected: ${filePath}`);
-  }
+  const css = await readFile(filePath, 'utf8');
+  fileCache.set(filePath, css);
+  return css;
+}
 
-  stack.add(filePath);
-  try {
-    const css = await readFile(filePath, 'utf8');
-    const inlined = await inlineCssImports(css, filePath, stack);
-    cache.set(filePath, inlined);
-    return inlined;
-  } finally {
-    stack.delete(filePath);
+// inline a resolved file once per bundle; repeats (incl cycles) emit nothing
+async function inlineCssFile(
+  filePath: string,
+  emitted: Set<string>
+): Promise<string> {
+  if (emitted.has(filePath)) {
+    return '';
   }
+  emitted.add(filePath);
+  const css = await readCssFile(filePath);
+  return inlineCssImports(css, filePath, emitted);
 }
 
 async function inlineCssImports(
   css: string,
   importerPath: string,
-  stack: Set<string>
+  emitted: Set<string>
 ): Promise<string> {
   const chunks: string[] = [];
   let lastIndex = 0;
@@ -92,9 +90,9 @@ async function inlineCssImports(
     const modifiers = match[4]?.trim();
 
     if (specifier && !modifiers && shouldInlineImport(specifier)) {
-      const importedCss = await loadCssFile(
+      const importedCss = await inlineCssFile(
         resolveCssImport(specifier, importerPath),
-        stack
+        emitted
       );
       chunks.push(importedCss);
     } else {
@@ -125,15 +123,34 @@ function resolveCssImport(specifier: string, importerPath: string): string {
 }
 
 export async function tokensCss(): Promise<string> {
-  return loadCss('mdx-forge/components/styles/tokens.css');
+  const cached = bundleCache.get(TOKENS_SUBPATH);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const css = await inlineCssFile(
+    await resolveCssPath(TOKENS_SUBPATH),
+    new Set<string>()
+  );
+  bundleCache.set(TOKENS_SUBPATH, css);
+  return css;
 }
 
 // Next.js has no bundled CSS — consumers bring their own
+// token files are pre-seeded as emitted; tokensCss() owns their emission
 export async function resolveFrameworkCss(
   framework: FrameworkId
 ): Promise<string> {
   if (framework === 'nextjs') {
     return '';
   }
-  return loadCss(`mdx-forge/components/styles/${framework}.css`);
+  const subpath = `${CSS_SUBPATH_PREFIX}${framework}.css`;
+  const cached = bundleCache.get(subpath);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const emitted = new Set<string>();
+  await inlineCssFile(await resolveCssPath(TOKENS_SUBPATH), emitted);
+  const css = await inlineCssFile(await resolveCssPath(subpath), emitted);
+  bundleCache.set(subpath, css);
+  return css;
 }

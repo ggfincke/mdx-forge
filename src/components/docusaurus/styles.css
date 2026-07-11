@@ -3,8 +3,7 @@
 /* Designed to closely match Docusaurus default styling */
 /* CSS naming convention: mdx-preview-* for generic classes, docusaurus-* for wrapper classes */
 
-/* Import shared tokens */
-@import '../shared/tokens.css';
+/* Tokens are imported once by the styles/ framework entry */
 
 /* ==================== Tabs ==================== */
 .docusaurus-tabs {

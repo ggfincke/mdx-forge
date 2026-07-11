@@ -2,8 +2,7 @@
 /* Starlight component shim styles */
 /* Designed to closely match Starlight default styling */
 
-/* Import shared tokens */
-@import '../shared/tokens.css';
+/* Tokens are imported once by the styles/ framework entry */
 
 /* ==================== Card ==================== */
 .mdx-preview-starlight-card {

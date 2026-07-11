@@ -4,6 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { collectFiles } from './lib/collect-files.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,13 +34,13 @@ const KNOWN_EXTENSIONS = [
 const TREE_CONFIGS = [
   {
     dir: esmDir,
-    isTarget: (name) => name.endsWith('.js'),
+    targetExts: ['.js'],
     candidateExts: ['.js'],
     emitExt: '.js',
   },
   {
     dir: typesDir,
-    isTarget: (name) => name.endsWith('.d.ts'),
+    targetExts: ['.d.ts'],
     // NodeNext maps ./x.js -> ./x.d.ts, so declarations also emit .js
     candidateExts: ['.d.ts'],
     emitExt: '.js',
@@ -111,25 +112,6 @@ function rewriteSpecifiers(filePath, source, config) {
   return next;
 }
 
-function listTargetFiles(dir, isTarget) {
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
-  const files = [];
-
-  for (const entry of entries) {
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      files.push(...listTargetFiles(fullPath, isTarget));
-      continue;
-    }
-
-    if (entry.isFile() && isTarget(entry.name)) {
-      files.push(fullPath);
-    }
-  }
-
-  return files;
-}
-
 const checkOnly = process.argv.includes('--check');
 
 let totalFiles = 0;
@@ -142,7 +124,9 @@ for (const config of TREE_CONFIGS) {
     process.exit(1);
   }
 
-  const files = listTargetFiles(config.dir, config.isTarget);
+  const files = collectFiles(config.dir, ['.'], {
+    extensions: config.targetExts,
+  });
   totalFiles += files.length;
 
   for (const filePath of files) {

@@ -2,8 +2,7 @@
 /* Generic component shim styles - framework-specific overrides only */
 /* Base callout/tabs/collapsible styles are in base/styles/ */
 
-/* Import shared tokens */
-@import '../shared/tokens.css';
+/* Tokens are imported once by the styles/ framework entry */
 
 /* ==================== TabItem (standalone) ==================== */
 /* TabItem rendered outside of Tabs context */
