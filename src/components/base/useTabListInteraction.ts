@@ -12,12 +12,13 @@ export interface TabListInteractionOptions {
 }
 
 // common props applied to every tab button
+// aria-controls omitted when the panel is absent (lazy mode) to avoid dangling ids
 export interface TabButtonBaseProps {
   ref: (el: HTMLButtonElement | null) => void;
   type: 'button';
   id: string;
   role: 'tab';
-  'aria-controls': string;
+  'aria-controls'?: string;
   'aria-selected': boolean;
   tabIndex: number;
   onClick: () => void;
@@ -28,7 +29,11 @@ export interface TabButtonBaseProps {
 export interface TabListInteraction {
   tabId: (index: number) => string;
   panelId: (index: number) => string;
-  tabButtonProps: (index: number, selected: boolean) => TabButtonBaseProps;
+  tabButtonProps: (
+    index: number,
+    selected: boolean,
+    panelPresent?: boolean
+  ) => TabButtonBaseProps;
 }
 
 // hook for the interaction machinery shared by every tab implementation
@@ -73,15 +78,20 @@ export function useTabListInteraction({
   );
 
   // shared button scaffolding: ref, ARIA wiring, roving tabindex & handlers
+  // aria-controls only when the panel exists (lazy mode drops non-selected panels)
   const tabButtonProps = useCallback(
-    (index: number, selected: boolean): TabButtonBaseProps => ({
+    (
+      index: number,
+      selected: boolean,
+      panelPresent: boolean = true
+    ): TabButtonBaseProps => ({
       ref: (el: HTMLButtonElement | null) => {
         tabRefs.current[index] = el;
       },
       type: 'button',
       id: tabId(index),
       role: 'tab',
-      'aria-controls': panelId(index),
+      ...(panelPresent ? { 'aria-controls': panelId(index) } : {}),
       'aria-selected': selected,
       tabIndex: selected ? 0 : -1,
       onClick: () => onSelect(index),

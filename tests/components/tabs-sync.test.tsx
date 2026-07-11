@@ -228,6 +228,35 @@ describe('lazy panels (F12)', () => {
     // previously-selected panel unmounted again
     expect(container.textContent).not.toContain('first');
   });
+
+  it('omits aria-controls on tabs whose panel is not mounted', () => {
+    const { container } = render(
+      <DocuTabs lazy>
+        <DocuTabItem value="a" label="A">
+          first
+        </DocuTabItem>
+        <DocuTabItem value="b" label="B">
+          second
+        </DocuTabItem>
+      </DocuTabs>
+    );
+
+    // every emitted aria-controls must reference an element in the DOM
+    const buttons = [...container.querySelectorAll('[role="tab"]')];
+    const withControls = buttons.filter((b) => b.hasAttribute('aria-controls'));
+    expect(withControls.length).toBe(1);
+    for (const button of withControls) {
+      const target = button.getAttribute('aria-controls') as string;
+      expect(container.querySelector(`[id="${target}"]`)).not.toBeNull();
+    }
+
+    // switching selection moves aria-controls to the newly mounted panel
+    fireEvent.click(tabButton(container, 'B'));
+    const bButton = tabButton(container, 'B');
+    const bTarget = bButton.getAttribute('aria-controls') as string;
+    expect(container.querySelector(`[id="${bTarget}"]`)).not.toBeNull();
+    expect(tabButton(container, 'A').hasAttribute('aria-controls')).toBe(false);
+  });
 });
 
 describe('starlight syncKey & icons (F12)', () => {

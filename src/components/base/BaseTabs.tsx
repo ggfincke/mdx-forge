@@ -213,7 +213,11 @@ export function createTabs(config: BaseTabsConfig): CreateTabsResult {
             {tabs.map((tab, index) => (
               <button
                 key={tab.value}
-                {...tabButtonProps(index, tab.value === currentValue)}
+                {...tabButtonProps(
+                  index,
+                  tab.value === currentValue,
+                  !lazy || tab.value === currentValue
+                )}
                 className={cn(
                   `${classPrefix}-button`,
                   tab.value === currentValue && 'active'
