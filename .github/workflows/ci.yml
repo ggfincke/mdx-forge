@@ -22,6 +22,9 @@ jobs:
       - run: npm run typecheck:dev
       - run: npx playwright install --with-deps chromium
       - run: npm run build
+      # root vitest imports plugins/render source; its deps resolve from plugins/render/node_modules
+      - run: npm ci
+        working-directory: plugins/render
       - run: npm test
 
   build:
