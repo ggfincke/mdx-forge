@@ -93,7 +93,11 @@ export const COMPONENT_METADATA = {
       {
         name: 'open',
         type: 'boolean',
-        description: 'Alias for defaultOpen.',
+        description: 'Initial open state; takes precedence over defaultOpen.',
+      },
+      {
+        name: 'className',
+        type: 'string',
       },
     ],
     openProps: DOM_OPEN_PROPS,
@@ -134,7 +138,13 @@ export const COMPONENT_METADATA = {
       {
         name: 'groupId',
         type: 'string',
-        description: 'Sync selection across groups w/ same ID.',
+        description:
+          'Sync selection across groups w/ same ID; persists to localStorage.',
+      },
+      {
+        name: 'lazy',
+        type: 'boolean',
+        description: 'Mount only the selected panel.',
       },
     ],
     openProps: DOM_OPEN_PROPS,
@@ -231,10 +241,20 @@ export const COMPONENT_METADATA = {
       {
         name: 'groupId',
         type: 'string',
+        description:
+          'Sync selection across groups w/ same ID; persists to localStorage.',
       },
       {
         name: 'queryString',
-        type: 'string',
+        type: 'union',
+        description:
+          'Sync selection w/ the URL; true derives the param name from ' +
+          'groupId, a string names the param explicitly.',
+      },
+      {
+        name: 'lazy',
+        type: 'boolean',
+        description: 'Mount only the selected panel.',
       },
     ],
     openProps: DOM_OPEN_PROPS,
@@ -506,7 +526,8 @@ export const COMPONENT_METADATA = {
       {
         name: 'syncKey',
         type: 'string',
-        description: 'Sync across pages.',
+        description:
+          'Sync & persist selection across tab groups w/ the same key.',
       },
     ],
     openProps: DOM_OPEN_PROPS,
@@ -537,6 +558,9 @@ export const COMPONENT_METADATA = {
       {
         name: 'icon',
         type: 'string',
+        description:
+          'Starlight icon name (star, rocket, document, ...); rendered ' +
+          'as an emoji equivalent in the preview.',
       },
     ],
     openProps: DOM_OPEN_PROPS,
@@ -583,6 +607,12 @@ export const COMPONENT_METADATA = {
       {
         name: 'title',
         type: 'string',
+      },
+      {
+        name: 'frame',
+        type: 'enum',
+        values: ['auto', 'code', 'terminal', 'none'],
+        description: 'Frame chrome; auto picks terminal for shell languages.',
       },
     ],
     openProps: DOM_OPEN_PROPS,

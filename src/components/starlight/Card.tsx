@@ -4,27 +4,7 @@
 
 import React, { ReactNode, ReactElement } from 'react';
 import { BaseCard } from '../base';
-
-// map Starlight icon names to emoji equivalents
-const ICON_MAP: Record<string, string> = {
-  star: '⭐',
-  rocket: '🚀',
-  document: '📄',
-  pencil: '✏️',
-  puzzle: '🧩',
-  setting: '⚙️',
-  information: 'ℹ️',
-  'open-book': '📖',
-  warning: '⚠️',
-  error: '❌',
-  check: '✅',
-  heart: '❤️',
-  lightning: '⚡',
-  sun: '☀️',
-  moon: '🌙',
-  external: '🔗',
-  seti: '📁',
-};
+import { STARLIGHT_ICON_MAP } from './icon-map';
 
 // card props (compatible w/ Starlight)
 export interface CardProps {
@@ -35,7 +15,7 @@ export interface CardProps {
 
 // card component
 export function Card({ children, title, icon }: CardProps): ReactElement {
-  const iconEmoji = icon ? (ICON_MAP[icon] ?? icon) : undefined;
+  const iconEmoji = icon ? (STARLIGHT_ICON_MAP[icon] ?? icon) : undefined;
 
   return (
     <BaseCard className="mdx-preview-starlight-card">

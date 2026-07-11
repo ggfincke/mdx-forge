@@ -607,3 +607,26 @@
   background-color: var(--vscode-editorGroupHeader-tabsBackground, #252526);
   border-bottom-color: var(--vscode-panel-border, #333);
 }
+
+/* ==================== Accessibility ==================== */
+
+/* Reveal the copy button for keyboard users */
+.mdx-preview-starlight-code-copy:focus-visible,
+.mdx-preview-starlight-code-container:focus-within
+  .mdx-preview-starlight-code-copy {
+  opacity: 1;
+}
+
+/* Disable stagger/appear animations when reduced motion is set */
+@media (prefers-reduced-motion: reduce) {
+  .mdx-preview-starlight-card-grid.stagger > .mdx-preview-starlight-card {
+    animation: none;
+    opacity: 1;
+  }
+
+  .mdx-preview-starlight-file-tree .icon.chevron,
+  .mdx-preview-starlight-link-card-arrow,
+  .mdx-preview-starlight-code-copy {
+    transition: none;
+  }
+}

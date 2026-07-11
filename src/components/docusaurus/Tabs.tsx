@@ -9,18 +9,21 @@ import {
   type TabItemProps as BaseTabItemProps,
 } from '../base';
 
-// re-export types for compatibility
-export type TabsProps = BaseTabsProps;
-export type TabItemProps = BaseTabItemProps;
+// docusaurus surface: groupId sync/persistence, queryString URL sync, lazy
+export type TabsProps = Omit<BaseTabsProps, 'syncKey'>;
+// docusaurus TabItem has no icon prop
+export type TabItemProps = Omit<BaseTabItemProps, 'icon'>;
 export type { TabDefinition };
 
 // create Docusaurus-compatible tabs using the factory
-// use 'mdx-preview-tabs' class prefix w/ 'docusaurus-tabs' wrapper
-// support groupId for tab synchronization
+// groupId selections sync across groups & persist via localStorage
+// queryString mirrors the selection into the URL & lazy mounts one panel
 const { Tabs, TabItem, useTabsContext, TabsContext } = createTabs({
   classPrefix: 'mdx-preview-tabs',
   wrapperClass: 'docusaurus-tabs',
   supportsGroupId: true,
+  groupStoragePrefix: 'docusaurus.tab.',
+  supportsQueryString: true,
   contextName: 'DocusaurusTabs',
 });
 

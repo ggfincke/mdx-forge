@@ -188,9 +188,9 @@ export function StarlightPage() {
         />
       </Section>
 
-      <Section title="Tabs" description="Starlight tab component">
+      <Section title="Tabs" description="Starlight tab component w/ icons">
         <Tabs>
-          <TabItem label="npm" value="npm">
+          <TabItem label="npm" value="npm" icon="rocket">
             <pre>
               <code>npm install mdx-forge</code>
             </pre>
@@ -203,6 +203,36 @@ export function StarlightPage() {
           <TabItem label="Yarn" value="yarn">
             <pre>
               <code>yarn add mdx-forge</code>
+            </pre>
+          </TabItem>
+        </Tabs>
+      </Section>
+
+      <Section
+        title="Synchronized Tabs (syncKey)"
+        description="Tabs w/ the same syncKey stay in sync & persist"
+      >
+        <Tabs syncKey="pkg">
+          <TabItem label="npm">
+            <pre>
+              <code>npm run build</code>
+            </pre>
+          </TabItem>
+          <TabItem label="pnpm">
+            <pre>
+              <code>pnpm build</code>
+            </pre>
+          </TabItem>
+        </Tabs>
+        <Tabs syncKey="pkg">
+          <TabItem label="npm">
+            <pre>
+              <code>npm test</code>
+            </pre>
+          </TabItem>
+          <TabItem label="pnpm">
+            <pre>
+              <code>pnpm test</code>
             </pre>
           </TabItem>
         </Tabs>
