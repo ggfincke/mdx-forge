@@ -5,7 +5,6 @@ import type { RootContent } from 'mdast';
 import type { MdxJsxElement } from '../../types';
 import {
   getStaticStringProp,
-  escapeHtml,
   createNode,
   createTrustedModeNotice,
 } from './utils';
@@ -55,7 +54,8 @@ export function transformTabItem(node: MdxJsxElement): RootContent {
         type: 'tabItemHeader',
         hName: 'div',
         className: SAFE_TAB_PANEL_HEADER,
-        children: [{ type: 'text', value: escapeHtml(label) }],
+        // text nodes are escaped at the HTML sink; never pre-escape here
+        children: [{ type: 'text', value: label }],
       }),
       createNode({
         type: 'tabItemContent',

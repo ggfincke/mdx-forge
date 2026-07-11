@@ -115,7 +115,6 @@ function createAlertNode(
     headerMode: 'combined-html',
     icon: config.icon,
     title: config.label,
-    escapeTitle: false,
     contentType: 'githubAlertContent',
     contentClassName: GITHUB_ALERT_CONTENT,
     contentChildren: node.children as RootContent[],

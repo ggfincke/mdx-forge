@@ -6,7 +6,6 @@ import type { MdxJsxElement } from '../../types';
 import {
   getStaticStringProp,
   getStaticBooleanProp,
-  escapeHtml,
   createNode,
 } from './utils';
 import {
@@ -33,7 +32,8 @@ export function transformCollapsible(node: MdxJsxElement): RootContent {
         type: 'collapsibleSummary',
         hName: 'summary',
         className: SAFE_COLLAPSIBLE_SUMMARY,
-        children: [{ type: 'text', value: escapeHtml(title) }],
+        // text nodes are escaped at the HTML sink; never pre-escape here
+        children: [{ type: 'text', value: title }],
       }),
       createNode({
         type: 'collapsibleContent',

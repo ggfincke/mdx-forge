@@ -118,7 +118,6 @@ export interface CalloutCardConfig {
   iconClassName?: string;
   icon: string;
   title: string;
-  escapeTitle: boolean;
   contentType: string;
   contentClassName: string;
   contentChildren: RootContent[];
@@ -134,15 +133,13 @@ function buildCardHeaderChildren(config: CalloutCardConfig): RootContent[] {
       } as RootContent,
     ];
   }
-  const titleValue = config.escapeTitle
-    ? escapeHtml(config.title)
-    : config.title;
+  // title is a hast text node escaped at the HTML sink; never pre-escape
   return [
     {
       type: 'html',
       value: `<span class="${config.iconClassName}">${config.icon}</span>`,
     } as RootContent,
-    { type: 'text', value: titleValue } as RootContent,
+    { type: 'text', value: config.title } as RootContent,
   ];
 }
 

@@ -251,7 +251,7 @@ Body text
     expect(result.html).toContain('</aside>');
   });
 
-  it('Callout title is HTML-escaped by escapeHtml (then serialized once more)', async () => {
+  it('Callout title is escaped exactly once at the HTML sink', async () => {
     const result = await compileSafe(
       `<Callout type="note" title="a<b>&'c">
 Body
@@ -259,9 +259,11 @@ Body
       createConfig()
     );
 
-    // escapeHtml turns the title into an entity string, which the HTML
-    // serializer then re-escapes the &; pin the exact current bytes
-    expect(result.html).toContain('a&#x26;lt;b&#x26;gt;&#x26;amp;&#x26;#039;c');
+    // the title is a hast text node escaped only by the serializer, so the
+    // rendered text reads back as the authored characters (no double escape)
+    expect(result.html).toContain("a&#x3C;b>&#x26;'c");
+    expect(result.html).not.toContain('&#x26;lt;');
+    expect(result.html).not.toContain('&amp;amp;');
   });
 
   it('admonition scaffold: div outer, div header w/ icon span + text, div content', async () => {

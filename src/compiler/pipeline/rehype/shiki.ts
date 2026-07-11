@@ -1,15 +1,18 @@
 // src/compiler/pipeline/rehype/shiki.ts
-// syntax highlighting w/ Shiki + meta parsing (line numbers, highlighting, title)
+// syntax highlighting w/ core Shiki (on-demand grammars, block-result cache)
+// + fence meta parsing (line numbers, highlighting, title)
 
 import { visit } from 'unist-util-visit';
 import type { Root, Element, Text, ElementContent } from 'hast';
 import {
-  createHighlighter,
-  type Highlighter,
-  type BundledLanguage,
+  createHighlighterCore,
+  createCssVariablesTheme,
+  type HighlighterCore,
+  type LanguageRegistration,
   type ShikiTransformer,
-} from 'shiki';
-import { createCssVariablesTheme } from 'shiki/core';
+} from '@shikijs/core';
+import { createJavaScriptRegexEngine } from '@shikijs/engine-javascript';
+import { LRUCache } from '../../../browser/internal/lru-cache';
 import {
   PREVIEW_CODEBLOCK,
   PREVIEW_CODEBLOCK_TITLE,
@@ -19,82 +22,83 @@ import {
   DIFF_REMOVE,
 } from '../../internal/css-classes';
 
-// common languages to pre-bundle (others fall back to plaintext)
-const COMMON_LANGUAGES: BundledLanguage[] = [
+// per-language grammar loaders; static specifiers keep bundlers code-splitting
+type LangModule = { default: LanguageRegistration[] };
+const LANGUAGE_LOADERS: Record<string, () => Promise<LangModule>> = {
   // web fundamentals
-  'typescript',
-  'javascript',
-  'tsx',
-  'jsx',
-  'json',
-  'jsonc',
-  'css',
-  'scss',
-  'less',
-  'html',
-  'vue',
-  'svelte',
+  typescript: () => import('@shikijs/langs/typescript'),
+  javascript: () => import('@shikijs/langs/javascript'),
+  tsx: () => import('@shikijs/langs/tsx'),
+  jsx: () => import('@shikijs/langs/jsx'),
+  json: () => import('@shikijs/langs/json'),
+  jsonc: () => import('@shikijs/langs/jsonc'),
+  css: () => import('@shikijs/langs/css'),
+  scss: () => import('@shikijs/langs/scss'),
+  less: () => import('@shikijs/langs/less'),
+  html: () => import('@shikijs/langs/html'),
+  vue: () => import('@shikijs/langs/vue'),
+  svelte: () => import('@shikijs/langs/svelte'),
 
   // shell & scripting
-  'bash',
-  'shell',
-  'powershell',
+  bash: () => import('@shikijs/langs/bash'),
+  shell: () => import('@shikijs/langs/shell'),
+  powershell: () => import('@shikijs/langs/powershell'),
 
   // documentation & data
-  'markdown',
-  'mdx',
-  'yaml',
-  'toml',
-  'xml',
-  'graphql',
-  'sql',
-  'regex',
+  markdown: () => import('@shikijs/langs/markdown'),
+  mdx: () => import('@shikijs/langs/mdx'),
+  yaml: () => import('@shikijs/langs/yaml'),
+  toml: () => import('@shikijs/langs/toml'),
+  xml: () => import('@shikijs/langs/xml'),
+  graphql: () => import('@shikijs/langs/graphql'),
+  sql: () => import('@shikijs/langs/sql'),
+  regex: () => import('@shikijs/langs/regex'),
 
   // systems programming
-  'c',
-  'cpp',
-  'rust',
-  'go',
-  'zig',
+  c: () => import('@shikijs/langs/c'),
+  cpp: () => import('@shikijs/langs/cpp'),
+  rust: () => import('@shikijs/langs/rust'),
+  go: () => import('@shikijs/langs/go'),
+  zig: () => import('@shikijs/langs/zig'),
 
   // JVM languages
-  'java',
-  'kotlin',
-  'scala',
+  java: () => import('@shikijs/langs/java'),
+  kotlin: () => import('@shikijs/langs/kotlin'),
+  scala: () => import('@shikijs/langs/scala'),
 
   // apple ecosystem
-  'swift',
-  'objective-c',
+  swift: () => import('@shikijs/langs/swift'),
+  'objective-c': () => import('@shikijs/langs/objective-c'),
 
   // scripting languages
-  'python',
-  'ruby',
-  'php',
-  'lua',
-  'perl',
-  'r',
+  python: () => import('@shikijs/langs/python'),
+  ruby: () => import('@shikijs/langs/ruby'),
+  php: () => import('@shikijs/langs/php'),
+  lua: () => import('@shikijs/langs/lua'),
+  perl: () => import('@shikijs/langs/perl'),
+  r: () => import('@shikijs/langs/r'),
 
   // .NET
-  'csharp',
-  'fsharp',
+  csharp: () => import('@shikijs/langs/csharp'),
+  fsharp: () => import('@shikijs/langs/fsharp'),
 
   // functional
-  'haskell',
-  'elixir',
-  'clojure',
+  haskell: () => import('@shikijs/langs/haskell'),
+  elixir: () => import('@shikijs/langs/elixir'),
+  clojure: () => import('@shikijs/langs/clojure'),
 
   // devops & config
-  'dockerfile',
-  'nginx',
-  'ini',
+  dockerfile: () => import('@shikijs/langs/dockerfile'),
+  nginx: () => import('@shikijs/langs/nginx'),
+  ini: () => import('@shikijs/langs/ini'),
 
   // other
-  'diff',
-  'latex',
-];
+  diff: () => import('@shikijs/langs/diff'),
+  latex: () => import('@shikijs/langs/latex'),
+};
 
-// O(1) lookup Set for language support checking
-const SUPPORTED_LANGUAGE_SET = new Set<string>(COMMON_LANGUAGES);
+// languages rendered w/o any grammar (Shiki treats these as plain)
+const PLAINTEXT_LANGUAGES = new Set(['text', 'plaintext', 'txt', 'plain']);
 
 // create CSS variables theme for dynamic theming (outputs CSS vars instead of hardcoded colors)
 const cssVariablesTheme = createCssVariablesTheme({
@@ -121,17 +125,116 @@ const createDiffTransformer = (code: string): ShikiTransformer => {
   };
 };
 
-// cached highlighter instance
-let highlighterPromise: Promise<Highlighter> | null = null;
+// cached core highlighter instance (no grammars until a fence needs one)
+let highlighterPromise: Promise<HighlighterCore> | null = null;
 
-async function getHighlighter(): Promise<Highlighter> {
+// promise-deduped per-language grammar loads; false = unavailable
+const languageLoads = new Map<string, Promise<boolean>>();
+
+async function getHighlighter(): Promise<HighlighterCore> {
   if (!highlighterPromise) {
-    highlighterPromise = createHighlighter({
+    highlighterPromise = createHighlighterCore({
       themes: [cssVariablesTheme],
-      langs: COMMON_LANGUAGES,
+      langs: [],
+      engine: createJavaScriptRegexEngine({ forgiving: true }),
     });
   }
   return highlighterPromise;
+}
+
+// load a grammar once per process; concurrent requests share the same promise
+function ensureLanguage(
+  highlighter: HighlighterCore,
+  lang: string
+): Promise<boolean> {
+  let pending = languageLoads.get(lang);
+  if (!pending) {
+    const loader = LANGUAGE_LOADERS[lang];
+    pending = loader
+      ? loader().then(
+          async (mod) => {
+            await highlighter.loadLanguage(...mod.default);
+            return true;
+          },
+          () => false
+        )
+      : Promise.resolve(false);
+    languageLoads.set(lang, pending);
+  }
+  return pending;
+}
+
+// bounded block-result cache; stores immutable templates cloned on every use
+// key = schema/theme/lang/code; theme & transformers derive from lang + code
+const CACHE_KEY_SEPARATOR = '\u0000';
+const CACHE_SCHEMA = 'shiki-block-v1';
+const HIGHLIGHT_CACHE_MAX_ENTRIES = 500;
+const HIGHLIGHT_CACHE_MAX_BYTES = 8 * 1024 * 1024;
+
+const highlightCache = new LRUCache<string, Root>({
+  maxEntries: HIGHLIGHT_CACHE_MAX_ENTRIES,
+  maxMemoryBytes: HIGHLIGHT_CACHE_MAX_BYTES,
+  estimateSize: (value) => JSON.stringify(value).length,
+});
+
+// test/HMR hooks; not part of the public compiler API
+export function __highlightCacheStats(): { entries: number; bytes: number } {
+  return { entries: highlightCache.size, bytes: highlightCache.memoryBytes };
+}
+
+export function __resetHighlightState(): void {
+  highlightCache.clear();
+  languageLoads.clear();
+  highlighterPromise = null;
+  highlightCache.updateSettings({
+    maxEntries: HIGHLIGHT_CACHE_MAX_ENTRIES,
+    maxMemoryBytes: HIGHLIGHT_CACHE_MAX_BYTES,
+  });
+}
+
+export function __setHighlightCacheLimits(limits: {
+  maxEntries?: number;
+  maxMemoryBytes?: number;
+}): void {
+  highlightCache.updateSettings(limits);
+}
+
+// tokenize a block to a reusable hast template
+function highlightToTemplate(
+  highlighter: HighlighterCore,
+  code: string,
+  lang: string
+): Root {
+  return highlighter.codeToHast(code, {
+    lang,
+    theme: 'css-variables',
+    transformers: lang === 'diff' ? [createDiffTransformer(code)] : [],
+  }) as Root;
+}
+
+// highlighted children for a block; cached per (lang, code) & cloned on use
+function getHighlightedChildren(
+  highlighter: HighlighterCore,
+  code: string,
+  lang: string
+): ElementContent[] {
+  // plaintext fast path: trivial tokenization, no grammar, no cache entry
+  if (lang === 'text') {
+    return highlightToTemplate(highlighter, code, 'text')
+      .children as ElementContent[];
+  }
+
+  const key = [CACHE_SCHEMA, 'css-variables', lang, code].join(
+    CACHE_KEY_SEPARATOR
+  );
+  let template = highlightCache.get(key);
+  if (!template) {
+    template = highlightToTemplate(highlighter, code, lang);
+    highlightCache.set(key, template);
+  }
+
+  // clone so downstream plugin/document mutation never reaches the template
+  return structuredClone(template).children as ElementContent[];
 }
 
 // code meta parsed from fence info: ```ts showLineNumbers {1,3-5} title="example.ts"
@@ -141,8 +244,8 @@ interface CodeMeta {
   title?: string;
 }
 
-// parse meta string from code fence
-function parseMeta(meta: string | undefined): CodeMeta {
+// parse meta string from code fence; ranges are clamped to the block's lines
+function parseMeta(meta: string | undefined, lineCount: number): CodeMeta {
   const result: CodeMeta = {
     showLineNumbers: false,
     highlightLines: new Set(),
@@ -159,7 +262,7 @@ function parseMeta(meta: string | undefined): CodeMeta {
   // {1,3-5} line highlighting
   const lineMatch = meta.match(/\{([^}]+)\}/);
   if (lineMatch) {
-    result.highlightLines = parseLineRanges(lineMatch[1]);
+    result.highlightLines = parseLineRanges(lineMatch[1], lineCount);
   }
 
   // title="..." or title='...'
@@ -171,28 +274,55 @@ function parseMeta(meta: string | undefined): CodeMeta {
   return result;
 }
 
-// parse line ranges like "1,3-5,8" into Set of line numbers
-function parseLineRanges(rangeStr: string): Set<number> {
+// parse line ranges like "1,3-5,8" into a bounded Set of line numbers
+// clamps to [1, maxLine]; reversed or fully out-of-range parts are dropped
+function parseLineRanges(rangeStr: string, maxLine: number): Set<number> {
   const lines = new Set<number>();
+  if (!Number.isFinite(maxLine) || maxLine < 1) {
+    return lines;
+  }
   for (const part of rangeStr.split(',')) {
     const trimmed = part.trim();
     if (trimmed.includes('-')) {
       const [startStr, endStr] = trimmed.split('-');
       const start = parseInt(startStr, 10);
       const end = parseInt(endStr, 10);
-      if (!isNaN(start) && !isNaN(end)) {
-        for (let i = start; i <= end; i++) {
-          lines.add(i);
-        }
+      if (isNaN(start) || isNaN(end)) {
+        continue;
+      }
+      const from = Math.max(1, start);
+      const to = Math.min(maxLine, end);
+      for (let i = from; i <= to; i++) {
+        lines.add(i);
       }
     } else {
       const num = parseInt(trimmed, 10);
-      if (!isNaN(num)) {
+      if (!isNaN(num) && num >= 1 && num <= maxLine) {
         lines.add(num);
       }
     }
   }
   return lines;
+}
+
+// read fence meta from its real HAST location (codeChild.data.meta set by
+// remark-rehype / MDX); dataMeta property carries it across rehype-raw
+function getFenceMeta(pre: Element, code: Element): string {
+  const dataMeta = (code.data as { meta?: unknown } | undefined)?.meta;
+  if (typeof dataMeta === 'string') {
+    return dataMeta;
+  }
+  const propMeta =
+    code.properties?.dataMeta ??
+    code.properties?.['data-meta'] ??
+    pre.properties?.dataMeta ??
+    pre.properties?.['data-meta'];
+  return typeof propMeta === 'string' ? propMeta : '';
+}
+
+// count displayed lines of a fence (ignores the trailing newline)
+function countCodeLines(code: string): number {
+  return code.replace(/\n$/, '').split('\n').length;
 }
 
 // extract language from class name (e.g., "language-typescript" -> "typescript")
@@ -210,13 +340,8 @@ function extractLanguage(className: unknown): string | null {
   return null;
 }
 
-// check if language is supported (O(1) lookup via Set)
-function isLanguageSupported(lang: string): lang is BundledLanguage {
-  return SUPPORTED_LANGUAGE_SET.has(lang);
-}
-
 // language alias mapping (short names to Shiki-supported canonical names)
-const LANGUAGE_ALIASES: Record<string, BundledLanguage> = {
+const LANGUAGE_ALIASES: Record<string, string> = {
   js: 'javascript',
   ts: 'typescript',
   sh: 'bash',
@@ -290,12 +415,7 @@ export default function rehypeShiki() {
         return;
       }
 
-      // parse meta from data attribute (set by MDX/remark)
-      const metaStr =
-        (codeChild.properties?.['data-meta'] as string) ||
-        (node.properties?.['data-meta'] as string) ||
-        '';
-      const meta = parseMeta(metaStr);
+      const meta = parseMeta(getFenceMeta(node, codeChild), countCodeLines(code));
       const sourceLine =
         typeof node.properties?.['data-source-line'] === 'string'
           ? (node.properties?.['data-source-line'] as string)
@@ -317,7 +437,7 @@ export default function rehypeShiki() {
       return;
     }
 
-    // lazy init highlighter only when code blocks exist
+    // lazy init core highlighter only when code blocks exist (no grammars yet)
     const highlighter = await getHighlighter();
 
     // second pass: apply highlighting
@@ -332,22 +452,26 @@ export default function rehypeShiki() {
       try {
         // resolve alias first (e.g., 'js' -> 'javascript', 'ts' -> 'typescript')
         const resolvedLang = resolveLanguageAlias(lang);
-        // use supported language or fall back to plaintext
-        const highlightLang = isLanguageSupported(resolvedLang)
-          ? resolvedLang
-          : 'text';
+
+        // demand-load the grammar; plaintext/unknown languages skip Shiki grammars
+        let highlightLang = 'text';
+        if (
+          !PLAINTEXT_LANGUAGES.has(resolvedLang) &&
+          (await ensureLanguage(highlighter, resolvedLang))
+        ) {
+          highlightLang = resolvedLang;
+        }
 
         // generate hast w/ CSS variables (themeable via external CSS)
-        const hast = highlighter.codeToHast(code, {
-          lang: highlightLang,
-          theme: 'css-variables',
-          transformers:
-            highlightLang === 'diff' ? [createDiffTransformer(code)] : [],
-        });
+        const hastChildren = getHighlightedChildren(
+          highlighter,
+          code,
+          highlightLang
+        );
 
         // create wrapper w/ code block
         const wrapper = createCodeBlockWrapper({
-          hastChildren: hast.children as ElementContent[],
+          hastChildren,
           lang,
           meta,
           code,
@@ -418,6 +542,11 @@ function createCodeBlockWrapper(options: {
     properties: { className: [PREVIEW_CODEBLOCK] },
     children,
   };
+
+  // expose the title so wrappers (e.g. CodeGroup) can derive tab labels
+  if (meta.title) {
+    wrapper.properties!['data-title'] = meta.title;
+  }
 
   if (sourceLine) {
     wrapper.properties!['data-source-line'] = sourceLine;

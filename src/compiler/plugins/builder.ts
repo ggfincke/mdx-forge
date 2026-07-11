@@ -3,6 +3,7 @@
 
 import type { Pluggable } from 'unified';
 import rehypeRawPkg from 'rehype-raw';
+import rehypeFenceMeta from '../pipeline/rehype/fence-meta';
 import {
   sharedRemarkPlugins,
   sharedRehypePluginsPreMath,
@@ -25,6 +26,8 @@ export function buildTrustedRehypePlugins(
   customPlugins: LoadedPlugins
 ): Pluggable[] {
   const basePlugins: Pluggable[] = [
+    // fence meta must be captured before rehype-raw drops hast data fields
+    rehypeFenceMeta,
     [rehypeRawPkg, REHYPE_RAW_CONFIG],
     ...sharedRehypePluginsPreMath,
     rehypeKatex,
@@ -49,14 +52,17 @@ export function getSafeRemarkPlugins(): Pluggable[] {
   return sharedRemarkPlugins;
 }
 
-// get rehype plugins for Safe Mode (rehype-raw, diagram, math & post-math)
+// get rehype plugins for Safe Mode (fence meta, rehype-raw, diagram, math & post-math)
 export function getSafeRehypePluginSets(): {
+  fenceMeta: Pluggable;
   raw: Pluggable;
   preMath: Pluggable[];
   math: Pluggable;
   postMath: Pluggable[];
 } {
   return {
+    // fence meta must be captured before rehype-raw drops hast data fields
+    fenceMeta: rehypeFenceMeta as Pluggable,
     raw: [rehypeRawPkg, REHYPE_RAW_CONFIG] as Pluggable,
     preMath: sharedRehypePluginsPreMath,
     math: rehypeKatex,
