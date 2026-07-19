@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-07-19
+
+Carries the mega-review remediation (34 findings across the Safe render boundary, browser runtime, compiler fidelity, diagnostics, framework component contracts, and the published package) alongside the new structured Safe Document compiler. Hosts should re-check the behavior changes below: Trusted MCP responses no longer inline the rendered artifact by default, Nextra `Bleed` drops its unrelated `size`/`weight`/`align` props, and Starlight `LinkCard` now keeps internal links in the same tab.
+
 ### Added
 
 - **`compileSafeDocument` structured compiler**: `mdx-forge/compiler` now exposes an isolated parser-to-data path for untrusted host-component documents. It returns a versioned JSON-only tree with bounded document traversal, a closed Markdown element/prop vocabulary, normalized own-data-only component schemas, recursively enforced URL fields, typed bounded literals, original-document source ranges, JSON diagnostics, frontmatter canonicalization, fail-closed URL policy plus host narrowing, and explicit unknown/raw-element policies. MDX ESM, standalone expressions, executable prop expressions, unsafe URLs, arbitrary DOM props, invalid void-element children, and prototype-sensitive data are diagnosed and never enter the tree; the path has no Trusted Mode, plugin, component-import, browser, HTML, or React dependency
@@ -19,11 +23,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Browser runtime exports**: `PRELOADED_MODULE_IDS` and the `ModuleFetcher`, `ModuleLoaderConfig`, `MDXRuntime`, `Framework`, and `FrameworkId` types are now exported from `mdx-forge/browser`
 - **Consumer matrix gate**: `check:consumers` builds and packs the artifact, typechecks every public export subpath in clean NodeNext consumers under both `skipLibCheck` settings (with `compileSafe` / `compileSafeDocument` not-`any` assertions), executes the structured compiler from the installed tarball, bundles every CSS subpath, compiles the shipped skill examples and dev app against the packed declarations, and drives the plugin compatibility legs
 - **Plugin compatibility gate**: `check:plugin-compat` clean-installs the render plugin against its locked minimum core and the current packed core, runs typecheck/build/bounded smokes, and asserts diagram fences are visible and non-zero-height in code mode
+- **Framework tab synchronization**: Docusaurus `Tabs` implement real cross-instance `groupId` sync with `localStorage` persistence and `queryString` URL restore/update (the boolean form derives the parameter from `groupId`), plus lazy single-panel mounting; Starlight gets its own adapter with `syncKey` sync and `TabItem` icons; generic `Tabs` gains `groupId` sync. Label-only default items resolve through the value/label fallback chain
+- **Nextra compound and layout contracts**: `FileTree.Folder` and `FileTree.File` compound statics render a real tree (the `ul`/`li` fallback is kept), `Steps` is a native numbered rail around heading-delimited content, and `Bleed` implements its boolean `full` mode without DOM leakage
+- **Render budgets**: source size, pixel area, full-page height, PNG size, and response budgets are enforced in the render-plugin server schema and the direct API
 
 ### Changed
 
 - **Compiler dependency ownership**: `@mdx-js/mdx` and `unified` are direct runtime dependencies instead of advertised optional peers. A clean `npm install mdx-forge` can import `mdx-forge/compiler` without consumers reconstructing the compiler's internal dependency set; React remains an optional peer for component entry points
-- **Render plugin diagnostics engine**: The plugin lint pass now feature-detects the core's `analyzeMdxDocument` and, when present, delegates all body analysis to the single core engine, keeping only frontmatter schema lint and an MCP formatting adapter locally. Unified-engine lint restores stripped-frontmatter offsets (diagnostics report original-file lines), flags `open="false"`, `only=`, and unknown dotted members, and treats generic built-ins as known under every framework (previously flagged `unknown-component` per framework barrel). With the locked minimum core (0.6.2) the plugin falls back to its previous analyzer unchanged; the MCP diagnostic shape, unknown-component message wording, and severity mapping are preserved. Bumping the plugin's minimum core to require the unified engine is a pending deliberate release step
+- **Render plugin diagnostics engine**: The plugin lint pass now feature-detects the core's `analyzeMdxDocument` and, when present, delegates all body analysis to the single core engine, keeping only frontmatter schema lint and an MCP formatting adapter locally. Unified-engine lint restores stripped-frontmatter offsets (diagnostics report original-file lines), flags `open="false"`, `only=`, and unknown dotted members, and treats generic built-ins as known under every framework (previously flagged `unknown-component` per framework barrel). With the locked minimum core (0.7.1) the plugin falls back to its previous analyzer unchanged; the MCP diagnostic shape, unknown-component message wording, and severity mapping are preserved. Bumping the plugin's minimum core to require the unified engine is a pending deliberate release step
+- **Syntax highlighting engine**: moved to `@shikijs/core` with the JavaScript regex engine, promise-deduped per-language grammar imports, and a plaintext fast path, instead of initializing roughly 50 grammars for the first fence
+- **Code block tokenization cache**: a bounded byte-aware LRU caches block tokenization templates, cloned per use so cached HAST never leaks between documents; unchanged blocks are no longer re-highlighted on every edit
+- **Screenshot capture**: explicit readiness signals replace `networkidle` (roughly 500 ms saved per capture) and a single browser owner replaces duplicate instances
+- **Trusted MCP responses**: default to URL, diagnostics, and summary rather than inlining the 0.66-0.75 MB artifact; the harness page is minified and artifacts have a retention policy
+- **Framework CSS token emission**: the shared token sheet is imported once from `base/styles/index.css` (leaf and framework sheets no longer import it, `callout.css` imports `callout-variants` directly), and the render-plugin inliner caches raw reads and dedupes resolved files per bundle, so a document carries exactly one token sheet — generic document CSS 42.2 KB -> 22.6 KB, Starlight 54.8 KB -> 35.2 KB
+- **Shared tab-list interaction**: a new `useTabListInteraction` hook owns the button ref array, Arrow/Home/End keyboard navigation with disabled awareness, roving tabindex, and reciprocal tab/panel `useId` wiring; value tabs, index tabs, and `CodeGroup` consume it while keeping their own state models
+- **Component prop types**: `CalloutProps`, `CollapsibleProps`, and `CodeProps` now derive from their implementations (`className` included), and `CodeGroup` derives tab labels from compiled fence `data-title`. Registry metadata was updated so runtime, types, metadata, and examples agree
+- **Guard script traversal**: `scripts/lib/collect-files.mjs` is the single parameterized recursive collector (suffix filter, ignored directories, file-or-directory entries); the comment-style, frontmatter-import, legacy-path, copy-css, and ESM-specifier scripts use it with identical output
+- **Dependencies**: bump root dev dependencies (`@types/node` 26.1.1, `eslint` 10.7.x, `typescript-eslint` 8.64.x, `vite` 8.1.5, `vitest` 4.1.10, `prettier` 3.9.5) and the render plugin (`@types/node` 26.1.1, `typescript` 7.0.2, minimum `mdx-forge` ^0.7.1)
+
+### Removed
+
+- **Nextra `Bleed` props**: the unrelated `size`, `weight`, and `align` props are dropped; `Bleed` exposes only its boolean `full` mode
+- **Dead internal surfaces**: the `DEFAULT_SHIM_LOAD_*` retry constants and their parity test, the unreferenced `NEXTRA_FRONTMATTER_KEYS` list, the unreferenced `CopyIcon`/`CheckIcon` Lucide variants, the dead `shared/index.css` proxy, `createNextraWrapper`, and the `decrementStyleRef`/`unmarkStyleInjected` ref-count surface
 
 ### Fixed
 
@@ -32,6 +53,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Published NodeNext declarations**: The post-build specifier fixer and `check:esm-specifiers` now rewrite emitted `.d.ts` files (including bare `'.'`/`'..'` directory references) so NodeNext consumers resolve every public export with `skipLibCheck` on or off, instead of TS2834/TS2835 errors or silent `any` degradation
 - **Render plugin dependencies**: Directly imported runtime packages (`esbuild`, `gray-matter`, `remark-parse`, `remark-mdx`, `unist-util-visit`) are now declared production dependencies of the render plugin
 - **Dev app typecheck**: `npx tsc -p dev/tsconfig.json --noEmit` passes (CSS side-effect imports resolved via `vite/client` types) and runs in CI as `typecheck:dev`
+- **Module dependency eviction**: dependencies of live cached modules are protected from LRU eviction, so a cached dependent can never outlive its dependency generation and split module singletons are no longer possible; memory accounting now only drops modules that are genuinely unreachable
+- **CSS module lifecycle**: a cached CSS module owns its style end-to-end — module eviction or invalidation removes both the tracking entry and the DOM node, changed bytes under the same ID replace the node, and unchanged bytes keep duplicate-import dedup
+- **Stale browser loads**: a cache generation epoch rejects in-flight loads issued before a clear (`STALE_GENERATION`), `evaluateModuleToComponent` compare-and-clears exact shim handles so a newer load installed mid-await wins, and runtime budgets must be finite positive integers at the public config boundary
+- **Registry query helpers**: return defensive copies over private immutable state instead of exposing mutable compiler-global state; `KNOWN_GENERIC_COMPONENTS` is a readonly snapshot and Safe compilation checks `isGenericComponent()` rather than reading the shared set
+- **Trusted codegen hygiene**: collision-safe wrapper aliases, quoted import specifiers and object keys, no unused classic React import, and a clear error for unsupported component keys, so generated JavaScript stays parseable
+- **MDX default-export detection**: real estree inspection of MDX ESM replaces the regex scan that a fenced example containing `export default` could fool
+- **Safe intrinsic JSX semantics**: intrinsic JSX children are preserved structurally across the AST-to-HTML crossing, block-level JSX inside paragraphs is unwrapped, and transform labels and titles are no longer pre-escaped into double-escaped text
+- **Code fence metadata**: read from its real HAST location and carried across `rehype-raw`; highlight ranges are clamped to the block's line count
+- **Index tab state**: `useIndexTabs` is hydration-safe (no storage read during render, restore after mount) and normalizes default, controlled, stored, and set indices against the enabled items; invalid values land on the first enabled item
+- **Control and accessibility invariants**: `type="button"` on all tab, code-group, copy, and dev controls so they cannot submit an enclosing form; reciprocal `useId`-based `aria-controls`/`aria-labelledby`; copy buttons revealed on `focus-visible`/`focus-within`; reduced-motion overrides for the Docusaurus, Starlight, and Nextra motion CSS; and `aria-current`/`aria-pressed` on dev navigation and theme controls. Unmounted lazy tab panels no longer leave dangling `aria-controls` IDREFs
+- **Starlight `FileTree`**: the first filename node is parsed structurally (text, code, and bold wrappers, spaces preserved) and later formatting is retained as structural comment content instead of being reinterpreted as a filename
+- **`Collapsible` contract**: the Safe transform now matches the React implementation — summary precedence and `open ?? defaultOpen`, including `{true}`/`{false}` literals — and the generic `CollapsibleProps` derives from the same base contract
+- **Starlight `LinkCard`**: extends and forwards native anchor props; internal links stay in the same tab, only external or explicitly targeted links open a new one, and a safe `rel` is merged only when `_blank` is used
+- **Copy feedback timers**: a single timer ref per component, restarted on each success and cleared on unmount, so timers no longer race or outlive their component
+
+### Security
+
+- **Safe render boundary**: the hand-rolled sanitizer is replaced by a `hast-util-sanitize` allowlist plus a Safe-document CSP, and all Playwright capture and preview loads run behind a default-deny resource route — a final Safe document is inert in a real browser and screenshot capture makes no outbound requests
+- **Frontmatter bounds**: frontmatter is normalized to acyclic plain data under explicit depth, node-count, and size limits, so cyclic and exponentially amplified graphs are rejected rather than expanded
 
 ## [0.7.1] - 2026-07-03
 
