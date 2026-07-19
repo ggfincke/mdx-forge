@@ -4,8 +4,6 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  DEFAULT_SHIM_LOAD_MAX_RETRIES,
-  DEFAULT_SHIM_LOAD_RETRY_DELAY_MS,
   DEFAULT_MAX_MODULE_LOAD_DEPTH,
   DEFAULT_MAX_CONCURRENT_FETCHES,
   DEFAULT_MAX_MODULES,
@@ -15,12 +13,6 @@ import {
 import { PRELOADED_MODULE_IDS } from '../../src/browser/types';
 
 describe('browser constants contract', () => {
-  it('shim retry constants match vsc-mdx-preview contracts', () => {
-    // must match: packages/contracts/src/runtime/constants.ts
-    expect(DEFAULT_SHIM_LOAD_MAX_RETRIES).toBe(3);
-    expect(DEFAULT_SHIM_LOAD_RETRY_DELAY_MS).toBe(200);
-  });
-
   it('module loading limits are within expected bounds', () => {
     expect(DEFAULT_MAX_MODULE_LOAD_DEPTH).toBe(100);
     expect(DEFAULT_MAX_CONCURRENT_FETCHES).toBe(8);

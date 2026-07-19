@@ -29,6 +29,46 @@ npm install
 npm run build
 ```
 
+## Supported mdx-forge core range
+
+This package is versioned independently from the `mdx-forge` core — the
+plugin version, the core version, and the marketplace metadata version are
+deliberately **not** coupled.
+
+- **Declared range:** the `mdx-forge` entry in `package.json` (`^0.6.2`)
+  is the minimum-supported core line. The lockfile pins the exact minimum
+  the plugin is proven against.
+- **Current core:** the repository's `check:plugin-compat` gate also
+  installs the current packed core tarball into a clean copy of this
+  plugin and re-runs typecheck, build, and bounded smokes — so every core
+  release candidate is proven against this plugin before publishing.
+- **Bumping the range:** raising the minimum (or absorbing a new major or
+  minor line) is a deliberate release step, made after the compat gate
+  passes, never an implicit side effect of a core release.
+
+### Diagram fences
+
+The plugin ships no Mermaid/PlantUML/Graphviz runtime, so it requests
+`diagramBehavior: 'code'` from the compiler: diagram fences render as
+visible, language-labeled code blocks instead of empty placeholder divs.
+Cores older than the option (the current `0.6.x` minimum) ignore the key
+and keep emitting empty placeholders — a documented gap of the minimum
+line that closes when the declared range is bumped.
+
+### Unified diagnostics engine
+
+The lint pass feature-detects the core's extended analysis API
+(`mdx-forge/diagnostics/analyze` with `analyzeMdxDocument`, shipping in
+the next core release). When present, one core parse powers every
+diagnostic rule — correct JSX name grammar, prop validation, compound
+member checks, and file-relative positions across frontmatter — and the
+plugin only adapts stable `MDXF###` codes to its MCP shape. With the
+current `0.6.x` minimum the plugin falls back to its legacy analyzer,
+which keeps the previous behavior (body-relative line numbers after
+frontmatter; `open="false"`, `only=`, and unknown dotted members like
+`FileTree.Nope` are not flagged). Bumping the minimum core to close this
+gap is a pending deliberate release step, gated on `check:plugin-compat`.
+
 ## Tool: `render_mdx`
 
 | Param       | Type                                                              | Default       |
@@ -39,14 +79,34 @@ npm run build
 | `screenshot`| boolean                                                           | `false`       |
 | `theme`     | `'light' \| 'dark'`                                               | `'light'`     |
 | `viewport`  | `{ width?, height? }`                                             | `1024 x 768`  |
+| `inlineHtml`| boolean                                                           | `false`       |
 
 Returns three content blocks:
 1. **Lead-in text** with a live preview URL + `file://` fallback.
 2. **PNG screenshot** (only when `screenshot: true`).
 3. **Trailing text** with a `### Warnings` section (plain-text
-   diagnostics), a `### Diagnostics (structured)` JSON block, the
-   frontmatter (JSON), compiled HTML body, and self-contained HTML for
-   claude.ai artifacts.
+   diagnostics), the frontmatter (JSON), and a `### Summary` of body /
+   full-HTML byte sizes. The full self-contained HTML for claude.ai
+   artifacts is only inlined when `inlineHtml: true` — the default keeps
+   responses small and points at the preview URL instead.
+
+## Render budgets
+
+Inputs and outputs are bounded in both the MCP schema and the direct
+`renderMdx()` API; oversized requests are rejected before allocation.
+
+| Budget                     | Constant                    | Default   |
+| -------------------------- | --------------------------- | --------- |
+| Max source size            | `MAX_SOURCE_BYTES`          | 1 MiB     |
+| Max viewport width/height  | `MAX_VIEWPORT_DIMENSION`    | 4000 px   |
+| Max per-variant pixels     | `MAX_VARIANT_PIXELS`        | 10 MP     |
+| Max aggregate pixels       | `MAX_AGGREGATE_PIXELS`      | 48 MP     |
+| Max full-page scroll height| `MAX_FULLPAGE_SCROLL_HEIGHT`| 20000 px  |
+| Max PNG size               | `MAX_PNG_BYTES`             | 8 MiB     |
+| Max response size          | `MAX_RESPONSE_BYTES`        | 24 MiB    |
+
+Temp preview artifacts are pruned on server start and after each render
+beyond `MAX_PREVIEW_ARTIFACTS` (50) and `PREVIEW_ARTIFACT_TTL_MS` (24h).
 
 When MDX fails to compile or render, the tool returns `isError: true`
 with a structured payload:
@@ -110,10 +170,15 @@ interface Diagnostic {
 }
 ```
 
-The lint pass walks the MDX AST before compiling, so unknown
-components and malformed props are caught cheaply and reported with
-positions. Frontmatter is validated against per-framework schemas
-(e.g., Starlight requires `title`, Docusaurus accepts
+The lint pass analyzes the MDX before compiling, so unknown components
+and malformed props are caught cheaply and reported with positions.
+With a core that ships the unified diagnostics engine (see “Unified
+diagnostics engine” above), positions are original-file line numbers
+even below frontmatter, string values on boolean props
+(`open="false"`) and non-event `on*` names (`only=`) are flagged, and
+dotted members are validated against the known compound components.
+Frontmatter is validated against per-framework schemas (e.g.,
+Starlight requires `title`, Docusaurus accepts
 `sidebar_position: number`).
 
 Chat-surface compatibility:

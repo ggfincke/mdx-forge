@@ -89,9 +89,10 @@ import {
 } from 'mdx-forge/browser';
 
 // register React, MDX runtime, framework shims, etc.
+// (one-arg form targets the singleton registry)
 registerPreloadEntries(preloadManifest);
 
-// supply a fetcher the runtime can call to resolve dependencies on demand
+// supply a fetcher the runtime calls for each listed dependency
 // (typically RPC back to the host that ran compileTrusted)
 setModuleFetcher(async (request, isBare, parentId) => {
   // return { fsPath, code, dependencies, css? } for the requested module
@@ -101,9 +102,13 @@ setModuleFetcher(async (request, isBare, parentId) => {
 const Component = await evaluateModuleToComponent(
   code, // from compileTrusted
   '/preview.mdx', // entry file path
-  [] // dependencies — pass [] to let the fetcher discover them
+  dependencies // the entry's direct import specifiers (host-computed)
 );
 ```
+
+The runtime fetches **only the dependencies you list** (plus whatever each
+`FetchResult.dependencies` lists, recursively). It does not discover
+unlisted imports — `[]` is valid only when every import is preloaded.
 
 ## Need more detail?
 
@@ -140,6 +145,15 @@ const Component = await evaluateModuleToComponent(
   gives unstyled output. Next.js is the exception — it has no bundled CSS.
 - **`compileTrusted` takes 3 args, not 2** — the middle `_isEntry: boolean`
   is currently ignored but required positionally. Pass `true`.
+- **Dependency lists are explicit** — `evaluateModuleToComponent` /
+  `loadModule` fetch only the specifiers you pass (recursively via each
+  `FetchResult.dependencies`). An unlisted, non-preloaded `import` fails
+  at evaluation time; it is never discovered dynamically.
+- **Diagram fences default to empty placeholders** — mermaid/plantuml/
+  graphviz code blocks compile to empty `<div data-*-chart>` placeholders
+  for hosts that own a diagram runtime. Hosts without one should pass
+  `diagramBehavior: 'code'` in `CompilerConfig` to get a visible,
+  language-labeled code fallback instead.
 - **`sideEffects` is `["**/\*.css"]`\*\* — bundlers can tree-shake everything
   else aggressively, which is intended; just don't be surprised when CSS is
   the only side-effecting file.

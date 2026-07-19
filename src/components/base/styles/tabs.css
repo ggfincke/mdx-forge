@@ -2,8 +2,7 @@
 /* Shared tabs styles using data-attribute selectors */
 /* Works w/ all frameworks that use createTabs() factory */
 
-/* Import shared tokens */
-@import '../../shared/tokens.css';
+/* Tokens are imported once by base/styles/index.css */
 
 /* ==================== Base Structure ==================== */
 [data-component='tabs'] {

@@ -1,0 +1,30 @@
+{
+  "groups": [
+    {
+      "match": "src/compiler/**",
+      "name": "Compiler",
+      "description": "MDX -> HTML (Safe) / JS (Trusted) pipeline, plugins, frontmatter"
+    },
+    {
+      "match": "src/components/**",
+      "name": "Components",
+      "description": "Framework shims (generic/docusaurus/starlight/nextra/nextjs) + registry"
+    },
+    {
+      "match": "src/browser/**",
+      "name": "Browser runtime",
+      "description": "Module registry, fetcher, evaluate-to-component loop"
+    },
+    {
+      "match": "src/diagnostics/**",
+      "name": "Diagnostics",
+      "description": "MDX analysis + structured diagnostics API"
+    },
+    {
+      "match": "src/internal/**",
+      "name": "Internal utils",
+      "description": "Shared helpers, not exported"
+    }
+  ],
+  "groupDepth": 2
+}

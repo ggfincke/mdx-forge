@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`analyzeMdxDocument` engine entry**: `mdx-forge/diagnostics/analyze` now exposes a document-level API returning diagnostics plus the extracted frontmatter, body content, original-file body offsets, and any parse failure as a structured `parseError` field (the `analyzeMdx` contract of returning `[]` on unparseable input is unchanged). One frontmatter extraction and one MDX parse feed every rule
+- **Prop validation rules (`MDXF002`-`MDXF007`)**: The analyze engine validates props against registry metadata — unknown props (with a real `on[A-Z]` event-prop grammar, so `only=` is flagged), missing required props, enum values and deprecated enum aliases, deprecated props, and invalid prop values including string values on boolean props (`open="false"`) and non-numeric strings on number props. New stable code `MDXF007` (`INVALID_PROP_VALUE`)
+- **Compound-member validation (`MDXF008`)**: Dotted JSX members are checked against a diagnostics-layer allowlist of known compound members (`Tabs.Tab`, `Cards.Card`, `FileTree.Folder`, `FileTree.File`); unknown members such as `FileTree.Nope` or `Callout.Nope` are flagged. New stable code `MDXF008` (`UNKNOWN_COMPOUND_MEMBER`)
+- **`diagramBehavior` compiler option**: New typed `CompilerConfig` field (`'placeholder' | 'code'`, default `'placeholder'`). The default preserves the existing empty-placeholder contract for renderer-owning hosts; `'code'` emits a visible, selectable, language-labeled code fallback for hosts without a diagram runtime. Threaded through the Safe/Trusted plugin builders (`getSafeRehypePluginSets`, `buildTrustedRehypePlugins`, `buildTrustedPluginPipeline`)
+- **One-argument `registerPreloadEntries(entries)`**: New overload targeting the singleton module registry, matching the documented high-level browser setup; the two-argument `(registry, entries)` form is unchanged
+- **Browser runtime exports**: `PRELOADED_MODULE_IDS` and the `ModuleFetcher`, `ModuleLoaderConfig`, `MDXRuntime`, `Framework`, and `FrameworkId` types are now exported from `mdx-forge/browser`
+- **Consumer matrix gate**: `check:consumers` builds and packs the artifact, typechecks every public export subpath in clean NodeNext consumers under both `skipLibCheck` settings (with a `compileSafe`-not-`any` assertion), bundles every CSS subpath, compiles the shipped skill examples and dev app against the packed declarations, and drives the plugin compatibility legs
+- **Plugin compatibility gate**: `check:plugin-compat` clean-installs the render plugin against its locked minimum core and the current packed core, runs typecheck/build/bounded smokes, and asserts diagram fences are visible and non-zero-height in code mode
+
+### Changed
+
+- **Render plugin diagnostics engine**: The plugin lint pass now feature-detects the core's `analyzeMdxDocument` and, when present, delegates all body analysis to the single core engine, keeping only frontmatter schema lint and an MCP formatting adapter locally. Unified-engine lint restores stripped-frontmatter offsets (diagnostics report original-file lines), flags `open="false"`, `only=`, and unknown dotted members, and treats generic built-ins as known under every framework (previously flagged `unknown-component` per framework barrel). With the locked minimum core (0.6.2) the plugin falls back to its previous analyzer unchanged; the MCP diagnostic shape, unknown-component message wording, and severity mapping are preserved. Bumping the plugin's minimum core to require the unified engine is a pending deliberate release step
+
+### Fixed
+
+- **Core diagnostic JSX name grammar**: The analyze engine now follows real JSX semantics — capitalized components that case-fold to HTML names (`<Button>`, `<Table>`), member expressions (`<Frobnicate.Item>`), and underscore/dollar identifiers (`<Frobnicate_Thing>`, `<$Widget>`) are analyzed as component references instead of silently reporting a clean result; lowercase, dashed (web component), and namespaced (`svg:path`) tags are intrinsic. Member expressions classify through their root identifier, so imported or config-declared roots cover their members
+- **Published NodeNext declarations**: The post-build specifier fixer and `check:esm-specifiers` now rewrite emitted `.d.ts` files (including bare `'.'`/`'..'` directory references) so NodeNext consumers resolve every public export with `skipLibCheck` on or off, instead of TS2834/TS2835 errors or silent `any` degradation
+- **Render plugin dependencies**: Directly imported runtime packages (`esbuild`, `gray-matter`, `remark-parse`, `remark-mdx`, `unist-util-visit`) are now declared production dependencies of the render plugin
+- **Dev app typecheck**: `npx tsc -p dev/tsconfig.json --noEmit` passes (CSS side-effect imports resolved via `vite/client` types) and runs in CI as `typecheck:dev`
+
 ## [0.7.1] - 2026-07-03
 
 Republish of the withdrawn `0.7.0` release; npm permanently reserves that version slot after first publish.

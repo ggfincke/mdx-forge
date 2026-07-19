@@ -44,7 +44,9 @@ export function App() {
           {PAGES.map((page) => (
             <button
               key={page.id}
+              type="button"
               className={`dev-nav-btn ${activePage === page.id ? 'active' : ''}`}
+              aria-current={activePage === page.id ? 'page' : undefined}
               onClick={() => setActivePage(page.id)}
             >
               {page.label}

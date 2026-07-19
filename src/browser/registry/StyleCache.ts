@@ -1,12 +1,12 @@
 // src/browser/registry/StyleCache.ts
-// style tracking w/ reference counting using shared LRUCache
+// injected-style presence tracking; the cached CSS module owns its style
 
 import { LRUCache } from '../internal/lru-cache';
 import { DEFAULT_MAX_STYLES } from '../internal/constants';
 
-// style entry w/ reference count for protection
+// style entry keeps injected bytes so changed CSS can be detected & replaced
 interface StyleEntry {
-  refCount: number;
+  css: string;
 }
 
 // style cache configuration options
@@ -14,29 +14,28 @@ export interface StyleCacheConfig {
   maxStyles?: number;
 }
 
-// track injected CSS styles w/ reference-counted LRU cleanup
-// protect active styles; evict inactive styles in lru order
+// track injected CSS styles w/ lru presence semantics
+// ModuleRegistry wires onEvict (DOM removal) & isProtected (live owning module)
 export class StyleCache {
   private cache: LRUCache<string, StyleEntry>;
-  private maxStyles = DEFAULT_MAX_STYLES;
+
+  // eviction callback wired by ModuleRegistry (removes the DOM style node)
+  onEvict?: (id: string) => void;
+
+  // protection predicate wired by ModuleRegistry (owning module still cached)
+  isProtected?: (id: string) => boolean;
 
   constructor() {
-    this.cache = this.createCache();
-  }
-
-  // create lru cache w/ protection predicate
-  private createCache(): LRUCache<string, StyleEntry> {
-    return new LRUCache<string, StyleEntry>({
-      maxEntries: this.maxStyles,
-      // protect styles w/ active references from eviction
-      isProtected: (_key, entry) => entry.refCount > 0,
+    this.cache = new LRUCache<string, StyleEntry>({
+      maxEntries: DEFAULT_MAX_STYLES,
+      onEvict: (id) => this.onEvict?.(id),
+      isProtected: (id) => this.isProtected?.(id) === true,
     });
   }
 
   // configure maximum number of styles to track
   configure(options: StyleCacheConfig): void {
     if (options.maxStyles !== undefined) {
-      this.maxStyles = options.maxStyles;
       this.cache.updateSettings({ maxEntries: options.maxStyles });
     }
   }
@@ -46,67 +45,27 @@ export class StyleCache {
     return this.cache.has(id);
   }
 
+  // get injected CSS bytes for module (promotes lru position)
+  getInjectedCss(id: string): string | undefined {
+    return this.cache.get(id)?.css;
+  }
+
   // get total number of tracked styles
   get size(): number {
     return this.cache.size;
   }
 
-  // mark CSS as injected for module (w/ reference counting)
-  // protected styles (refCount > 0) won't be evicted
-  markStyleInjected(id: string): void {
-    const existing = this.cache.get(id);
-
-    if (existing) {
-      // get already promoted lru position & existing is the live entry ref
-      existing.refCount++;
-    } else {
-      // proactively evict unreferenced styles to make room for new entry
-      // maintain compatibility w/ original dual-map behavior where
-      // eviction happened BEFORE adding (not after like standard LRUCache)
-      this.evictUnreferencedToCapacity();
-      // new style starts w/ refCount = 1 (protected)
-      this.cache.set(id, { refCount: 1 });
-    }
+  // track injected CSS for module; capacity eviction fires onEvict
+  trackStyle(id: string, css: string): void {
+    this.cache.set(id, { css });
   }
 
-  // evict unreferenced styles until total size is under maxStyles
-  // called before adding new entries to maintain capacity
-  private evictUnreferencedToCapacity(): void {
-    while (this.cache.size >= this.maxStyles) {
-      let evicted = false;
-      // find oldest unreferenced entry (refCount === 0)
-      for (const [key] of this.cache.entries()) {
-        const entry = this.cache.peek(key);
-        if (entry && entry.refCount === 0) {
-          this.cache.delete(key);
-          evicted = true;
-          break;
-        }
-      }
-      // if no unreferenced entries to evict, stop
-      if (!evicted) {
-        break;
-      }
-    }
-  }
-
-  // decrement style reference count
-  // when refCount hits 0, style becomes eviction candidate
-  decrementStyleRef(id: string): void {
-    const entry = this.cache.get(id);
-    if (entry) {
-      entry.refCount = Math.max(0, entry.refCount - 1);
-      // re-set to ensure cache sees updated refCount for isProtected check
-      this.cache.set(id, entry);
-    }
-  }
-
-  // remove style tracking for a single module (for incremental updates)
-  unmarkStyleInjected(id: string): void {
+  // stop tracking a style; fires onEvict so the DOM node is removed too
+  untrackStyle(id: string): void {
     this.cache.delete(id);
   }
 
-  // clear all style tracking
+  // clear all style tracking w/o firing onEvict (bulk DOM clear is separate)
   clear(): void {
     this.cache.clear();
   }

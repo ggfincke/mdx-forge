@@ -3,8 +3,8 @@
 /* Material Design elevation & crossnote-inspired formatting */
 /* Works w/ all frameworks that use createCallout() factory */
 
-/* Import shared tokens & callout color variants */
-@import '../../shared/index.css';
+/* Import callout color variants; tokens come from base/styles/index.css */
+@import '../../shared/callout-variants.css';
 
 /* ==================== Base Structure ==================== */
 [data-callout-type] {
@@ -67,7 +67,7 @@
 
 /* ==================== Color Variants ==================== */
 /* Color variants are defined in shared/callout-variants.css using tokens */
-/* No need to duplicate them here - they're imported via shared/index.css */
+/* No need to duplicate them here - they're imported above */
 
 /* ==================== Dark Mode ==================== */
 /* Dark mode alpha adjustment is handled by --mdx-alpha-subtle in tokens.css */

@@ -50,19 +50,20 @@ export function analyzeUnknownComponents(
 ): Diagnostic[] {
   const out: Diagnostic[] = [];
   for (const c of components) {
-    if (classifyComponentSource(c.name, ctx) !== 'unknown') {
+    // member expressions resolve through their root identifier (Tabs.Tab -> Tabs)
+    if (classifyComponentSource(c.root, ctx) !== 'unknown') {
       continue;
     }
-    const canonical = getSemanticAlias(c.name);
+    const canonical = getSemanticAlias(c.root);
     out.push({
       code: DIAGNOSTIC_CODES.UNKNOWN_COMPONENT,
       ruleId: 'unknown-component',
       severity: 'warning',
       source: 'mdx-forge',
       range: c.range,
-      message: `Unknown component "${c.name}". Add it to .mdx-previewrc.json or use a built-in shim.`,
+      message: `Unknown component "${c.root}". Add it to .mdx-previewrc.json or use a built-in shim.`,
       data: {
-        componentName: c.name,
+        componentName: c.root,
         suggestions: canonical ? [canonical] : [],
       },
     });

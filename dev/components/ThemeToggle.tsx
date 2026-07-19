@@ -28,7 +28,9 @@ export function ThemeToggle() {
       {(['light', 'dark', 'system'] as const).map((t) => (
         <button
           key={t}
+          type="button"
           className={`dev-theme-btn ${theme === t ? 'active' : ''}`}
+          aria-pressed={theme === t}
           onClick={() => setTheme(t)}
         >
           {t === 'light' ? 'Light' : t === 'dark' ? 'Dark' : 'System'}

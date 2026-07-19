@@ -23,6 +23,8 @@ Source: `src/compiler/index.ts`. Types: `src/compiler/types/`.
 | `MdxTranspileResult`       | type     | `{ code, frontmatter }`                                    |
 | `FrontmatterResult`        | type     | `{ content, frontmatter, bodyStartLine, bodyStartColumn }` |
 | `UnknownBehavior`          | type     | `'strip' \| 'placeholder' \| 'raw'`                        |
+| `DocumentFormat`           | type     | `'detect' \| 'md' \| 'mdx'`                                |
+| `DiagramBehavior`          | type     | `'placeholder' \| 'code'`                                  |
 | `PluginSpec`               | type     | `string \| [string, Record<string, unknown>]`              |
 | `MdxPreviewConfig`         | type     | `.mdx-previewrc.json` schema subset                        |
 | `ResolvedConfig`           | type     | Loaded config + `configPath` + `configDir`                 |
@@ -53,6 +55,8 @@ interface SafeHTMLResult {
 - HTML intrinsic elements (lowercase JSX) pass through as raw HTML
 - Math (KaTeX), GitHub alerts, syntax highlighting (Shiki), heading anchors,
   & callouts are all rendered server-side
+- Diagram fences (mermaid/plantuml/dot/graphviz) become empty placeholder
+  divs by default; pass `diagramBehavior: 'code'` for a visible fallback
 - Custom remark/rehype plugins from `config.configFile` are **ignored** in
   Safe Mode (a warning is logged) — Safe Mode is intentionally minimal
 
@@ -105,6 +109,14 @@ interface CompilerConfig {
 
   // optional document URI for host-specific trust policies
   documentUri?: string;
+
+  // parse mode; defaults to 'detect' (.md -> md, otherwise mdx)
+  format?: 'detect' | 'md' | 'mdx';
+
+  // diagram fence output; defaults to 'placeholder' (empty data-attribute
+  // divs for renderer-owning hosts); 'code' emits a visible, language-
+  // labeled code fallback for hosts without a diagram runtime
+  diagramBehavior?: 'placeholder' | 'code';
 
   // layout injection (Trusted Mode only)
   customLayoutFilePath?: string;
@@ -162,16 +174,24 @@ does not evaluate. Safe to call on input without frontmatter — returns
 function safeMatter(input: string): GrayMatterFile<string>;
 ```
 
-Wraps `gray-matter` with its executable JavaScript engine disabled. Use this
+Wraps `gray-matter` with its executable JavaScript engine disabled, then
+normalizes the parsed data into bounded acyclic plain values (depth, node
+& projected-size caps). Cyclic or amplification-heavy YAML alias graphs
+throw a deterministic error instead of reaching consumers. Use this
 instead of raw `gray-matter` anywhere caller-authored MDX frontmatter is
 parsed.
 
-## `extractNextraFrontmatter(mdxText)`
+## `extractNextraFrontmatter(frontmatter)`
 
-Like `extractFrontmatter` but additionally validates & types the result as
-`NextraPageMeta`:
+Takes an **already-parsed frontmatter object** (e.g., the `frontmatter`
+returned by `extractFrontmatter` / `compileSafe`), not MDX text, & projects
+the Nextra-relevant fields:
 
 ```ts
+function extractNextraFrontmatter(
+  frontmatter: Record<string, unknown>
+): Partial<NextraPageMeta>;
+
 interface NextraPageMeta {
   title?: string;
   layout?: 'default' | 'full' | 'raw';
@@ -180,6 +200,8 @@ interface NextraPageMeta {
 }
 ```
 
+Only `title` (with `sidebarTitle` taking precedence), `description`, &
+`layout` are populated; `toc` exists on the type but is not extracted.
 Use when the host integrates with Nextra's page-meta conventions.
 
 ## `KNOWN_GENERIC_COMPONENTS`

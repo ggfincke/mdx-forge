@@ -20,7 +20,7 @@ This domain is browser-only. The runtime evaluates compiled MDX via
 | `setPreloadEntries`                 | function | Replace preload entries (overwriting)          |
 | `setHostPreloadCallbacks`           | function | Wire host-specific preload behavior            |
 | `registry`                          | object   | Singleton `ModuleRegistry` instance            |
-| `injectStyles`                      | function | Inject CSS for a module id                     |
+| `PRELOADED_MODULE_IDS`              | const    | Canonical ids for expected preloads            |
 | `clearInjectedStyles`               | function | Remove all injected styles                     |
 | `resetModules`                      | function | Clear all non-preloaded modules                |
 | `resetDependencies`                 | function | Clear dependency graph but keep cache          |
@@ -31,6 +31,9 @@ This domain is browser-only. The runtime evaluates compiled MDX via
 | `ensureGenericShimsLoaded`          | function | Lazy-load specific generic shims               |
 | `Module`                            | type     | Cached module entry                            |
 | `ModuleRuntime`                     | type     | Runtime values injected into evaluated modules |
+| `MDXRuntime`                        | type     | JSX runtime values (no `require`)              |
+| `ModuleFetcher`                     | type     | `setModuleFetcher` callback signature          |
+| `ModuleLoaderConfig`                | type     | `configureRuntime` argument shape              |
 | `FetchResult`                       | type     | Shape returned by `setModuleFetcher` callback  |
 | `HostPreloadCallbacks`              | type     | Host-specific preload hooks                    |
 | `PreloadEntry`                      | type     | Single preload entry                           |
@@ -52,14 +55,17 @@ setModuleFetcher(hostFetcher);             // 2
 const Component = await evaluateModuleToComponent(
   code,                                     // from compileTrusted
   '/preview.mdx',                           // entry path
-  [],                                       // initial deps; can be empty
+  entryDependencies,                        // the entry's direct import specifiers
 );                                          // 3
 
 // render Component in your React tree
 ```
 
-The fetcher is invoked for every dependency the runtime can't satisfy from
-preloaded modules or already-evaluated modules.
+The runtime fetches **exactly the dependencies you list** (minus anything
+already preloaded or cached), then recursively fetches whatever each
+`FetchResult.dependencies` lists. It does not discover unlisted imports:
+a `require()` of a module that was never listed (& is not preloaded)
+fails synchronously at evaluation time.
 
 ## `evaluateModuleToComponent(code, entryFilePath, dependencies)`
 
@@ -80,9 +86,12 @@ function evaluateModuleToComponent(
   the entry & all transitive deps
 - Returns the module's `default` export, validated to be a function
 
-`dependencies` can be `[]` — the runtime will discover deps via the fetcher
-as the entry executes. Pre-populating it lets you load deps in parallel
-before evaluation starts.
+`dependencies` must list the entry's direct import specifiers (the host
+typically extracts them by walking `import` statements in `code`). Each
+listed dep is fetched up front in parallel; transitive deps come from the
+`dependencies` array of each `FetchResult`. Passing `[]` is only valid
+when every import of the entry is preloaded — unlisted, non-preloaded
+imports fail synchronously when the module evaluates.
 
 ## `loadModule(entryFilePath, code, dependencies, fetcher)`
 
@@ -92,11 +101,13 @@ function loadModule(
   code: string,
   dependencies: string[],
   fetcher: ModuleFetcher,
+  depth?: number,
+  importChain?: string[],
 ): Promise<Module>;
 
 interface Module {
   id: string;
-  exports: Record<string, unknown> | unknown;
+  exports: unknown;
   loaded: boolean;
 }
 ```
@@ -138,8 +149,15 @@ non-preloaded import.
 ## `registerPreloadEntries(entries)` / `setPreloadEntries(entries)`
 
 ```ts
-function registerPreloadEntries(entries: PreloadEntry[]): void;
-function setPreloadEntries(entries: PreloadEntry[]): void;
+// one-arg form registers into the singleton registry
+function registerPreloadEntries(entries: readonly PreloadEntry[]): void;
+// two-arg form targets a caller-supplied ModuleRegistry instance
+function registerPreloadEntries(
+  registry: ModuleRegistry,
+  entries: readonly PreloadEntry[],
+): void;
+
+function setPreloadEntries(entries: readonly PreloadEntry[]): void;
 
 interface PreloadEntry {
   id: string;             // canonical id (e.g., 'npm://react@18')
@@ -148,11 +166,13 @@ interface PreloadEntry {
 }
 ```
 
-- `registerPreloadEntries` appends — safe to call multiple times
-- `setPreloadEntries` replaces — only call once at startup
+- `registerPreloadEntries` appends & immediately registers the exports in
+  the target registry — safe to call multiple times
+- `setPreloadEntries` replaces the entry/alias bookkeeping — the entries
+  are registered when preloaded modules initialize (first evaluation)
 
-The `PRELOADED_MODULE_IDS` constant gives canonical ids for the modules
-mdx-forge expects to be preloaded:
+The exported `PRELOADED_MODULE_IDS` constant gives canonical ids for the
+modules mdx-forge expects to be preloaded:
 
 ```ts
 const PRELOADED_MODULE_IDS = {
@@ -230,15 +250,14 @@ Call the primitives directly for HMR-style edits or manual cache control.
 ## Style injection
 
 ```ts
-function injectStyles(id: string, css: string): void;
 function clearInjectedStyles(): void;
 ```
 
-`injectStyles` adds CSS to the document, scoped to a module id. The
-runtime calls this automatically when a fetcher returns `FetchResult.css`.
-`clearInjectedStyles` removes everything injected — called automatically by
-`resetModules`, `clearAllCaches`, & between `evaluateModuleToComponent`
-calls on the same entry.
+CSS injection is automatic: when a fetcher returns `FetchResult.css`, the
+loader injects it into the document scoped to the module id (there is no
+public `injectStyles` export). `clearInjectedStyles` removes everything
+injected — called automatically by `resetModules`, `clearAllCaches`, &
+between `evaluateModuleToComponent` calls on the same entry.
 
 ## Framework shim lazy-loading
 

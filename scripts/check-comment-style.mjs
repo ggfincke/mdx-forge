@@ -2,9 +2,10 @@
 // scripts/check-comment-style.mjs
 // enforce mechanical comment-style guardrails across active code
 
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { extname, join, relative } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { join, relative } from 'node:path';
 import ts from 'typescript';
+import { collectFiles, normalizePath } from './lib/collect-files.mjs';
 
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.mjs']);
 const SCAN_ENTRIES = [
@@ -25,54 +26,6 @@ const IGNORED_DIRECTORIES = new Set([
   'dist',
   'node_modules',
 ]);
-
-function normalizePath(filePath) {
-  return filePath.replaceAll('\\', '/');
-}
-
-function collectSourceFiles(rootDir, currentPath, output) {
-  if (!existsSync(currentPath)) {
-    return;
-  }
-
-  const relativePath = normalizePath(relative(rootDir, currentPath));
-  const entries = readdirSync(currentPath, { withFileTypes: true });
-
-  for (const entry of entries) {
-    const absolutePath = join(currentPath, entry.name);
-
-    if (entry.isDirectory()) {
-      if (IGNORED_DIRECTORIES.has(entry.name)) {
-        continue;
-      }
-
-      collectSourceFiles(rootDir, absolutePath, output);
-      continue;
-    }
-
-    if (!SOURCE_EXTENSIONS.has(extname(entry.name))) {
-      continue;
-    }
-
-    output.push(normalizePath(join(relativePath, entry.name)));
-  }
-}
-
-function collectEntry(rootDir, entry, output) {
-  const absolutePath = join(rootDir, entry);
-  if (!existsSync(absolutePath)) {
-    return;
-  }
-
-  if (statSync(absolutePath).isFile()) {
-    if (SOURCE_EXTENSIONS.has(extname(entry))) {
-      output.push(entry);
-    }
-    return;
-  }
-
-  collectSourceFiles(rootDir, absolutePath, output);
-}
 
 function getScriptKind(relativePath) {
   if (relativePath.endsWith('.tsx')) {
@@ -265,11 +218,10 @@ function scanFile(rootDir, relativePath) {
 
 try {
   const rootDir = process.cwd();
-  const sourceFiles = [];
-
-  for (const entry of SCAN_ENTRIES) {
-    collectEntry(rootDir, entry, sourceFiles);
-  }
+  const sourceFiles = collectFiles(rootDir, SCAN_ENTRIES, {
+    extensions: SOURCE_EXTENSIONS,
+    ignoredDirectories: IGNORED_DIRECTORIES,
+  }).map((absolutePath) => normalizePath(relative(rootDir, absolutePath)));
 
   const uniqueFiles = Array.from(new Set(sourceFiles)).sort();
   const violations = [];

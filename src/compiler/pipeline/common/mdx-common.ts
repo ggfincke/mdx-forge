@@ -60,14 +60,6 @@ function computeBodyStartPosition(
   return { line, column };
 }
 
-// Nextra-specific frontmatter keys (sidebarTitle takes precedence over title)
-export const NEXTRA_FRONTMATTER_KEYS = [
-  'title',
-  'sidebarTitle',
-  'description',
-  'layout',
-] as const;
-
 // extract Nextra-specific frontmatter fields for page metadata
 export function extractNextraFrontmatter(
   frontmatter: Record<string, unknown>

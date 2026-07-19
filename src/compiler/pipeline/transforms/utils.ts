@@ -24,8 +24,8 @@ export function getStaticStringProp(
 }
 
 // extract a static boolean prop from an MDX JSX element
-// support boolean shorthand (e.g., `<Comp open />` = true)
-// only processes literal values; expression values are ignored
+// support boolean shorthand (e.g., `<Comp open />` = true) & the literal
+// expression forms {true}/{false}; other expressions are ignored
 export function getStaticBooleanProp(
   node: MdxJsxElement,
   propName: string
@@ -45,6 +45,17 @@ export function getStaticBooleanProp(
       return true;
     }
     if (attr.value === 'false') {
+      return false;
+    }
+    return undefined;
+  }
+  // literal boolean expressions match the React runtime contract
+  if (attr.value && typeof attr.value === 'object') {
+    const expression = attr.value.value?.trim();
+    if (expression === 'true') {
+      return true;
+    }
+    if (expression === 'false') {
       return false;
     }
   }
@@ -118,7 +129,6 @@ export interface CalloutCardConfig {
   iconClassName?: string;
   icon: string;
   title: string;
-  escapeTitle: boolean;
   contentType: string;
   contentClassName: string;
   contentChildren: RootContent[];
@@ -134,15 +144,13 @@ function buildCardHeaderChildren(config: CalloutCardConfig): RootContent[] {
       } as RootContent,
     ];
   }
-  const titleValue = config.escapeTitle
-    ? escapeHtml(config.title)
-    : config.title;
+  // title is a hast text node escaped at the HTML sink; never pre-escape
   return [
     {
       type: 'html',
       value: `<span class="${config.iconClassName}">${config.icon}</span>`,
     } as RootContent,
-    { type: 'text', value: titleValue } as RootContent,
+    { type: 'text', value: config.title } as RootContent,
   ];
 }
 

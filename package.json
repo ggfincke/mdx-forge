@@ -111,6 +111,9 @@
     }
   },
   "dependencies": {
+    "@shikijs/core": "^4.3.1",
+    "@shikijs/engine-javascript": "^4.3.1",
+    "@shikijs/langs": "^4.3.1",
     "gray-matter": "^4.0.2",
     "hast-util-from-html-isomorphic": "^2.0.0",
     "rehype-autolink-headings": "^7.1.0",
@@ -124,7 +127,6 @@
     "remark-mdx": "^3.0.0",
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.0.0",
-    "shiki": "^4.3.1",
     "unist-util-visit": "^5.0.0"
   },
   "devDependencies": {
@@ -154,6 +156,9 @@
     "build": "npm run clean && tsc -p tsconfig.build.json && node ./scripts/fix-esm-import-specifiers.mjs && node ./scripts/copy-css.mjs",
     "check:esm-specifiers": "node ./scripts/fix-esm-import-specifiers.mjs --check",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck:dev": "tsc -p dev/tsconfig.json --noEmit",
+    "check:consumers": "node ./scripts/consumer-matrix.mjs",
+    "check:plugin-compat": "node ./scripts/plugin-compat.mjs",
     "test": "vitest run --config vitest.config.ts",
     "lint": "eslint src/ && npm run check:guardrails",
     "lint:fix": "eslint src/ --fix && npm run check:guardrails",

@@ -7,7 +7,8 @@ export type ModuleErrorCode =
   | 'CIRCULAR_DEPENDENCY'
   | 'FETCH_FAILED'
   | 'EVALUATION_FAILED'
-  | 'MODULE_DEPTH_EXCEEDED';
+  | 'MODULE_DEPTH_EXCEEDED'
+  | 'STALE_GENERATION';
 
 export interface ModuleErrorData {
   code: ModuleErrorCode;
@@ -83,6 +84,16 @@ export function createEvaluationFailedError(
   }
 
   return error;
+}
+
+export function createStaleGenerationError(moduleId: string): ModuleError {
+  return new ModuleError(
+    `Module load for "${moduleId}" was superseded by a cache reset`,
+    {
+      code: 'STALE_GENERATION',
+      moduleId,
+    }
+  );
 }
 
 export function createModuleDepthExceededError(

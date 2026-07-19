@@ -4,12 +4,13 @@
 
 import { createTabs, type BaseTabsProps, type TabDefinition } from '../base';
 
-// re-export types for compatibility
-export type TabsProps = BaseTabsProps;
+// generic surface: groupId sync/persistence (no queryString/syncKey)
+export type TabsProps = Omit<BaseTabsProps, 'syncKey' | 'queryString'>;
 export type { TabDefinition };
 
 // create generic tabs using the factory
 // use 'mdx-preview-generic-tabs' class prefix for styling
+// groupId selections sync across groups & persist via localStorage
 const {
   Tabs,
   TabItem,
@@ -18,6 +19,8 @@ const {
 } = createTabs({
   classPrefix: 'mdx-preview-generic-tabs',
   tabItemClassName: 'mdx-preview-generic-tab-item',
+  supportsGroupId: true,
+  groupStoragePrefix: 'mdx.tab.',
   contextName: 'GenericTabs',
 });
 

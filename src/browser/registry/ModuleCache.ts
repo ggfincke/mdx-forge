@@ -32,12 +32,17 @@ export class ModuleCache {
   // eviction cleanup callback
   onEvict?: (id: string) => void;
 
+  // extra protection predicate wired by ModuleRegistry
+  // keeps dependencies of live cached modules out of automatic eviction
+  isDependencyProtected?: (id: string) => boolean;
+
   constructor() {
     this.cache = new LRUCache<string, CacheEntry>({
       maxEntries: DEFAULT_MAX_MODULES,
       maxMemoryBytes: DEFAULT_MAX_MEMORY_BYTES,
       estimateSize: (entry) => entry.estimatedSize,
-      isProtected: (id) => this.preloadedIds.has(id),
+      isProtected: (id) =>
+        this.preloadedIds.has(id) || this.isDependencyProtected?.(id) === true,
       onEvict: (id) => this.onEvict?.(id),
     });
   }

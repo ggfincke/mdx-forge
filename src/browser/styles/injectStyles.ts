@@ -5,19 +5,26 @@ import { registry } from '../registry/ModuleRegistry';
 import { getStyleInjector } from '../internal/style-injector';
 
 // inject CSS into the document for a module
-// use ModuleRegistry as the authoritative tracker for deduplication,
-// then delegate DOM operations to StyleInjector
+// identical bytes dedup; changed bytes under the same ID replace the DOM node
 export function injectStyles(id: string, css: string): void {
-  // check registry (source of truth) to avoid duplicate injection
-  if (registry.hasInjectedStyle(id)) {
+  const existing = registry.getInjectedCss(id);
+
+  // duplicate import w/ unchanged bytes -> keep existing node
+  if (existing === css) {
     return;
   }
 
-  // dom operation via StyleInjector
-  getStyleInjector().injectModuleCss(id, css);
+  const injector = getStyleInjector();
 
-  // track in registry (for module loading coordination + reference counting)
-  registry.markStyleInjected(id);
+  // changed bytes under a stable ID -> remove stale node before reinjecting
+  if (existing !== undefined) {
+    injector.removeModuleCss(id);
+  }
+
+  injector.injectModuleCss(id, css);
+
+  // track in registry; capacity eviction removes orphaned DOM nodes
+  registry.trackStyleInjected(id, css);
 }
 
 // remove all injected module styles (called when preview is refreshed)

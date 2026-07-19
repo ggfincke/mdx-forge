@@ -19,7 +19,12 @@ jobs:
       - run: npm run lint
       - run: npm run format:check
       - run: npm run typecheck
+      - run: npm run typecheck:dev
       - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      # root vitest imports plugins/render source; its deps resolve from plugins/render/node_modules
+      - run: npm ci
+        working-directory: plugins/render
       - run: npm test
 
   build:
@@ -35,3 +40,29 @@ jobs:
       - run: npm run build
       - run: npm run check:esm-specifiers
       - run: npm pack --dry-run
+
+  plugin-compat:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run check:plugin-compat
+
+  consumer-matrix:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      # plugin legs run in the dedicated plugin-compat job
+      - run: npm run check:consumers -- --skip-plugin-compat

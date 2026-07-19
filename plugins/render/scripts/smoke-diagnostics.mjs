@@ -316,6 +316,81 @@ check(
   schema.fields.find((f) => f.name === 'title')?.required === true
 );
 
+// --- §1.5 unified core diagnostics engine -----------------------------------
+// gated: plugin-compat's current-core leg sets the env var; the locked
+// minimum core (0.6.2) lacks the analyze subpath & keeps legacy behavior
+
+if (process.env.MDX_FORGE_EXPECT_UNIFIED_DIAGNOSTICS === '1') {
+  console.log('\n§1.5 unified core engine...');
+
+  // stripped-frontmatter offsets restored: original file lines, not body lines
+  const fmPositionLint = await lintMdxSource(
+    [
+      '---',
+      'title: Demo',
+      '---',
+      '',
+      '<FirstUnknown />',
+      '',
+      'text',
+      '<SecondUnknown />',
+    ].join('\n'),
+    'generic'
+  );
+  const fmUnknowns = fmPositionLint.diagnostics.filter(
+    (d) => d.kind === 'unknown-component'
+  );
+  check(
+    'frontmatter-relative positions restored (lines 5 & 8)',
+    fmUnknowns.length === 2 &&
+      fmUnknowns[0].line === 5 &&
+      fmUnknowns[1].line === 8,
+    `got lines ${fmUnknowns.map((d) => d.line).join(',')}`
+  );
+
+  // string values on boolean props are flagged
+  const boolStringLint = await lintMdxSource(
+    '<Collapsible open="false">x</Collapsible>',
+    'generic'
+  );
+  check(
+    'open="false" flagged as invalid-prop-value',
+    boolStringLint.diagnostics.some(
+      (d) => d.kind === 'invalid-prop-value' && d.prop === 'open'
+    )
+  );
+
+  // real event-prop grammar: only= is not an event handler
+  const onlyLint = await lintMdxSource(
+    '<Collapsible only="x">x</Collapsible>',
+    'generic'
+  );
+  check(
+    'only="x" flagged as invalid-prop',
+    onlyLint.diagnostics.some(
+      (d) => d.kind === 'invalid-prop' && d.prop === 'only'
+    )
+  );
+
+  // compound members validate against the known-member allowlist
+  const memberOkLint = await lintMdxSource(
+    '<FileTree.Folder name="src"><FileTree.File name="a" /></FileTree.Folder>',
+    'nextra'
+  );
+  check(
+    'FileTree.Folder/File accepted',
+    memberOkLint.diagnostics.length === 0,
+    memberOkLint.diagnostics.map((d) => d.kind).join(',')
+  );
+  const memberBadLint = await lintMdxSource('<FileTree.Nope />', 'nextra');
+  check(
+    'FileTree.Nope rejected',
+    memberBadLint.diagnostics.some(
+      (d) => d.kind === 'unknown-component' && d.component === 'FileTree.Nope'
+    )
+  );
+}
+
 // --- end-to-end renderMdx result surfaces diagnostics ----------------------
 
 console.log('\nend-to-end renderMdx diagnostics...');

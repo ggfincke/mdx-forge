@@ -26,11 +26,17 @@ export { evaluateModule } from './eval/evaluateModule';
 export { createSyncRequire } from './runtime/require';
 export type {
   FetchResult,
+  Framework,
+  FrameworkId,
   HostPreloadCallbacks,
+  MDXRuntime,
   Module,
+  ModuleFetcher,
+  ModuleLoaderConfig,
   ModuleRuntime,
   PreloadEntry,
 } from './types';
+export { PRELOADED_MODULE_IDS } from './types';
 export {
   setPreloadEntries,
   registerPreloadEntries,
@@ -135,21 +141,31 @@ export async function evaluateModuleToComponent(
   ensurePreloadedModules();
 
   // wait for pending independent shim loads before evaluation
-  const pendingLoads: Promise<void>[] = [];
-  if (pendingGenericShimLoad) {
-    pendingLoads.push(pendingGenericShimLoad);
-  }
-  if (pendingFrameworkShimLoad) {
-    pendingLoads.push(pendingFrameworkShimLoad);
-  }
+  // loop so a newer load installed mid-await is also honored
+  // compare-&-clear exact handles so a newer generation is never erased
+  while (pendingGenericShimLoad || pendingFrameworkShimLoad) {
+    const genericSnapshot = pendingGenericShimLoad;
+    const frameworkSnapshot = pendingFrameworkShimLoad;
+    const pendingLoads: Promise<void>[] = [];
+    if (genericSnapshot) {
+      pendingLoads.push(genericSnapshot);
+    }
+    if (frameworkSnapshot) {
+      pendingLoads.push(frameworkSnapshot);
+    }
 
-  if (pendingLoads.length > 0) {
-    await Promise.all(pendingLoads);
+    try {
+      await Promise.all(pendingLoads);
+    } finally {
+      // clear only the exact awaited handles (settled or rejected)
+      if (pendingGenericShimLoad === genericSnapshot) {
+        pendingGenericShimLoad = null;
+      }
+      if (pendingFrameworkShimLoad === frameworkSnapshot) {
+        pendingFrameworkShimLoad = null;
+      }
+    }
   }
-
-  // clear awaited load handles; newer loads install their own promise
-  pendingGenericShimLoad = null;
-  pendingFrameworkShimLoad = null;
 
   // determine if we need full reset or incremental invalidation
   if (lastEntryPath !== entryFilePath) {

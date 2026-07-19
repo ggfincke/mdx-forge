@@ -17,15 +17,17 @@ function extractDependencies(esmCode: string): string[] {
 }
 
 describe('render plugin trusted compile pipeline', () => {
-  it('emits only react, jsx-runtime & @mdx-js/react imports when builtins are disabled', async () => {
+  it('emits only jsx-runtime & @mdx-js/react imports when builtins are disabled', async () => {
     const result = await compileTrusted('# Hello\n\nParagraph.', true, {
       documentPath: '/virtual/x.mdx',
       componentsBuiltins: false,
     });
 
+    // automatic JSX runtime output carries no unused classic React import
+    // react still arrives transitively via react/jsx-runtime
     const deps = extractDependencies(result.code);
     expect(new Set(deps)).toEqual(
-      new Set(['react', 'react/jsx-runtime', '@mdx-js/react'])
+      new Set(['react/jsx-runtime', '@mdx-js/react'])
     );
   });
 

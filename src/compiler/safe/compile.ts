@@ -7,13 +7,7 @@ import remarkMdx from 'remark-mdx';
 import remarkRehype from 'remark-rehype';
 import rehypeStringify from 'rehype-stringify';
 import { visit } from 'unist-util-visit';
-import type {
-  Root,
-  Parent,
-  RootContent,
-  BlockContent,
-  PhrasingContent,
-} from 'mdast';
+import type { Root, Parent, RootContent } from 'mdast';
 import { extractFrontmatter } from '../pipeline/common/mdx-common';
 import { resolveDocumentFormat } from '../internal/format';
 import {
@@ -24,10 +18,9 @@ import {
   warnIgnoredSafeModeConfig,
   warnMarkdownModeIgnoredConfig,
 } from '../pipeline/common/pipeline-warnings';
-import remarkGenericComponents, {
-  KNOWN_GENERIC_COMPONENTS,
-} from '../pipeline/remark/generic-components';
-import { escapeHtml, isMdxJsxElement } from '../pipeline/transforms/utils';
+import remarkGenericComponents from '../pipeline/remark/generic-components';
+import { isGenericComponent } from '../../components/registry/queries';
+import { escapeHtml } from '../pipeline/transforms/utils';
 import { getLogger } from '../internal/logging';
 
 import type {
@@ -48,24 +41,6 @@ import {
   UNKNOWN_COMPONENT_CONTENT,
 } from '../internal/css-classes';
 
-// HTML void elements that don't need closing tags
-const VOID_ELEMENTS = new Set([
-  'area',
-  'base',
-  'br',
-  'col',
-  'embed',
-  'hr',
-  'img',
-  'input',
-  'link',
-  'meta',
-  'param',
-  'source',
-  'track',
-  'wbr',
-]);
-
 // regex to detect lowercase-initial element names (HTML intrinsic elements)
 const LOWERCASE_START = /^[a-z]/;
 
@@ -78,57 +53,99 @@ function isHtmlElement(name: string | null): boolean {
   return LOWERCASE_START.test(name) && !name.includes('.');
 }
 
-// serialize MDX JSX attribute to HTML attribute string
-function serializeAttribute(attr: MdxJsxAttribute): string {
-  if (attr.type !== 'mdxJsxAttribute') {
-    return '';
-  }
-  // boolean shorthand: <div hidden />
-  if (attr.value === null) {
-    return ` ${attr.name}`;
-  }
-  if (typeof attr.value === 'string') {
-    return ` ${attr.name}="${escapeHtml(attr.value)}"`;
-  }
-  // expression values (e.g., {someVar}) - skip in Safe Mode
-  return '';
-}
-
-// serialize a child AST node to HTML string
-function serializeChildToHtml(child: BlockContent | PhrasingContent): string {
-  if ('value' in child && typeof child.value === 'string') {
-    return child.value;
-  }
-  if (isMdxJsxElement(child)) {
-    return serializeJsxToHtml(child);
-  }
-  // nodes w/ children (e.g., paragraph wrapping inline elements)
-  if ('children' in child && Array.isArray(child.children)) {
-    return (child.children as Array<BlockContent | PhrasingContent>)
-      .map((c) => serializeChildToHtml(c))
-      .join('');
-  }
-  return '';
-}
-
-// serialize MDX JSX element back to raw HTML string
-function serializeJsxToHtml(node: MdxJsxElement): string {
-  const name = node.name || 'div';
-  const attrs = node.attributes.map(serializeAttribute).join('');
-
-  if (!node.children || node.children.length === 0) {
-    if (VOID_ELEMENTS.has(name)) {
-      return `<${name}${attrs}>`;
+// convert static MDX JSX attributes to hast hProperties
+// string literals & boolean shorthand only; expressions stay skipped in Safe Mode
+function toHProperties(node: MdxJsxElement): Record<string, unknown> {
+  const props: Record<string, unknown> = {};
+  for (const attr of node.attributes as MdxJsxAttribute[]) {
+    if (attr.type !== 'mdxJsxAttribute') {
+      continue;
     }
-    return `<${name}${attrs}></${name}>`;
+    // boolean shorthand: <div hidden />
+    if (attr.value === null) {
+      props[attr.name] = true;
+      continue;
+    }
+    if (typeof attr.value === 'string') {
+      props[attr.name] = attr.value;
+    }
   }
+  return props;
+}
 
-  // serialize children recursively
-  const childrenHtml = node.children
-    .map((child) => serializeChildToHtml(child))
-    .join('');
+// convert an intrinsic JSX element to a structural mdast node w/ hast metadata
+// children stay real mdast nodes so Markdown semantics survive to the HTML sink
+function toIntrinsicElementNode(node: MdxJsxElement): RootContent {
+  return {
+    type: 'safeHtmlElement',
+    data: {
+      hName: node.name || 'div',
+      hProperties: toHProperties(node),
+    },
+    children: node.children ?? [],
+  } as unknown as RootContent;
+}
 
-  return `<${name}${attrs}>${childrenHtml}</${name}>`;
+// block-level intrinsic tags that must not stay nested inside a paragraph
+// (the raw-HTML parser would split the <p> & leave empty paragraph artifacts)
+const BLOCK_LEVEL_INTRINSICS = new Set([
+  'address',
+  'article',
+  'aside',
+  'blockquote',
+  'details',
+  'dialog',
+  'div',
+  'dl',
+  'fieldset',
+  'figure',
+  'footer',
+  'form',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'header',
+  'hr',
+  'main',
+  'nav',
+  'ol',
+  'p',
+  'pre',
+  'section',
+  'table',
+  'ul',
+]);
+
+// unwrap a paragraph wrapping exactly one block-level intrinsic JSX element
+// (plus whitespace); returns the structural replacement or null
+function unwrapBlockJsxParagraph(paragraph: Parent): RootContent | null {
+  let jsxNode: MdxJsxElement | null = null;
+  for (const child of paragraph.children) {
+    if (child.type === 'mdxJsxTextElement') {
+      const candidate = child as unknown as MdxJsxElement;
+      if (
+        jsxNode ||
+        !isHtmlElement(candidate.name) ||
+        !BLOCK_LEVEL_INTRINSICS.has(candidate.name ?? '')
+      ) {
+        return null;
+      }
+      jsxNode = candidate;
+      continue;
+    }
+    if (
+      child.type === 'text' &&
+      typeof (child as { value?: unknown }).value === 'string' &&
+      !(child as { value: string }).value.trim()
+    ) {
+      continue;
+    }
+    return null;
+  }
+  return jsxNode ? toIntrinsicElementNode(jsxNode) : null;
 }
 
 // options for remarkStripMdx plugin
@@ -160,6 +177,15 @@ function remarkStripMdx(options: RemarkStripMdxOptions = {}) {
         return;
       }
 
+      // unwrap paragraphs that only wrap a block-level intrinsic JSX element
+      if (node.type === 'paragraph') {
+        const replacement = unwrapBlockJsxParagraph(node as Parent);
+        if (replacement) {
+          (parent as Parent).children[index] = replacement;
+        }
+        return;
+      }
+
       // handle JSX elements (both block-level & inline components)
       if (
         node.type === 'mdxJsxFlowElement' ||
@@ -169,18 +195,13 @@ function remarkStripMdx(options: RemarkStripMdxOptions = {}) {
         const name = jsxNode.name || 'Component';
         const isFlow = node.type === 'mdxJsxFlowElement';
 
-        // pass through standard HTML elements as raw HTML
+        // pass through standard HTML elements structurally (children stay AST)
         if (isHtmlElement(jsxNode.name)) {
-          const htmlNode: RootContent = {
-            type: 'html',
-            value: serializeJsxToHtml(jsxNode),
-          } as RootContent;
-          (parent as Parent).children[index] = htmlNode;
+          (parent as Parent).children[index] = toIntrinsicElementNode(jsxNode);
           return;
         }
 
-        const isKnownComponent =
-          builtinsEnabled && KNOWN_GENERIC_COMPONENTS.has(name);
+        const isKnownComponent = builtinsEnabled && isGenericComponent(name);
         const resolvedName = componentNameResolver?.(name) ?? name;
 
         const replacement = createJsxReplacement(
@@ -339,7 +360,9 @@ export async function compileSafe(
     config.componentsUnknownBehavior ?? 'placeholder';
 
   // get rehype plugin sets from plugin-builder
-  const { raw, preMath, math, postMath } = getSafeRehypePluginSets();
+  const { fenceMeta, raw, preMath, math, postMath } = getSafeRehypePluginSets(
+    config.diagramBehavior
+  );
 
   // build unified pipeline w/ shared plugins via plugin-builder
   const remarkPlugins = getSafeRemarkPlugins();
@@ -382,7 +405,7 @@ export async function compileSafe(
   // rehype-raw parses raw HTML nodes into proper HAST elements
   const rehypeProcessor = baseProcessor
     .use(remarkRehype, { allowDangerousHtml: true })
-    .use([raw, ...preMath, math, ...postMath]);
+    .use([fenceMeta, raw, ...preMath, math, ...postMath]);
 
   // stage 3: stringify to HTML
   const processor = rehypeProcessor.use(rehypeStringify, {

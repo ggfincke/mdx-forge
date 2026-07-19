@@ -1,6 +1,0 @@
-/* src/components/shared/index.css */
-/* Import all shared shim styles */
-/* This file should be imported by base & framework-specific styles */
-
-@import './tokens.css';
-@import './callout-variants.css';

@@ -2,12 +2,12 @@
 // render MDX to HTML documents, live preview output & optional screenshots
 
 import { randomBytes } from 'node:crypto';
-import { writeFile } from 'node:fs/promises';
+import { readdir, stat, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { compileSafe } from 'mdx-forge/compiler';
-import { chromium, type Browser } from 'playwright';
+import type { BrowserContext } from 'playwright';
 import { resolveFrameworkCss, tokensCss, type FrameworkId } from './css.js';
 import {
   normalizeCompileError,
@@ -28,7 +28,11 @@ import {
   startPreviewServer,
   updatePreview,
 } from './preview-server.js';
-import { shutdownHarnessPages } from './harness-page.js';
+import {
+  applyDenyRoute,
+  getPluginBrowser,
+  shutdownHarnessPages,
+} from './harness-page.js';
 import {
   compileTrustedModule,
   readHarnessBundle,
@@ -75,33 +79,33 @@ export interface RenderResult {
 
 export const MAX_SCREENSHOT_VARIANTS = 8;
 
-let browserPromise: Promise<Browser> | undefined;
+// render budgets (F29) - reject oversized input/output before allocation
+export const MAX_SOURCE_BYTES = 1024 * 1024;
+export const MAX_VIEWPORT_DIMENSION = 4000;
+export const MAX_VARIANT_PIXELS = 10_000_000;
+export const MAX_AGGREGATE_PIXELS = 48_000_000;
+export const MAX_FULLPAGE_SCROLL_HEIGHT = 20_000;
+export const MAX_PNG_BYTES = 8 * 1024 * 1024;
+export const MAX_RESPONSE_BYTES = 24 * 1024 * 1024;
 
-async function getBrowser(): Promise<Browser> {
-  if (!browserPromise) {
-    browserPromise = chromium.launch({ headless: true }).catch((err) => {
-      browserPromise = undefined;
-      throw err;
-    });
-  }
-  return browserPromise;
-}
+// preview-artifact retention (F28) - bound temp file count & age
+export const MAX_PREVIEW_ARTIFACTS = 50;
+export const PREVIEW_ARTIFACT_TTL_MS = 24 * 60 * 60 * 1000;
+const PREVIEW_ARTIFACT_PREFIX = 'mdx-forge-render-';
 
+// browser lifecycle is owned by harness-page's single plugin Browser (F27)
+// capture uses isolated contexts off that same Browser
 export async function shutdownBrowser(): Promise<void> {
-  const pending = browserPromise;
-  browserPromise = undefined;
-  // trusted mode owns its own Playwright Browser lifecycle; shut both down
-  await Promise.allSettled([
-    (async () => {
-      if (!pending) {
-        return;
-      }
-      const browser = await pending.catch(() => undefined);
-      await browser?.close().catch(() => undefined);
-    })(),
-    shutdownHarnessPages(),
-  ]);
+  await shutdownHarnessPages();
 }
+
+// this plugin has no diagram runtime, so ask the core for visible code
+// fallbacks (F34); cores w/o the option (<= 0.6.x) ignore the extra key
+// & keep emitting empty placeholders — a documented minimum-core gap
+const SAFE_COMPILE_CONFIG = {
+  documentPath: '/virtual/render.mdx',
+  diagramBehavior: 'code',
+} as const;
 
 // fallback CSS-variable values for code blocks when consumers omit a theme
 const SHIKI_DEFAULTS = `
@@ -163,13 +167,46 @@ function baseStyles(): string {
     [data-theme="light"] body { background: #ffffff; color: #1a1a1a; }
     [data-theme="dark"] body { background: #1e1e1e; color: #e6e6e6; }
     pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .mdx-diagram-code {
+      margin: 1rem 0;
+      border: 1px solid rgba(128,128,128,0.35);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .mdx-diagram-code-label {
+      padding: 0.25rem 0.75rem;
+      font-size: 0.75rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      opacity: 0.7;
+      border-bottom: 1px solid rgba(128,128,128,0.35);
+    }
+    .mdx-diagram-code pre {
+      margin: 0;
+      padding: 0.75rem 1rem;
+      overflow-x: auto;
+    }
   `;
 }
 
-function documentHead(tokens: string, frameworkCss: string): string {
+// independent containment for Safe artifacts: no scripts, img limited to data:,
+// inline styles allowed (Shiki/KaTeX); trusted docs keep their executable contract
+const SAFE_CSP =
+  "default-src 'none'; img-src data:; style-src 'unsafe-inline'; " +
+  "font-src data:; base-uri 'none'; form-action 'none'";
+
+function documentHead(
+  tokens: string,
+  frameworkCss: string,
+  includeCsp: boolean
+): string {
+  const csp = includeCsp
+    ? `\n  <meta http-equiv="Content-Security-Policy" content="${SAFE_CSP}">`
+    : '';
   return `<head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1">${csp}
   <style>${tokens}</style>
   <style>${frameworkCss}</style>
   <style>${SHIKI_DEFAULTS}</style>
@@ -177,15 +214,18 @@ function documentHead(tokens: string, frameworkCss: string): string {
 </head>`;
 }
 
+// includeCsp: portable artifacts & screenshots get the Safe CSP; the live-reload
+// preview page omits it so its infra script can run on localhost
 function buildSafeDocument(
   bodyHtml: string,
   tokens: string,
   frameworkCss: string,
-  theme: 'light' | 'dark'
+  theme: 'light' | 'dark',
+  includeCsp: boolean
 ): string {
   return `<!doctype html>
 <html lang="en" data-theme="${theme}">
-${documentHead(tokens, frameworkCss)}
+${documentHead(tokens, frameworkCss, includeCsp)}
 <body>${bodyHtml}</body>
 </html>`;
 }
@@ -227,9 +267,10 @@ function buildTrustedDocument(opts: TrustedDocumentOptions): string {
       ? `<script src="${bundle.src}"></script>`
       : `<script>${escapeInlineScript(bundle.code)}</script>`;
 
+  // trusted documents keep their executable contract; no Safe CSP here
   return `<!doctype html>
 <html lang="en" data-theme="${theme}">
-${documentHead(tokens, frameworkCss)}
+${documentHead(tokens, frameworkCss, false)}
 <body>
   <div id="mdx-root"></div>
   <script>${globals}</script>
@@ -239,10 +280,49 @@ ${documentHead(tokens, frameworkCss)}
 }
 
 async function writePreviewFile(fullHtml: string): Promise<string> {
-  const filename = `mdx-forge-render-${randomBytes(6).toString('hex')}.html`;
+  const filename = `${PREVIEW_ARTIFACT_PREFIX}${randomBytes(6).toString('hex')}.html`;
   const filePath = join(tmpdir(), filename);
   await writeFile(filePath, fullHtml, 'utf8');
   return filePath;
+}
+
+// prune temp preview artifacts beyond the age TTL & count cap (F28)
+// best-effort; called on server start & after each render
+export async function prunePreviewArtifacts(): Promise<void> {
+  const dir = tmpdir();
+  let names: string[];
+  try {
+    names = await readdir(dir);
+  } catch {
+    return;
+  }
+  const candidates = names.filter(
+    (n) => n.startsWith(PREVIEW_ARTIFACT_PREFIX) && n.endsWith('.html')
+  );
+  const now = Date.now();
+  const live: Array<{ path: string; mtimeMs: number }> = [];
+  for (const name of candidates) {
+    const filePath = join(dir, name);
+    let info;
+    try {
+      info = await stat(filePath);
+    } catch {
+      continue;
+    }
+    if (now - info.mtimeMs > PREVIEW_ARTIFACT_TTL_MS) {
+      await unlink(filePath).catch(() => undefined);
+      continue;
+    }
+    live.push({ path: filePath, mtimeMs: info.mtimeMs });
+  }
+  if (live.length <= MAX_PREVIEW_ARTIFACTS) {
+    return;
+  }
+  // drop oldest beyond the count cap
+  live.sort((a, b) => b.mtimeMs - a.mtimeMs);
+  for (const stale of live.slice(MAX_PREVIEW_ARTIFACTS)) {
+    await unlink(stale.path).catch(() => undefined);
+  }
 }
 
 interface ModeDocs {
@@ -310,9 +390,7 @@ async function buildModeDocs(
 
   let compiled: Awaited<ReturnType<typeof compileSafe>>;
   try {
-    compiled = await compileSafe(source, {
-      documentPath: '/virtual/render.mdx',
-    });
+    compiled = await compileSafe(source, SAFE_COMPILE_CONFIG);
   } catch (err) {
     throw new RenderDiagnosticError(
       normalizeCompileError(err, { source, framework }),
@@ -320,19 +398,99 @@ async function buildModeDocs(
     );
   }
   const bodyHtml = sanitizeScreenshotHtml(compiled.html);
-  const doc = buildSafeDocument(bodyHtml, tokens, frameworkCss, theme);
+  // preview page omits CSP so live-reload infra runs; artifact carries the CSP
+  const previewHtml = buildSafeDocument(
+    bodyHtml,
+    tokens,
+    frameworkCss,
+    theme,
+    false
+  );
+  const fullHtml = buildSafeDocument(
+    bodyHtml,
+    tokens,
+    frameworkCss,
+    theme,
+    true
+  );
   return {
     bodyHtml,
     frontmatter: compiled.frontmatter,
-    previewHtml: doc,
-    fullHtml: doc,
+    previewHtml,
+    fullHtml,
   };
+}
+
+// enforce input budgets before compile/render; direct API & server share this
+export function validateRenderBudgets(args: RenderArgs): void {
+  const sourceBytes = Buffer.byteLength(args.source, 'utf8');
+  if (sourceBytes > MAX_SOURCE_BYTES) {
+    throw new RenderDiagnosticError(
+      {
+        kind: 'invalid-prop-value',
+        severity: 'error',
+        message: `source is ${sourceBytes} bytes; cap is ${MAX_SOURCE_BYTES}.`,
+        prop: 'source',
+      },
+      []
+    );
+  }
+  const dims: Array<number | undefined> = [
+    args.viewport?.width,
+    args.viewport?.height,
+  ];
+  for (const dim of dims) {
+    if (dim !== undefined && dim > MAX_VIEWPORT_DIMENSION) {
+      throw new RenderDiagnosticError(
+        {
+          kind: 'invalid-prop-value',
+          severity: 'error',
+          message: `viewport dimension ${dim} exceeds cap ${MAX_VIEWPORT_DIMENSION}.`,
+          prop: 'viewport',
+        },
+        []
+      );
+    }
+  }
+}
+
+// reject per-variant & aggregate pixel budgets before launching a browser
+export function validatePixelBudgets(plan: CapturePlan): void {
+  let aggregate = 0;
+  for (const variant of plan.variants) {
+    const pixels = variant.viewport.width * variant.viewport.height;
+    if (pixels > MAX_VARIANT_PIXELS) {
+      throw new RenderDiagnosticError(
+        {
+          kind: 'invalid-prop-value',
+          severity: 'error',
+          message: `variant is ${pixels} px; per-variant cap is ${MAX_VARIANT_PIXELS}.`,
+          prop: 'viewport',
+        },
+        []
+      );
+    }
+    aggregate += pixels;
+  }
+  if (aggregate > MAX_AGGREGATE_PIXELS) {
+    throw new RenderDiagnosticError(
+      {
+        kind: 'invalid-prop-value',
+        severity: 'error',
+        message: `aggregate is ${aggregate} px; cap is ${MAX_AGGREGATE_PIXELS}.`,
+        prop: 'screenshots',
+      },
+      []
+    );
+  }
 }
 
 export async function renderMdx(args: RenderArgs): Promise<RenderResult> {
   const framework: FrameworkId = args.framework ?? 'generic';
   const theme = args.theme ?? 'light';
   const mode: RenderMode = args.mode ?? 'safe';
+
+  validateRenderBudgets(args);
 
   // lint before compile/render to surface structured diagnostics early
   const lint = await lintMdxSource(args.source, framework);
@@ -359,6 +517,8 @@ export async function renderMdx(args: RenderArgs): Promise<RenderResult> {
 
   const previewPath = await writePreviewFile(docs.fullHtml);
   updatePreview(docs.previewHtml);
+  // best-effort retention prune; never block the render on cleanup
+  void prunePreviewArtifacts();
 
   if (args.autoOpen) {
     autoOpenOnce(getPreviewUrl() ?? previewUrl);
@@ -379,9 +539,12 @@ export async function renderMdx(args: RenderArgs): Promise<RenderResult> {
     return base;
   }
 
+  validatePixelBudgets(plan);
+
+  // trusted snapshots capture through a static CSP'd Safe document
   const screenshotDoc =
     mode === 'trusted'
-      ? buildSafeDocument(docs.bodyHtml, tokens, frameworkCss, theme)
+      ? buildSafeDocument(docs.bodyHtml, tokens, frameworkCss, theme, true)
       : docs.fullHtml;
   const screenshots = await captureVariants(screenshotDoc, plan);
   return { ...base, screenshots };
@@ -478,11 +641,27 @@ function dedupeViewports(
   return out;
 }
 
+// explicit readiness in place of networkidle (F27): load + fonts + paint settle
+async function waitForCaptureReadiness(page: {
+  evaluate: <R>(fn: () => R) => Promise<R>;
+}): Promise<void> {
+  await page.evaluate(async () => {
+    const doc = document as Document & { fonts?: FontFaceSet };
+    if (doc.fonts?.ready) {
+      await doc.fonts.ready;
+    }
+    // two rAFs let layout & first paint settle without a fixed timer
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
+  });
+}
+
 async function captureVariants(
   screenshotDoc: string,
   plan: CapturePlan
 ): Promise<CaptureVariant[]> {
-  const browser = await getBrowser();
+  const browser = await getPluginBrowser();
   const byViewport = new Map<string, CapturePlanVariant[]>();
   for (const variant of plan.variants) {
     const key = viewportKey(variant.viewport);
@@ -497,13 +676,34 @@ async function captureVariants(
   const results: CaptureVariant[] = [];
   for (const bucket of byViewport.values()) {
     const viewport = bucket[0].viewport;
-    const context = await browser.newContext({
+    // isolated capture context off the shared plugin Browser
+    const context: BrowserContext = await browser.newContext({
       viewport: { width: viewport.width, height: viewport.height },
       colorScheme: bucket[0].theme,
     });
+    // default-deny network so Safe artifacts can't reach loopback / remote hosts
+    await applyDenyRoute(context);
     try {
       const page = await context.newPage();
-      await page.setContent(screenshotDoc, { waitUntil: 'networkidle' });
+      await page.setContent(screenshotDoc, { waitUntil: 'load' });
+      await waitForCaptureReadiness(page);
+      if (plan.fullPage) {
+        // reject tall pages before allocating a full-page surface
+        const scrollHeight = await page.evaluate(
+          () => document.documentElement.scrollHeight
+        );
+        if (scrollHeight > MAX_FULLPAGE_SCROLL_HEIGHT) {
+          throw new RenderDiagnosticError(
+            {
+              kind: 'invalid-prop-value',
+              severity: 'error',
+              message: `full-page height ${scrollHeight}px exceeds cap ${MAX_FULLPAGE_SCROLL_HEIGHT}px.`,
+              prop: 'screenshots',
+            },
+            []
+          );
+        }
+      }
       for (const variant of bucket) {
         await page.emulateMedia({ colorScheme: variant.theme });
         await page.evaluate((t) => {
@@ -513,6 +713,17 @@ async function captureVariants(
           type: 'png',
           fullPage: plan.fullPage,
         });
+        if (png.length > MAX_PNG_BYTES) {
+          throw new RenderDiagnosticError(
+            {
+              kind: 'invalid-prop-value',
+              severity: 'error',
+              message: `screenshot is ${png.length} bytes; cap is ${MAX_PNG_BYTES}.`,
+              prop: 'screenshots',
+            },
+            []
+          );
+        }
         results.push({
           label: `${variant.theme}-${viewportLabelFragment(viewport)}`,
           theme: variant.theme,

@@ -66,14 +66,21 @@ describe('registry queries', () => {
     expect(names).toContain('Admonition');
   });
 
-  it('caches generic names and set instances', () => {
-    const namesA = getAllGenericComponentNames();
-    const namesB = getAllGenericComponentNames();
-    const setA = getGenericComponentSet();
-    const setB = getGenericComponentSet();
+  it('returns defensive copies that cannot mutate canonical state', () => {
+    const names = getAllGenericComponentNames();
+    const set = getGenericComponentSet();
 
-    expect(namesA).toBe(namesB);
-    expect(setA).toBe(setB);
+    // returned collections are snapshots, not the shared lookup state
+    expect(getAllGenericComponentNames()).not.toBe(names);
+    expect(getGenericComponentSet()).not.toBe(set);
+
+    names.length = 0;
+    set.clear();
+
+    expect(getAllGenericComponentNames()).toContain('Callout');
+    expect(getGenericComponentSet().has('Alert')).toBe(true);
+    expect(isGenericComponent('Callout')).toBe(true);
+    expect(isGenericComponent('Admonition')).toBe(true);
   });
 
   it('returns primary generic names without aliases', () => {

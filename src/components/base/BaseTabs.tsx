@@ -6,29 +6,45 @@ import React, {
   useContext,
   useRef,
   useCallback,
+  useEffect,
+  useSyncExternalStore,
   ReactNode,
   ReactElement,
   Context,
   Children,
   isValidElement,
   HTMLAttributes,
-  KeyboardEvent,
 } from 'react';
 import { cn } from '../internal/cn';
 import {
   useTabState,
   useIndexTabs,
-  resolveTabNavIndex,
   type TabDefinition,
   type TabItemProps,
 } from './useTabState';
+import { useTabListInteraction } from './useTabListInteraction';
+import {
+  subscribeTabGroup,
+  getTabGroupChoice,
+  setTabGroupChoice,
+  publishTabGroupChoice,
+  restoreTabGroupChoice,
+} from './tabGroupSync';
 
 // configuration for creating a Tabs component
 export interface BaseTabsConfig {
   classPrefix: string;
   wrapperClass?: string;
-  // tab synchronization support
+  // groupId-based sync & persistence (Docusaurus/generic)
   supportsGroupId?: boolean;
+  // syncKey-based sync & persistence (Starlight)
+  supportsSyncKey?: boolean;
+  // localStorage namespace for synced group choices
+  groupStoragePrefix?: string;
+  // URL query-string selection sync (Docusaurus)
+  supportsQueryString?: boolean;
+  // enable TabItem icons; maps icon names/nodes to rendered nodes
+  renderTabIcon?: (icon: ReactNode) => ReactNode;
   // standalone TabItem class
   tabItemClassName?: string;
   // debug name
@@ -41,9 +57,13 @@ export interface BaseTabsProps {
   defaultValue?: string;
   values?: TabDefinition[];
   className?: string;
-  // framework-specific pass-through
+  // sync & persist selection across groups w/ the same ID
   groupId?: string;
+  // Starlight alias for group synchronization
+  syncKey?: string;
+  // URL sync: true derives the param name from groupId, string names it
   queryString?: string | boolean;
+  // mount only the selected panel
   lazy?: boolean;
 }
 
@@ -62,6 +82,10 @@ export function createTabs(config: BaseTabsConfig): CreateTabsResult {
     classPrefix,
     wrapperClass,
     supportsGroupId = false,
+    supportsSyncKey = false,
+    groupStoragePrefix = 'mdx.tab.',
+    supportsQueryString = false,
+    renderTabIcon,
     tabItemClassName = `${classPrefix}-item`,
     contextName,
   } = config;
@@ -77,6 +101,9 @@ export function createTabs(config: BaseTabsConfig): CreateTabsResult {
     values,
     className,
     groupId,
+    syncKey,
+    queryString,
+    lazy = false,
   }: BaseTabsProps): ReactElement {
     const { activeValue, setActiveValue, tabs, tabItems } = useTabState({
       children,
@@ -84,23 +111,92 @@ export function createTabs(config: BaseTabsConfig): CreateTabsResult {
       values,
     });
 
-    // refs for tab buttons to enable focus management
-    const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+    // resolve sync group -> namespaced storage key
+    const effectiveGroupId = supportsGroupId ? groupId : undefined;
+    const group = effectiveGroupId ?? (supportsSyncKey ? syncKey : undefined);
+    const storeKey = group ? `${groupStoragePrefix}${group}` : undefined;
 
-    // handle keyboard navigation for tabs
-    const handleKeyDown = useCallback(
-      (e: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
-        const newIndex = resolveTabNavIndex(e.key, currentIndex, tabs.length);
-        if (newIndex === undefined) {
-          return;
-        }
+    // URL param name: true derives from groupId (Docusaurus convention)
+    const queryParam = supportsQueryString
+      ? typeof queryString === 'string' && queryString !== ''
+        ? queryString
+        : queryString === true && effectiveGroupId
+          ? effectiveGroupId
+          : undefined
+      : undefined;
 
-        e.preventDefault();
-        setActiveValue(tabs[newIndex].value);
-        tabRefs.current[newIndex]?.focus();
-      },
-      [tabs, setActiveValue]
+    // synced group choice; server snapshot stays undefined for determinism
+    const subscribe = useCallback(
+      (listener: () => void) =>
+        storeKey ? subscribeTabGroup(storeKey, listener) : () => {},
+      [storeKey]
     );
+    const syncedValue = useSyncExternalStore(
+      subscribe,
+      () => (storeKey ? getTabGroupChoice(storeKey) : undefined),
+      () => undefined
+    );
+
+    // restore URL selection (wins), then persisted group choice, post-mount
+    const restoredRef = useRef(false);
+    useEffect(() => {
+      if (restoredRef.current) {
+        return;
+      }
+      restoredRef.current = true;
+      if (queryParam) {
+        const fromUrl = new URLSearchParams(window.location.search).get(
+          queryParam
+        );
+        if (fromUrl !== null && tabs.some((tab) => tab.value === fromUrl)) {
+          setActiveValue(fromUrl);
+          if (storeKey) {
+            publishTabGroupChoice(storeKey, fromUrl);
+          }
+        }
+      }
+      if (storeKey) {
+        restoreTabGroupChoice(storeKey);
+      }
+    }, [queryParam, storeKey, tabs, setActiveValue]);
+
+    // synced choice wins whenever it names an existing tab
+    const currentValue =
+      syncedValue !== undefined && tabs.some((tab) => tab.value === syncedValue)
+        ? syncedValue
+        : activeValue;
+
+    // select a tab: update local state, group store & URL
+    const selectValue = useCallback(
+      (value: string) => {
+        setActiveValue(value);
+        if (storeKey) {
+          setTabGroupChoice(storeKey, value);
+        }
+        if (queryParam) {
+          try {
+            const url = new URL(window.location.href);
+            url.searchParams.set(queryParam, value);
+            window.history.replaceState(window.history.state, '', url);
+          } catch {
+            // URL update is best-effort
+          }
+        }
+      },
+      [setActiveValue, storeKey, queryParam]
+    );
+
+    // shared interaction machinery; selection maps index -> tab value
+    const selectIndex = useCallback(
+      (index: number) => selectValue(tabs[index].value),
+      [tabs, selectValue]
+    );
+    const { tabId, panelId, tabButtonProps } = useTabListInteraction({
+      count: tabs.length,
+      onSelect: selectIndex,
+    });
+    const tabIndexOf = (value: string) =>
+      tabs.findIndex((tab) => tab.value === value);
 
     // build wrapper class
     const wrapperClassName = cn(wrapperClass || classPrefix, className);
@@ -110,46 +206,54 @@ export function createTabs(config: BaseTabsConfig): CreateTabsResult {
         <div
           className={wrapperClassName}
           data-component="tabs"
-          data-group-id={supportsGroupId ? groupId : undefined}
+          data-group-id={group}
         >
           {/* tab headers */}
           <div className={`${classPrefix}-header`} role="tablist">
             {tabs.map((tab, index) => (
               <button
                 key={tab.value}
-                ref={(el) => {
-                  tabRefs.current[index] = el;
-                }}
-                role="tab"
+                {...tabButtonProps(
+                  index,
+                  tab.value === currentValue,
+                  !lazy || tab.value === currentValue
+                )}
                 className={cn(
                   `${classPrefix}-button`,
-                  tab.value === activeValue && 'active'
+                  tab.value === currentValue && 'active'
                 )}
-                aria-selected={tab.value === activeValue}
-                onClick={() => setActiveValue(tab.value)}
-                onKeyDown={(e) => handleKeyDown(e, index)}
-                tabIndex={tab.value === activeValue ? 0 : -1}
               >
+                {renderTabIcon && tab.icon !== undefined && (
+                  <span className={`${classPrefix}-icon`} aria-hidden="true">
+                    {renderTabIcon(tab.icon)}
+                  </span>
+                )}
                 {tab.label}
               </button>
             ))}
           </div>
 
-          {/* tab content */}
+          {/* tab content; lazy mode mounts only the selected panel */}
           <div className={`${classPrefix}-content`}>
-            {tabItems.map((item) => (
-              <div
-                key={item.value}
-                role="tabpanel"
-                className={cn(
-                  `${classPrefix}-panel`,
-                  item.value === activeValue && 'active'
-                )}
-                hidden={item.value !== activeValue}
-              >
-                {item.content}
-              </div>
-            ))}
+            {tabItems.map((item) => {
+              const selected = item.value === currentValue;
+              if (lazy && !selected) {
+                return null;
+              }
+              const index = tabIndexOf(item.value);
+              return (
+                <div
+                  key={item.value}
+                  id={index >= 0 ? panelId(index) : undefined}
+                  role="tabpanel"
+                  aria-labelledby={index >= 0 ? tabId(index) : undefined}
+                  className={cn(`${classPrefix}-panel`, selected && 'active')}
+                  hidden={!selected}
+                >
+                  {item.content}
+                </div>
+              );
+            })}
           </div>
         </div>
       </TabsContext.Provider>
@@ -255,28 +359,16 @@ export function createIndexTabs<T>(
       isDisabled,
     });
 
-    // refs for tab buttons to enable focus management
-    const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-
-    // handle keyboard navigation for tabs (disabled-aware)
-    const handleKeyDown = useCallback(
-      (e: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
-        const newIndex = resolveTabNavIndex(
-          e.key,
-          currentIndex,
-          items.length,
-          (idx) => isDisabled(items[idx])
-        );
-        if (newIndex === undefined) {
-          return;
-        }
-
-        e.preventDefault();
-        setActiveIndex(newIndex);
-        tabRefs.current[newIndex]?.focus();
-      },
-      [items, setActiveIndex]
+    // shared interaction machinery (disabled-aware)
+    const itemDisabled = useCallback(
+      (index: number) => isDisabled(items[index]),
+      [items]
     );
+    const { tabId, panelId, tabButtonProps } = useTabListInteraction({
+      count: items.length,
+      onSelect: setActiveIndex,
+      isDisabled: itemDisabled,
+    });
 
     // get Tab children for content panels
     const tabChildren = Children.toArray(children).filter(
@@ -301,21 +393,14 @@ export function createIndexTabs<T>(
               return (
                 <button
                   key={index}
-                  ref={(el) => {
-                    tabRefs.current[index] = el;
-                  }}
-                  role="tab"
-                  aria-selected={selected}
+                  {...tabButtonProps(index, selected)}
                   aria-disabled={disabled}
-                  tabIndex={selected ? 0 : -1}
                   className={cn(
                     `${classPrefix}-button`,
                     selected && `${classPrefix}-button-active`,
                     disabled && `${classPrefix}-button-disabled`,
                     customClass
                   )}
-                  onClick={() => setActiveIndex(index)}
-                  onKeyDown={(e) => handleKeyDown(e, index)}
                   disabled={disabled}
                 >
                   {label}
@@ -327,7 +412,9 @@ export function createIndexTabs<T>(
             {tabChildren.map((child, index) => (
               <div
                 key={index}
+                id={panelId(index)}
                 role="tabpanel"
+                aria-labelledby={tabId(index)}
                 hidden={index !== activeIndex}
                 className={`${classPrefix}-panel`}
               >

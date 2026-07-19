@@ -2,7 +2,10 @@
 // Starlight Code component shim for MDX Preview
 // provide preview-compatible version of @astrojs/starlight/components Code
 
-import { createCodeBlock } from '../base/BaseCodeBlock';
+import {
+  createCodeBlock,
+  type BaseCodeBlockProps,
+} from '../base/BaseCodeBlock';
 
 // languages that should use terminal frame by default
 const TERMINAL_LANGUAGES = new Set([
@@ -26,15 +29,8 @@ export const Code = createCodeBlock({
   showLangBadgeWithTitle: false,
 });
 
-// re-export props type for consumers w/ Starlight-compatible aliases
-export interface CodeProps {
-  code: string;
-  lang?: string;
-  title?: string;
-  meta?: string;
-  mark?: (number | string)[];
-  frame?: 'code' | 'terminal' | 'none' | 'auto';
-  locale?: string;
-}
+// public props derive from the base implementation; `code` is required
+// (unsupported Starlight props like mark/locale are deliberately absent)
+export type CodeProps = Omit<BaseCodeBlockProps, 'code'> & { code: string };
 
 export default Code;

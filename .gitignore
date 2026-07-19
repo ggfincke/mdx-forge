@@ -39,3 +39,5 @@ dev-docs/
 # AI instructions (local only)
 AGENTS.md
 CLAUDE.md
+# cartographer artifacts
+.cartographer/

@@ -115,4 +115,106 @@ describe('Starlight FileTree', () => {
     expect(dir).toBeTruthy();
     expect(dir?.textContent).toContain('helper.ts');
   });
+
+  // formatted first-node filenames & structural comments (F16)
+
+  it('accepts a code-wrapped filename', () => {
+    const { container } = render(
+      React.createElement(
+        FileTree,
+        null,
+        makeList(makeLi(React.createElement('code', null, '__init__.py')))
+      )
+    );
+    const name = container.querySelector('.name');
+    expect(name?.textContent).toBe('__init__.py');
+    expect(
+      container.querySelector('.mdx-preview-starlight-file-tree-file')
+    ).toBeTruthy();
+  });
+
+  it('keeps spaces inside a bold filename', () => {
+    const { container } = render(
+      React.createElement(
+        FileTree,
+        null,
+        makeList(
+          makeLi(React.createElement('strong', null, 'READ ME FIRST.md'))
+        )
+      )
+    );
+    const name = container.querySelector('.name');
+    expect(name?.textContent).toBe('READ ME FIRST.md');
+    expect(container.querySelector('.highlighted')).toBeTruthy();
+    expect(container.querySelector('.comment')).toBeNull();
+  });
+
+  it('keeps later bold text as comment content, never as the filename', () => {
+    const { container } = render(
+      React.createElement(
+        FileTree,
+        null,
+        makeList(
+          makeLi(
+            'Header.astro an ',
+            React.createElement('strong', null, 'important'),
+            ' file'
+          )
+        )
+      )
+    );
+    const name = container.querySelector('.name');
+    expect(name?.textContent).toBe('Header.astro');
+    // entry is not highlighted; bold formatting survives inside the comment
+    expect(container.querySelector('li.highlighted')).toBeNull();
+    const comment = container.querySelector('.comment');
+    expect(comment?.textContent).toBe('an important file');
+    expect(comment?.querySelector('strong')?.textContent).toBe('important');
+  });
+
+  it('keeps comments on formatted filenames', () => {
+    const { container } = render(
+      React.createElement(
+        FileTree,
+        null,
+        makeList(
+          makeLi(
+            React.createElement('code', null, 'config.json'),
+            ' this is important'
+          )
+        )
+      )
+    );
+    expect(container.querySelector('.name')?.textContent).toBe('config.json');
+    expect(container.querySelector('.comment')?.textContent).toContain(
+      'this is important'
+    );
+  });
+
+  it('nested directories & ellipsis still parse alongside formatted names', () => {
+    const { container } = render(
+      React.createElement(
+        FileTree,
+        null,
+        makeList(
+          makeLi(
+            'src/',
+            React.createElement(
+              'ul',
+              null,
+              makeLi(React.createElement('code', null, 'main.rs')),
+              makeLi('...')
+            )
+          )
+        )
+      )
+    );
+    const dir = container.querySelector(
+      '.mdx-preview-starlight-file-tree-directory'
+    );
+    expect(dir?.textContent).toContain('main.rs');
+    expect(
+      container.querySelector('.mdx-preview-starlight-file-tree-placeholder')
+    ).toBeTruthy();
+  });
 });

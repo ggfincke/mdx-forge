@@ -84,7 +84,6 @@ export function transformCallout(node: MdxJsxElement): RootContent {
     iconClassName: SAFE_CALLOUT_ICON,
     icon: config.icon,
     title,
-    escapeTitle: true,
     contentType: 'calloutContent',
     contentClassName: SAFE_CALLOUT_CONTENT,
     contentChildren: node.children as RootContent[],
