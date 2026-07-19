@@ -81,9 +81,12 @@ function buildImportProbe(jsSubpaths) {
     '',
     'import {',
     '  compileSafe,',
+    '  compileSafeDocument,',
     '  compileTrusted,',
     '  type CompilerConfig,',
     '  type DiagramBehavior,',
+    '  type SafeDocument,',
+    '  type SafeDocumentComponentSchema,',
     "} from 'mdx-forge/compiler';",
     "import type { Diagnostic } from 'mdx-forge/diagnostics';",
     'import {',
@@ -97,9 +100,11 @@ function buildImportProbe(jsSubpaths) {
     '// F2 negative assertions: linked APIs must not degrade to `any`',
     'type NotAny<T> = 0 extends 1 & T ? never : true;',
     'const compileSafeIsTyped: NotAny<typeof compileSafe> = true;',
+    'const compileSafeDocumentIsTyped: NotAny<typeof compileSafeDocument> = true;',
     'const compileTrustedIsTyped: NotAny<typeof compileTrusted> = true;',
     'const registryIsTyped: NotAny<typeof COMPONENT_REGISTRY> = true;',
     'void compileSafeIsTyped;',
+    'void compileSafeDocumentIsTyped;',
     'void compileTrustedIsTyped;',
     'void registryIsTyped;',
     '',
@@ -112,6 +117,16 @@ function buildImportProbe(jsSubpaths) {
     "  diagramBehavior: 'code' satisfies DiagramBehavior,",
     '};',
     'void config;',
+    '',
+    'const componentSchema: SafeDocumentComponentSchema = {',
+    "  props: { limit: { type: 'number', integer: true, minimum: 1 } },",
+    "  children: 'optional',",
+    '};',
+    'const structured: Promise<SafeDocument> = compileSafeDocument(',
+    "  '<Hotspots limit={10}>Current</Hotspots>',",
+    '  { components: { Hotspots: componentSchema } }',
+    ');',
+    'void structured;',
     '',
     'const entries: PreloadEntry[] = [];',
     'registerPreloadEntries(entries);',
@@ -172,8 +187,6 @@ function runNodeNextLeg(workDir, tarballPath, jsSubpaths) {
       tarballPath,
       'react@^19',
       'react-dom@^19',
-      '@mdx-js/mdx@^3',
-      'unified@^11',
       'typescript@^6',
       '@types/react@^19',
       '@types/react-dom@^19',
@@ -195,7 +208,33 @@ function runNodeNextLeg(workDir, tarballPath, jsSubpaths) {
     run('npx', ['tsc', '-p', configName], consumer);
     console.log(`NodeNext typecheck passed (skipLibCheck: ${skipLibCheck})`);
   }
+  runStructuredRuntimeProbe(consumer);
   return consumer;
+}
+
+function runStructuredRuntimeProbe(consumer) {
+  const source = [
+    "import { compileSafeDocument } from 'mdx-forge/compiler';",
+    '',
+    'const result = await compileSafeDocument(',
+    "  '# Architecture\\n\\n<Hotspots limit={10} />',",
+    '  {',
+    '    components: {',
+    '      Hotspots: {',
+    "        props: { limit: { type: 'number', integer: true } },",
+    '      },',
+    '    },',
+    '  }',
+    ');',
+    "if (result.version !== 1 || result.root.type !== 'root') {",
+    "  throw new Error('invalid safe-document result');",
+    '}',
+    'JSON.stringify(result);',
+    '',
+  ].join('\n');
+  fs.writeFileSync(path.join(consumer, 'runtime.mjs'), source);
+  run('node', ['runtime.mjs'], consumer);
+  console.log('Structured runtime probe passed');
 }
 
 // --- step 3: CSS-aware consumer -----------------------------------------------

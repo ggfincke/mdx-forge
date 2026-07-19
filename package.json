@@ -95,22 +95,15 @@
     "./components/styles/tokens.css": "./dist/components/styles/tokens.css"
   },
   "peerDependencies": {
-    "@mdx-js/mdx": "^3.0.0",
-    "react": ">=18",
-    "unified": "^11.0.0"
+    "react": ">=18"
   },
   "peerDependenciesMeta": {
-    "@mdx-js/mdx": {
-      "optional": true
-    },
-    "unified": {
-      "optional": true
-    },
     "react": {
       "optional": true
     }
   },
   "dependencies": {
+    "@mdx-js/mdx": "^3.0.0",
     "@shikijs/core": "^4.3.1",
     "@shikijs/engine-javascript": "^4.3.1",
     "@shikijs/langs": "^4.3.1",
@@ -127,11 +120,11 @@
     "remark-mdx": "^3.0.0",
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.0.0",
+    "unified": "^11.0.0",
     "unist-util-visit": "^5.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@mdx-js/mdx": "^3.0.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^26.1.1",

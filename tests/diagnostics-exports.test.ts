@@ -8,7 +8,7 @@ import * as analyze from '../src/diagnostics/analyze/index';
 describe('diagnostics contract exports', () => {
   it('exposes the stable code table', () => {
     expect(contract.DIAGNOSTIC_CODES.UNKNOWN_COMPONENT).toBe('MDXF001');
-    expect(Object.keys(contract.DIAGNOSTIC_CODES)).toHaveLength(16);
+    expect(Object.keys(contract.DIAGNOSTIC_CODES)).toHaveLength(20);
   });
 
   it('locks the full MDXF code set', () => {
@@ -29,6 +29,10 @@ describe('diagnostics contract exports', () => {
       MDX_PARSE_ERROR: 'MDXF100',
       PLUGIN_LOAD_ERROR: 'MDXF101',
       UNSUPPORTED_IN_SAFE_MODE: 'MDXF110',
+      UNSAFE_URL: 'MDXF111',
+      UNSUPPORTED_ELEMENT: 'MDXF112',
+      UNSUPPORTED_ATTRIBUTE: 'MDXF113',
+      UNSUPPORTED_RAW_HTML: 'MDXF114',
     });
   });
 });
