@@ -27,18 +27,33 @@ jobs:
         run: node scripts/check-publish-version.mjs
       - run: npm i -g npm@^11.5.1
       - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm run typecheck:dev
       - run: npx playwright install --with-deps chromium
-      - run: npm test
       - run: npm run build
       - run: npm run check:esm-specifiers
-      - run: npm publish --access=public
+      - run: npm ci
+        working-directory: plugins/render
+      - run: npm test
+      - run: npm run check:plugin-compat
+      - run: npm run check:consumers -- --skip-plugin-compat
+      - run: npm pack --dry-run
+      - run: node scripts/check-changelog.mjs
 
       - name: Extract release notes from changelog
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
           awk "/^## \\[$VERSION\\]/{found=1; next} /^## \\[/{if(found) exit} found{print}" CHANGELOG.md > release-notes.md
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            echo "No changelog notes found for v$VERSION" >&2
+            exit 1
+          fi
           echo "" >> release-notes.md
           echo "**Full Changelog**: https://github.com/ggfincke/mdx-forge/commits/v$VERSION" >> release-notes.md
+
+      - run: npm publish --access=public
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
