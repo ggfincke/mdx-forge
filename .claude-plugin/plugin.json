@@ -1,7 +1,7 @@
 {
   "name": "mdx-forge",
   "version": "0.1.0",
-  "description": "Skill for working with the mdx-forge MDX runtime toolkit (compiler, browser module loader, framework component shims).",
+  "description": "Skill for working with the mdx-forge MDX toolkit (structured documents, HTML/JS compilation, browser loader, framework shims).",
   "author": {
     "name": "Garrett Fincke",
     "email": "garrettfincke@gmail.com"

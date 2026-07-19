@@ -1,5 +1,5 @@
 // skills/mdx-forge/examples/safe-compile.ts
-// minimal compileSafe end-to-end: MDX text -> sanitized HTML
+// minimal compileSafe end-to-end: MDX text -> static HTML
 
 import { compileSafe } from 'mdx-forge/compiler';
 

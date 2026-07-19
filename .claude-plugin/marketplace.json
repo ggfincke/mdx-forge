@@ -11,7 +11,7 @@
     {
       "name": "mdx-forge",
       "source": "./",
-      "description": "Skill for the mdx-forge MDX runtime toolkit. Teaches Claude how to use compileSafe / compileTrusted, the browser module loader, and framework component shims correctly.",
+      "description": "Skill for the mdx-forge MDX toolkit. Teaches Claude how to use compileSafeDocument / compileSafe / compileTrusted, the browser loader, and framework shims correctly.",
       "version": "0.1.0"
     },
     {

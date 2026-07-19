@@ -4,7 +4,7 @@
 
 It exposes four domain-focused entry points:
 
-- `mdx-forge/compiler` for Safe and Trusted MDX compilation
+- `mdx-forge/compiler` for structured, Safe HTML, and Trusted MDX compilation
 - `mdx-forge/diagnostics` for host-agnostic diagnostic contracts and analysis
 - `mdx-forge/browser` for browser-side module loading and evaluation
 - `mdx-forge/components` for framework shim components, metadata, and CSS
@@ -18,18 +18,33 @@ npm install mdx-forge
 Peer dependencies:
 
 - `react >= 18` for component entry points
-- `@mdx-js/mdx` and `unified` for compiler entry points
+
+Compiler dependencies are installed with the package; consumers do not need
+to install `@mdx-js/mdx` or `unified` separately.
 
 ## Quick Start
 
 ```ts
-import { compileSafe } from 'mdx-forge/compiler';
+import { compileSafeDocument } from 'mdx-forge/compiler';
 
-const result = await compileSafe('# Hello', {
-  documentPath: '/example.mdx',
-});
+const result = await compileSafeDocument(
+  '# Hello\n\n<Hotspots limit={10} />',
+  {
+    components: {
+      Hotspots: {
+        props: {
+          limit: { type: 'number', integer: true, minimum: 1 },
+        },
+      },
+    },
+  }
+);
 
-console.log(result.html);
+if (result.diagnostics.some((item) => item.severity === 'error')) {
+  throw new Error(JSON.stringify(result.diagnostics));
+}
+
+console.log(result.root);
 ```
 
 ## Public Entry Points
@@ -53,10 +68,14 @@ console.log(result.html);
 
 ### Compiler
 
+- `compileSafeDocument()` compiles untrusted MDX into a versioned, JSON-only
+  structural tree with closed Markdown elements, schema-declared host
+  components, source ranges, and diagnostics; it never returns HTML or code
 - `compileSafe()` compiles MDX to HTML for non-executing preview flows
 - `compileTrusted()` compiles MDX to executable JavaScript for host-controlled trusted rendering
 - `format` selects lenient CommonMark (`md`) vs strict MDX (`mdx`); `detect` (default) derives it from the document extension (`.md` → `md`, else `mdx`)
-- built-in remark/rehype support includes GFM, alerts, directives, math, diagrams, heading anchors, and syntax highlighting
+- Safe HTML and Trusted Mode remark/rehype support includes GFM, alerts,
+  directives, math, diagrams, heading anchors, and syntax highlighting
 
 ### Browser Runtime
 
@@ -80,6 +99,10 @@ console.log(result.html);
 
 - `mdx-forge/browser` evaluates code with `new Function()`
 - hosts must explicitly enforce their own trust and path boundaries
+- structured compilation accepts only bounded JSON literals, rejects executable
+  syntax, applies a fixed URL baseline plus optional host narrowing, and never
+  enters Trusted Mode; hosts must still render only the closed returned node
+  vocabulary and stop on error diagnostics
 - Safe compilation is a compile mode, not a full sanitization boundary by itself
 - `.md` documents compile as CommonMark: raw HTML (including event-handler attributes and elements that strict MDX would reject) passes through verbatim, so sanitize untrusted `.md` downstream or set `format: 'mdx'` for strict parsing
 - MDX component handling (`componentsUnknownBehavior`, `componentNameResolver`, component maps) does not apply to `.md`; the compiler warns (`MDX009`) when such config is set for a `.md` document
@@ -99,7 +122,12 @@ npm test
 
 ### `mdx-forge` skill
 
-A skill that teaches Claude how to use `compileSafe` / `compileTrusted`, the browser module loader (`loadModule`, `setModuleFetcher`, `evaluateModuleToComponent`), and the framework component shims correctly. Lives in [`skills/mdx-forge/`](./skills/mdx-forge/) — `SKILL.md`, four reference docs (`compiler.md`, `browser-runtime.md`, `components.md`, `plugins.md`), and four compile-checkable TypeScript examples.
+A skill that teaches Claude how to use `compileSafeDocument`, `compileSafe`,
+`compileTrusted`, the browser module loader (`loadModule`, `setModuleFetcher`,
+`evaluateModuleToComponent`), and the framework component shims correctly.
+Lives in [`skills/mdx-forge/`](./skills/mdx-forge/) — `SKILL.md`, four reference
+docs (`compiler.md`, `browser-runtime.md`, `components.md`, `plugins.md`), and
+five compile-checkable TypeScript examples.
 
 ### `mdx-forge-render` plugin
 
