@@ -1,12 +1,27 @@
 # mdx-forge/compiler — reference
 
 Full API surface for the compiler domain. Subpath: `mdx-forge/compiler`.
-Source: `src/compiler/index.ts`. Types: `src/compiler/types/`.
+Source: `src/compiler/index.ts`. Types: `src/compiler/types/` and
+`src/compiler/safe-document/types.ts`.
+
+## Contents
+
+- [Exports](#exports)
+- [`compileSafeDocument`](#compilesafedocumentsource-options)
+- [`compileSafe`](#compilesafemdxtext-config)
+- [`compileTrusted`](#compiletrustedmdxtext-_isentry-config)
+- [Compiler config and Safe Mode behavior](#compilerconfig)
+- [Frontmatter helpers](#extractfrontmattermdxtext)
+- [Known components and constants](#known_generic_components)
+- [Plugin loading and host services](#loadpluginsfromconfigconfig-compilerconfig)
+- [Advanced pipeline phases](#pipeline-phases-advanced)
 
 ## Exports
 
 | Symbol                     | Kind     | Brief                                                      |
 | -------------------------- | -------- | ---------------------------------------------------------- |
+| `compileSafeDocument`      | function | MDX → versioned JSON-only structural document              |
+| `SAFE_DOCUMENT_VERSION`    | constant | Current structured-document contract version (`1`)         |
 | `compileSafe`              | function | MDX → HTML (no JS execution)                               |
 | `compileTrusted`           | function | MDX → executable JS                                        |
 | `extractFrontmatter`       | function | YAML frontmatter splitter (gray-matter under)              |
@@ -34,6 +49,215 @@ Source: `src/compiler/index.ts`. Types: `src/compiler/types/`.
 | `PluginLoader`             | type     | Module-resolution contract for custom plugins              |
 | `ErrorReporter`            | type     | Error reporter for plugin load failures                    |
 | `PluginLoadError`          | type     | Plugin load error payload                                  |
+
+## `compileSafeDocument(source, options?)`
+
+```ts
+function compileSafeDocument(
+  source: string,
+  options?: SafeDocumentCompileOptions
+): Promise<SafeDocument>;
+```
+
+Structured compilation is the closed-data path for untrusted MDX that needs
+host-rendered components. It parses with a fixed `remark-parse` + `remark-gfm`
+
+- `remark-mdx` pipeline and returns no HTML, JavaScript, React values, imports,
+  plugins, or compiler AST objects.
+
+`source` must be a JavaScript string; other runtime values throw `TypeError`
+before parsing so ranges always use string-relative UTF-16 offsets.
+
+It does not accept `CompilerConfig`, component import paths, plugin loaders,
+trust validators, or browser/runtime options. The structured path never calls
+Trusted Mode or component import generation.
+
+### Component schemas
+
+```ts
+interface SafeDocumentCompileOptions {
+  components?: Readonly<Record<string, SafeDocumentComponentSchema>>;
+  unknownComponents?: 'reject' | 'inert'; // default: reject
+  rawHtml?: 'reject' | 'allow'; // default: reject
+  allowUrl?: (url: string, context: SafeDocumentUrlContext) => boolean;
+}
+
+interface SafeDocumentComponentSchema {
+  props?: Readonly<Record<string, SafeDocumentValueSchema>>;
+  requiredProps?: readonly string[];
+  children?: 'none' | 'optional' | 'required';
+}
+
+type SafeDocumentValueSchema =
+  | {
+      type: 'string';
+      enum?: readonly string[];
+      format?: 'url';
+      maxLength?: number;
+    }
+  | {
+      type: 'number';
+      integer?: boolean;
+      minimum?: number;
+      maximum?: number;
+    }
+  | { type: 'boolean' }
+  | { type: 'null' }
+  | {
+      type: 'array';
+      items: SafeDocumentValueSchema;
+      maxItems?: number;
+    }
+  | {
+      type: 'object';
+      properties: Readonly<Record<string, SafeDocumentValueSchema>>;
+      required?: readonly string[];
+      additionalProperties?: false;
+      maxProperties?: number;
+    };
+```
+
+Nested object schemas are closed. Unknown nested keys fail validation;
+`additionalProperties: true` is not supported. Options and schemas are
+normalized once from own data properties into a frozen internal snapshot;
+inherited fields are ignored, while accessors, symbols, unknown fields,
+malformed values, and cycles throw `TypeError` before source parsing.
+Null-prototype records remain supported. Document-authored problems return
+diagnostics instead.
+
+Reserved component props are forbidden even if a schema declares them:
+`children`, `style`, `dangerouslySetInnerHTML`, `__html`, `key`, `ref`,
+prototype-sensitive keys, and React-style `onXxx` event props.
+
+### Literal rules
+
+String attributes remain strings and shorthand attributes become `true`.
+Expression attributes are decoded directly from remark-mdx's ESTree without
+`eval`, `Function`, imports, or a second JavaScript runtime.
+
+Allowed expression values:
+
+- finite string, number, boolean, and `null` literals
+- unary negative finite numbers
+- no-substitution template literals
+- recursively literal arrays without holes or spreads
+- recursively literal objects with plain, noncomputed `init` properties
+
+Rejected expression values include identifiers, calls, member access,
+assignments, functions, classes, JSX, binary/logical/conditional expressions,
+spreads, computed/method/shorthand properties, expression templates, regex,
+bigint, `NaN`, infinities, and prototype-sensitive object keys. Literal data is
+bounded to 16 nested levels and 1,000 value nodes.
+
+Standalone MDX expressions and all MDX ESM imports/exports are error
+diagnostics and never appear in the returned tree.
+
+### Document tree
+
+```ts
+interface SafeDocument {
+  version: 1;
+  frontmatter: Record<string, SafeDocumentJsonValue>;
+  root: SafeDocumentRootNode;
+  diagnostics: SafeDocumentDiagnostic[];
+}
+
+interface SafeDocumentRootNode {
+  type: 'root';
+  children: SafeDocumentNode[];
+  source?: DiagnosticRange;
+}
+
+type SafeDocumentNode =
+  | SafeDocumentTextNode
+  | SafeDocumentElementNode
+  | SafeDocumentComponentNode
+  | SafeDocumentUnknownComponentNode;
+```
+
+The parsed document is preflighted iteratively before conversion. Documents
+deeper than 64 source nodes or larger than 10,000 source nodes return
+`MDXF110`, an empty root, and no recursive conversion attempt.
+
+The structural element vocabulary is fixed to:
+
+```text
+a blockquote br code del em h1 h2 h3 h4 h5 h6 hr img li ol p pre
+strong table tbody td th thead tr ul
+```
+
+Per-tag props are also fixed:
+
+- `a`: required `href`, optional `title`
+- `img`: required `src` and `alt`, optional `title`
+- `code`: optional semantic `language` and `meta`
+- `ol`: optional integer `start`
+- `li`: optional boolean `checked`
+- `td` / `th`: optional `align` (`left`, `center`, or `right`)
+- every other tag has no props
+
+GFM tables become `table > thead|tbody > tr > th|td`; fenced code becomes
+`pre > code`. Reference links resolve through document definitions. Unsupported
+Markdown variants produce diagnostics rather than untyped passthrough nodes.
+
+Frontmatter is canonicalized separately into JSON values. Valid YAML dates
+become ISO strings. Non-finite numbers, unsupported scalar types, cyclic or
+non-plain objects, and prototype-sensitive keys produce `MDXF020`; unsafe data
+does not enter `frontmatter`.
+
+### Unknown components, raw elements, and URLs
+
+- `unknownComponents: 'reject'` (default) emits an error, removes the wrapper
+  and every unvalidated prop, and retains only safely converted children.
+- `unknownComponents: 'inert'` emits a warning and returns an
+  `unknownComponent` node containing only its name, safe children, and source.
+- `rawHtml: 'reject'` (default) diagnoses lowercase MDX intrinsic syntax and
+  removes the wrapper while retaining safe children.
+- `rawHtml: 'allow'` still permits only the fixed tag and per-tag prop
+  vocabulary above. It never emits raw HTML, arbitrary tags/attributes, or an
+  HTML string.
+- `br`, `hr`, and `img` are always void; authored children are diagnosed and
+  discarded.
+
+The built-in URL policy applies to Markdown links/images, intrinsic
+`href`/`src`, and every component string schema marked `format: 'url'`,
+including strings nested in objects or arrays. It allows relative/query/fragment
+references plus `http:`, `https:`, `mailto:`, and `tel:`. It rejects slash- or
+backslash-based network-path URLs, ASCII control/space obfuscation, and every
+other protocol, including `javascript:`, `data:`, `blob:`, and `file:`. A
+rejected nested URL drops its top-level authored prop without affecting sibling
+props. `allowUrl` can narrow this baseline but cannot authorize a URL the
+built-in policy rejected. A host callback must return the literal boolean
+`true`; false, thrown errors, Promises, and other non-booleans fail closed.
+
+Rejected links unwrap to safe children; rejected images are omitted.
+
+### Diagnostics and source ranges
+
+Structured diagnostics are JSON-only and use the shared stable codes:
+
+| Code      | Structured meaning                                |
+| --------- | ------------------------------------------------- |
+| `MDXF001` | unknown host component                            |
+| `MDXF002` | unknown component prop                            |
+| `MDXF006` | missing required prop                             |
+| `MDXF007` | invalid prop or children                          |
+| `MDXF020` | non-JSON or invalid frontmatter                   |
+| `MDXF030` | missing reference-link definition                 |
+| `MDXF100` | MDX parse failure                                 |
+| `MDXF110` | ESM, executable expression, or unsupported syntax |
+| `MDXF111` | unsafe or host-denied URL                         |
+| `MDXF112` | element outside the closed vocabulary             |
+| `MDXF113` | attribute outside the per-tag/host schema         |
+| `MDXF114` | raw element syntax rejected by policy             |
+
+Ranges use unist conventions: 1-based line and column, 0-based UTF-16 offset,
+exclusive end. Node and diagnostic ranges are rebased to the original complete
+document, including stripped frontmatter.
+
+Treat any `severity: 'error'` diagnostic as a failed document. Render only the
+returned closed node vocabulary; do not reinterpret source strings as HTML,
+JavaScript, JSX, React elements, or import specifiers.
 
 ## `compileSafe(mdxText, config)`
 
@@ -176,10 +400,10 @@ function safeMatter(input: string): GrayMatterFile<string>;
 
 Wraps `gray-matter` with its executable JavaScript engine disabled, then
 normalizes the parsed data into bounded acyclic plain values (depth, node
-& projected-size caps). Cyclic or amplification-heavy YAML alias graphs
-throw a deterministic error instead of reaching consumers. Use this
-instead of raw `gray-matter` anywhere caller-authored MDX frontmatter is
-parsed.
+& projected-size caps). Prototype-sensitive mapping keys are dropped. Cyclic
+or amplification-heavy YAML alias graphs throw a deterministic error instead
+of reaching consumers. Use this instead of raw `gray-matter` anywhere
+caller-authored MDX frontmatter is parsed.
 
 ## `extractNextraFrontmatter(frontmatter)`
 

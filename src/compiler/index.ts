@@ -2,7 +2,9 @@
 // barrel exports for compiler module
 
 export { compileSafe } from './safe/compile';
+export { compileSafeDocument } from './safe-document/compile';
 export { compileTrusted } from './trusted/compile';
+export * from './safe-document/types';
 
 // frontmatter extraction utilities
 export {

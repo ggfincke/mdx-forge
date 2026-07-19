@@ -1,6 +1,6 @@
 ---
 name: mdx-forge
-description: Use when working with the mdx-forge npm package — compiling MDX with compileSafe (HTML output) or compileTrusted (executable JavaScript), wiring up the browser-side module loader (loadModule, evaluateModuleToComponent, setModuleFetcher, registerPreloadEntries), using framework component shims for Docusaurus, Starlight, Nextra, Next.js, or generic, picking between safe vs trusted compile mode for a security boundary, configuring remark/rehype plugins via the CompilerConfig plugin pipeline, or working with mdx-forge subpath exports in a TypeScript project.
+description: Use when working with the mdx-forge npm package — compiling MDX with compileSafeDocument (closed JSON data), compileSafe (HTML output), or compileTrusted (executable JavaScript), wiring up the browser-side module loader (loadModule, evaluateModuleToComponent, setModuleFetcher, registerPreloadEntries), using framework component shims for Docusaurus, Starlight, Nextra, Next.js, or generic, choosing an output contract for a security boundary, configuring remark/rehype plugins via the CompilerConfig plugin pipeline, or working with mdx-forge subpath exports in a TypeScript project.
 ---
 
 # mdx-forge
@@ -13,7 +13,7 @@ root import** — `import {} from 'mdx-forge'` will fail.
 
 | Subpath                                  | Environment | Purpose                                     |
 | ---------------------------------------- | ----------- | ------------------------------------------- |
-| `mdx-forge/compiler`                     | Node        | MDX → HTML (Safe) or MDX → JS (Trusted)     |
+| `mdx-forge/compiler`                     | Node        | MDX → closed data, HTML, or trusted JS      |
 | `mdx-forge/compiler/plugins`             | Node        | Plugin loader, builders, `mergePlugins`     |
 | `mdx-forge/diagnostics`                  | Any         | `Diagnostic`, `DIAGNOSTIC_CODES` contract   |
 | `mdx-forge/diagnostics/analyze`          | Any         | `analyzeMdx`, unknown-component rules       |
@@ -31,22 +31,49 @@ root import** — `import {} from 'mdx-forge'` will fail.
 
 Frameworks: `generic`, `docusaurus`, `starlight`, `nextra`, `nextjs`.
 
-## Picking a compile mode
+## Picking an output contract
 
-Safe vs Trusted is a **security boundary decision**, not a performance or
-ergonomics preference:
+This is a **security boundary decision**, not a performance or ergonomics
+preference:
 
-- **`compileSafe()`** → returns `{ html, frontmatter }`. No JS executes.
-  Unknown JSX components become inert placeholders, expressions are
-  stripped. Use whenever the MDX source is untrusted (user-authored, fetched
-  from a remote, etc.).
+- **`compileSafeDocument()`** → returns a versioned JSON-only tree. It accepts
+  fixed Markdown structure plus schema-declared host components, rejects
+  executable syntax, & preserves source ranges and diagnostics. Use when an
+  untrusted document needs live host-rendered components or a closed renderer.
+- **`compileSafe()`** → returns `{ html, frontmatter }`. No JS executes, but
+  the HTML is not sanitized. Unknown JSX components become placeholders and
+  expressions are stripped. Use for static HTML flows whose host applies its
+  own sanitizer/CSP as appropriate.
 - **`compileTrusted()`** → returns `{ code, frontmatter }` where `code` is
   executable JavaScript. Requires a host that runs `new Function()` (or
   similar) on the output. Use only when source is trusted & you control the
   runtime.
 
-Default to `compileSafe()` unless the user has a stated reason to need
-React interactivity in the rendered output.
+Default to `compileSafeDocument()` for untrusted host-component documents,
+`compileSafe()` for static HTML, and `compileTrusted()` only for deliberate
+code execution.
+
+## Minimal Structured Mode (Node)
+
+```ts
+import { compileSafeDocument } from 'mdx-forge/compiler';
+
+const document = await compileSafeDocument(source, {
+  components: {
+    Hotspots: {
+      props: {
+        metric: { type: 'string', enum: ['fanIn', 'fanOut'] },
+        limit: { type: 'number', integer: true, minimum: 1 },
+      },
+      requiredProps: ['metric'],
+      children: 'none',
+    },
+  },
+});
+```
+
+Treat any error diagnostic as a failed document. Render only the returned
+closed node/tag vocabulary; never reinterpret source text as HTML or code.
 
 ## Minimal Safe Mode (Node)
 
@@ -134,9 +161,8 @@ unlisted imports — `[]` is valid only when every import is preloaded.
 
 - **No bare `mdx-forge` import** — always use a subpath. The package has no
   root export; `import { compileSafe } from 'mdx-forge'` fails.
-- **Peer deps are optional in the manifest but required at runtime** —
-  `react>=18`, `@mdx-js/mdx@^3`, `unified@^11`. Users hitting
-  `Cannot find module '@mdx-js/mdx'` need to install peers in their project.
+- **React is the only peer dependency** — compiler dependencies ship with
+  mdx-forge. Install `react>=18` only when consuming component entry points.
 - **ESM-only** — no CJS build. Consumers must be ESM (`"type": "module"`,
   `.mjs`, or bundler-resolved).
 - **Framework components need their CSS** — importing from
@@ -166,6 +192,7 @@ unlisted imports — `[]` is valid only when every import is preloaded.
 Self-contained TypeScript examples live in `examples/`:
 
 - `examples/safe-compile.ts` — minimal `compileSafe` end-to-end
+- `examples/safe-document.ts` — closed host-component document compilation
 - `examples/trusted-compile.ts` — minimal `compileTrusted` end-to-end
 - `examples/browser-setup.ts` — wiring `registerPreloadEntries` +
   `setModuleFetcher` + `evaluateModuleToComponent`

@@ -2,26 +2,31 @@
 // shared utilities for MDX compilation (trusted & safe modes)
 
 import type { FrontmatterResult, NextraPageMeta } from '../../types/compiler';
-import { safeMatter } from '../../../internal/frontmatter';
+import { parseRawFrontmatter, safeMatter } from '../../../internal/frontmatter';
 
 // extract frontmatter from MDX text w/ gray-matter (returns content & parsed data)
 export function extractFrontmatter(mdxText: string): FrontmatterResult {
   const source = typeof mdxText === 'string' ? mdxText : String(mdxText);
-  const parsed = safeMatter(source);
-  const isEmpty = 'isEmpty' in parsed && parsed.isEmpty === true;
-  const bodyStart = computeBodyStartPosition(source, parsed.content, {
-    hasFrontmatter: Boolean(parsed.matter) || isEmpty,
-  });
+  return toFrontmatterResult(source, safeMatter(source));
+}
+
+// preserve raw YAML keys for structured JSON validation
+export function extractRawFrontmatter(mdxText: string): FrontmatterResult {
+  const source = typeof mdxText === 'string' ? mdxText : String(mdxText);
+  return toFrontmatterResult(source, parseRawFrontmatter(source));
+}
+
+function toFrontmatterResult(
+  source: string,
+  parsed: ReturnType<typeof safeMatter>
+): FrontmatterResult {
+  const bodyStart = computeBodyStartPosition(source, parsed.content);
   return {
     content: parsed.content,
     frontmatter: parsed.data as Record<string, unknown>,
     bodyStartLine: bodyStart.line,
     bodyStartColumn: bodyStart.column,
   };
-}
-
-interface BodyStartOptions {
-  hasFrontmatter: boolean;
 }
 
 interface BodyStartPosition {
@@ -32,10 +37,9 @@ interface BodyStartPosition {
 // calc original-doc body start from gray-matter's stripped prefix
 function computeBodyStartPosition(
   mdxText: string,
-  content: string,
-  options: BodyStartOptions
+  content: string
 ): BodyStartPosition {
-  if (!options.hasFrontmatter || !mdxText.endsWith(content)) {
+  if (!mdxText.endsWith(content)) {
     return { line: 1, column: 1 };
   }
   const stripped = mdxText.slice(0, mdxText.length - content.length);

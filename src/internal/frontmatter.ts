@@ -9,6 +9,11 @@ import matter from 'gray-matter';
 export const MAX_FRONTMATTER_DEPTH = 8;
 export const MAX_FRONTMATTER_NODES = 5000;
 export const MAX_FRONTMATTER_SERIALIZED_BYTES = 256 * 1024;
+const FORBIDDEN_FRONTMATTER_KEYS = new Set([
+  '__proto__',
+  'constructor',
+  'prototype',
+]);
 
 // ! thrown deterministically when frontmatter is cyclic or over the caps above
 export class FrontmatterBoundsError extends Error {
@@ -89,6 +94,9 @@ function cloneBounded(
   } else {
     const out: Record<string, unknown> = {};
     for (const [key, entry] of Object.entries(value)) {
+      if (FORBIDDEN_FRONTMATTER_KEYS.has(key)) {
+        continue;
+      }
       state.bytes += key.length + 4;
       out[key] = cloneBounded(entry, depth + 1, ancestors, state);
     }
@@ -107,14 +115,19 @@ export function normalizeFrontmatterData(
   return cloneBounded(data, 0, new Set(), state) as Record<string, unknown>;
 }
 
-// neutralize gray-matter's default `javascript` engine (runs eval) w/ a no-op
-// covers `---js` & `---javascript` fences (engine aliases js -> javascript)
-export function safeMatter(input: string) {
-  const parsed = matter(input, {
+// parse frontmatter w/o eval before mode-specific normalization
+export function parseRawFrontmatter(input: string) {
+  return matter(input, {
     engines: {
       javascript: () => ({}),
     },
   });
+}
+
+// neutralize gray-matter's default `javascript` engine (runs eval) w/ a no-op
+// covers `---js` & `---javascript` fences (engine aliases js -> javascript)
+export function safeMatter(input: string) {
+  const parsed = parseRawFrontmatter(input);
   // bound the parsed graph so downstream JSON.stringify / consumers stay safe
   parsed.data = normalizeFrontmatterData(
     parsed.data as Record<string, unknown>
