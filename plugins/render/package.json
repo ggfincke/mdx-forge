@@ -32,7 +32,7 @@
     "hast-util-to-html": "^9.0.5",
     "mdx-forge": "^0.7.1",
     "playwright": "^1.61.1",
-    "react": "^19.2.7",
+    "react": "^19.2.8",
     "react-dom": "^19.2.7",
     "remark-mdx": "^3.0.0",
     "remark-parse": "^11.0.0",
