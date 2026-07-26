@@ -1,19 +1,20 @@
 // src/components/base/BaseCard.tsx
 // shared base card component for framework shims
 
-import React, { ReactNode, ReactElement } from 'react';
-import { mergeBlankTargetRel } from '../internal/link';
+import React, { ReactNode, ReactElement } from 'react'
+import { mergeBlankTargetRel } from '../internal/link'
 
 // props for BaseCard component
-export interface BaseCardProps {
-  children: ReactNode;
-  className: string;
+export interface BaseCardProps
+{
+  children: ReactNode
+  className: string
   // render as anchor or div
-  as?: 'div' | 'a';
+  as?: 'div' | 'a'
   // required when as="a"
-  href?: string;
-  openInNewTab?: boolean;
-  containerProps?: Record<string, unknown>;
+  href?: string
+  openInNewTab?: boolean
+  containerProps?: Record<string, unknown>
 }
 
 // base card component that can render as div or anchor
@@ -26,8 +27,10 @@ export function BaseCard({
   href,
   openInNewTab = false,
   containerProps = {},
-}: BaseCardProps): ReactElement {
-  if (as === 'a' && href) {
+}: BaseCardProps): ReactElement
+{
+  if (as === 'a' && href)
+  {
     return (
       <a
         href={href}
@@ -41,14 +44,14 @@ export function BaseCard({
       >
         {children}
       </a>
-    );
+    )
   }
 
   return (
     <div className={className} {...containerProps}>
       {children}
     </div>
-  );
+  )
 }
 
-export default BaseCard;
+export default BaseCard

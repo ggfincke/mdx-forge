@@ -1,13 +1,13 @@
 // src/compiler/pipeline/transforms/tabs.ts
 // transform Tabs/TabItem/Tab components to semantic HTML
 
-import type { RootContent } from 'mdast';
-import type { MdxJsxElement } from '../../types';
+import type { RootContent } from 'mdast'
+import type { MdxJsxElement } from '../../types'
 import {
   getStaticStringProp,
   createNode,
   createTrustedModeNotice,
-} from './utils';
+} from './utils'
 import {
   SAFE_TABS,
   SAFE_TABS_NOTICE,
@@ -15,10 +15,11 @@ import {
   SAFE_TAB_PANEL,
   SAFE_TAB_PANEL_HEADER,
   SAFE_TAB_PANEL_CONTENT,
-} from '../../internal/css-classes';
+} from '../../internal/css-classes'
 
 // transform Tabs container component to semantic HTML (non-interactive in Safe Mode)
-export function transformTabs(node: MdxJsxElement): RootContent {
+export function transformTabs(node: MdxJsxElement): RootContent
+{
   return createNode({
     type: 'tabs',
     hName: 'div',
@@ -35,15 +36,16 @@ export function transformTabs(node: MdxJsxElement): RootContent {
         children: node.children,
       }),
     ],
-  });
+  })
 }
 
 // transform TabItem/Tab component to semantic HTML
-export function transformTabItem(node: MdxJsxElement): RootContent {
+export function transformTabItem(node: MdxJsxElement): RootContent
+{
   const label =
     getStaticStringProp(node, 'label') ||
     getStaticStringProp(node, 'value') ||
-    'Tab';
+    'Tab'
 
   return createNode({
     type: 'tabItem',
@@ -64,5 +66,5 @@ export function transformTabItem(node: MdxJsxElement): RootContent {
         children: node.children,
       }),
     ],
-  });
+  })
 }

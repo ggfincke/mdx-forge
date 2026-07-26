@@ -1,16 +1,17 @@
 // src/components/starlight/LinkCard.tsx
 // provide a preview-compatible Starlight LinkCard shim
 
-import React, { ReactElement, AnchorHTMLAttributes } from 'react';
-import { cn } from '../internal/cn';
-import { classifyExternalHref, mergeBlankTargetRel } from '../internal/link';
-import { ArrowIcon } from '../base/icons';
+import React, { ReactElement, AnchorHTMLAttributes } from 'react'
+import { cn } from '../internal/cn'
+import { classifyExternalHref, mergeBlankTargetRel } from '../internal/link'
+import { ArrowIcon } from '../base/icons'
 
 // linkCard props derive from native anchor attributes (all forwarded)
-export interface LinkCardProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
-  title: string;
-  description?: string;
-  href: string;
+export interface LinkCardProps extends AnchorHTMLAttributes<HTMLAnchorElement>
+{
+  title: string
+  description?: string
+  href: string
 }
 
 // link card component; internal links keep same-tab navigation
@@ -22,10 +23,10 @@ export function LinkCard({
   rel,
   className,
   ...anchorProps
-}: LinkCardProps): ReactElement {
+}: LinkCardProps): ReactElement
+{
   const effectiveTarget =
-    target ??
-    (classifyExternalHref(href) !== 'internal' ? '_blank' : undefined);
+    target ?? (classifyExternalHref(href) !== 'internal' ? '_blank' : undefined)
 
   return (
     <a
@@ -47,7 +48,7 @@ export function LinkCard({
         <ArrowIcon />
       </span>
     </a>
-  );
+  )
 }
 
-export default LinkCard;
+export default LinkCard

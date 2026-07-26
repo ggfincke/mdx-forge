@@ -1,12 +1,13 @@
 // src/components/generic/Tabs.tsx
 // generic Tabs component shim for MDX Preview
+
 // provide preview-compatible tabs w/o framework dependency
 
-import { createTabs, type BaseTabsProps, type TabDefinition } from '../base';
+import { createTabs, type BaseTabsProps, type TabDefinition } from '../base'
 
 // generic surface: groupId sync/persistence (no queryString/syncKey)
-export type TabsProps = Omit<BaseTabsProps, 'syncKey' | 'queryString'>;
-export type { TabDefinition };
+export type TabsProps = Omit<BaseTabsProps, 'syncKey' | 'queryString'>
+export type { TabDefinition }
 
 // create generic tabs using the factory
 // use 'mdx-preview-generic-tabs' class prefix for styling
@@ -22,7 +23,7 @@ const {
   supportsGroupId: true,
   groupStoragePrefix: 'mdx.tab.',
   contextName: 'GenericTabs',
-});
+})
 
-export { Tabs, TabItem, useGenericTabsContext, GenericTabsContext };
-export default Tabs;
+export { Tabs, TabItem, useGenericTabsContext, GenericTabsContext }
+export default Tabs

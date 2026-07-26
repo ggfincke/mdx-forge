@@ -1,24 +1,27 @@
 // src/components/registry/shim-config.ts
 // define shim manifest for framework CSS & barrel exports
 
-import type { FrameworkId } from './types';
+import type { FrameworkId } from './types'
 
-export interface FrameworkCssConfig {
-  framework: FrameworkId;
-  cssImport: string | null;
-  allowRetry: boolean;
+export interface FrameworkCssConfig
+{
+  framework: FrameworkId
+  cssImport: string | null
+  allowRetry: boolean
 }
 
-export interface ShimBarrelExport {
-  values?: string[];
-  types?: string[];
+export interface ShimBarrelExport
+{
+  values?: string[]
+  types?: string[]
 }
 
-export interface ShimBarrelConfig {
-  outputPath: string;
-  exports: ShimBarrelExport[];
+export interface ShimBarrelConfig
+{
+  outputPath: string
+  exports: ShimBarrelExport[]
   // inject the framework CSS side-effect import into the barrel
-  injectCss?: boolean;
+  injectCss?: boolean
 }
 
 export const FRAMEWORK_CSS_CONFIG: readonly FrameworkCssConfig[] = [
@@ -47,7 +50,7 @@ export const FRAMEWORK_CSS_CONFIG: readonly FrameworkCssConfig[] = [
     cssImport: null,
     allowRetry: false,
   },
-];
+]
 
 export const SHIM_BARREL_CONFIG: readonly ShimBarrelConfig[] = [
   {
@@ -181,4 +184,4 @@ export const SHIM_BARREL_CONFIG: readonly ShimBarrelConfig[] = [
       },
     ],
   },
-];
+]

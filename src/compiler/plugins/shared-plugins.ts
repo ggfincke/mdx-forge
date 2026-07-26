@@ -1,25 +1,26 @@
 // src/compiler/plugins/shared-plugins.ts
 // shared remark/rehype plugin configurations for MDX pipelines
+
 // ! plugin order is critical; test both Safe & Trusted before changing
 
-import remarkDirective from 'remark-directive';
-import remarkAdmonitions from '../pipeline/remark/admonitions';
-import remarkGithubAlerts from '../pipeline/remark/github-alerts';
-import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
+import remarkDirective from 'remark-directive'
+import remarkAdmonitions from '../pipeline/remark/admonitions'
+import remarkGithubAlerts from '../pipeline/remark/github-alerts'
+import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
 import {
   rehypeMermaidPlaceholder,
   rehypePlantUmlPlaceholder,
   rehypeGraphvizPlaceholder,
-} from '../pipeline/rehype/create-diagram-placeholder';
-import rehypeKatex from 'rehype-katex';
-import rehypeShiki from '../pipeline/rehype/shiki';
-import rehypeSourceLine from '../pipeline/rehype/source-line';
-import rehypeSlug from 'rehype-slug';
-import rehypeAutolinkHeadings from 'rehype-autolink-headings';
-import rehypeLazyImages from '../pipeline/rehype/lazy-images';
-import type { Pluggable } from 'unified';
-import type { DiagramBehavior } from '../types';
+} from '../pipeline/rehype/create-diagram-placeholder'
+import rehypeKatex from 'rehype-katex'
+import rehypeShiki from '../pipeline/rehype/shiki'
+import rehypeSourceLine from '../pipeline/rehype/source-line'
+import rehypeSlug from 'rehype-slug'
+import rehypeAutolinkHeadings from 'rehype-autolink-headings'
+import rehypeLazyImages from '../pipeline/rehype/lazy-images'
+import type { Pluggable } from 'unified'
+import type { DiagramBehavior } from '../types'
 
 // shared autolink headings config for both pipelines
 export const autolinkHeadingsConfig = {
@@ -28,7 +29,7 @@ export const autolinkHeadingsConfig = {
     className: ['anchor-link'],
     ariaLabel: 'Link to this section',
   },
-};
+}
 
 // shared remark plugins in directive -> alert -> GFM -> math order
 // keep GitHub alert transform before GFM
@@ -40,22 +41,23 @@ export const sharedRemarkPlugins: readonly Pluggable[] = Object.freeze<
   remarkGithubAlerts,
   remarkGfm,
   remarkMath,
-]);
+])
 
 // shared rehype plugins before math rendering (diagram fences for lazy
 // rendering or visible code fallback, per the configured behavior)
 export function getSharedRehypePluginsPreMath(
   behavior: DiagramBehavior = 'placeholder'
-): Pluggable[] {
+): Pluggable[]
+{
   return [
     [rehypeMermaidPlaceholder, { behavior }],
     [rehypePlantUmlPlaceholder, { behavior }],
     [rehypeGraphvizPlaceholder, { behavior }],
-  ];
+  ]
 }
 
 // rehype-katex plugin (shared between both pipelines)
-export { rehypeKatex };
+export { rehypeKatex }
 
 // shared rehype plugins after math rendering (& after rehypeRaw in Trusted mode)
 export const sharedRehypePluginsPostMath: readonly Pluggable[] = Object.freeze<
@@ -67,4 +69,4 @@ export const sharedRehypePluginsPostMath: readonly Pluggable[] = Object.freeze<
   rehypeSlug,
   [rehypeAutolinkHeadings, autolinkHeadingsConfig],
   rehypeLazyImages,
-]);
+])

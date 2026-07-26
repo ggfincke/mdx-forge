@@ -1,16 +1,17 @@
 // src/components/starlight/Card.tsx
 // preview-compatible @astrojs/starlight Card shim
 
-import React, { ReactNode, ReactElement, HTMLAttributes } from 'react';
-import { BaseCard } from '../base';
-import { cn } from '../internal/cn';
-import { STARLIGHT_ICON_MAP } from './icon-map';
+import React, { ReactNode, ReactElement, HTMLAttributes } from 'react'
+import { BaseCard } from '../base'
+import { cn } from '../internal/cn'
+import { STARLIGHT_ICON_MAP } from './icon-map'
 
 // card props (compatible w/ Starlight)
-export interface CardProps extends HTMLAttributes<HTMLDivElement> {
-  children: ReactNode;
-  title: string;
-  icon?: string;
+export interface CardProps extends HTMLAttributes<HTMLDivElement>
+{
+  children: ReactNode
+  title: string
+  icon?: string
 }
 
 // card component
@@ -20,8 +21,9 @@ export function Card({
   icon,
   className,
   ...props
-}: CardProps): ReactElement {
-  const iconEmoji = icon ? (STARLIGHT_ICON_MAP[icon] ?? icon) : undefined;
+}: CardProps): ReactElement
+{
+  const iconEmoji = icon ? (STARLIGHT_ICON_MAP[icon] ?? icon) : undefined
 
   return (
     <BaseCard
@@ -36,7 +38,7 @@ export function Card({
       </div>
       <div className="mdx-preview-starlight-card-content">{children}</div>
     </BaseCard>
-  );
+  )
 }
 
-export default Card;
+export default Card

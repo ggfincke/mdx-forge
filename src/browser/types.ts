@@ -1,27 +1,29 @@
 // src/browser/types.ts
 // browser runtime types & host callback interfaces
 
-import type { ModuleRegistry } from './registry/ModuleRegistry';
+import type { ModuleRegistry } from './registry/ModuleRegistry'
 
-export type ModuleDependencyKind = 'import' | 'require';
+export type ModuleDependencyKind = 'import' | 'require'
 
-export interface ModuleDependency {
-  specifier: string;
-  kind: ModuleDependencyKind;
-  runtimeRequest: string;
+export interface ModuleDependency
+{
+  specifier: string
+  kind: ModuleDependencyKind
+  runtimeRequest: string
 }
 
-export type ModuleDependencyInput = string | ModuleDependency;
+export type ModuleDependencyInput = string | ModuleDependency
 
-export interface FetchResult {
-  fsPath: string;
-  code: string;
-  dependencies: ModuleDependencyInput[];
-  css?: string;
+export interface FetchResult
+{
+  fsPath: string
+  code: string
+  dependencies: ModuleDependencyInput[]
+  css?: string
 }
 
-import type { Framework, FrameworkId } from '../components/registry/types.js';
-export type { Framework, FrameworkId };
+import type { Framework, FrameworkId } from '../components/registry/types.js'
+export type { Framework, FrameworkId }
 
 export const PRELOADED_MODULE_IDS = {
   react: 'npm://react@18',
@@ -30,27 +32,30 @@ export const PRELOADED_MODULE_IDS = {
   jsxRuntime: 'npm://react/jsx-runtime@18',
   mdxReact: 'npm://@mdx-js/react@3',
   vscodeLayout: 'npm://vscode-markdown-layout@0.1.0',
-} as const;
+} as const
 
 // cached module
-export interface Module {
-  id: string;
-  exports: unknown;
-  loaded: boolean;
+export interface Module
+{
+  id: string
+  exports: unknown
+  loaded: boolean
 }
 
 // runtime values injected into evaluated MDX/CJS modules
-export interface MDXRuntime {
-  Fragment: unknown;
-  jsx: unknown;
-  jsxs: unknown;
-  jsxDEV?: unknown;
-  useMDXComponents?: () => Record<string, unknown>;
+export interface MDXRuntime
+{
+  Fragment: unknown
+  jsx: unknown
+  jsxs: unknown
+  jsxDEV?: unknown
+  useMDXComponents?: () => Record<string, unknown>
 }
 
 // runtime w/ require injected by loader
-export interface ModuleRuntime extends MDXRuntime {
-  require: (id: string) => unknown;
+export interface ModuleRuntime extends MDXRuntime
+{
+  require: (id: string) => unknown
 }
 
 export type ModuleFetcher = (
@@ -58,38 +63,42 @@ export type ModuleFetcher = (
   isBare: boolean,
   parentId: string,
   kind?: ModuleDependencyKind
-) => Promise<FetchResult | undefined>;
+) => Promise<FetchResult | undefined>
 
 // typed preload payload (atomic registration entry)
-export interface PreloadEntry {
-  id: string;
-  exports: unknown;
-  aliases?: string[];
+export interface PreloadEntry
+{
+  id: string
+  exports: unknown
+  aliases?: string[]
 }
 
-export interface ModuleLoaderConfig {
-  maxModuleLoadDepth?: number;
-  maxConcurrentFetches?: number;
-  preloadAliases?: Record<string, string>;
-  runtime?: Partial<MDXRuntime>;
+export interface ModuleLoaderConfig
+{
+  maxModuleLoadDepth?: number
+  maxConcurrentFetches?: number
+  preloadAliases?: Record<string, string>
+  runtime?: Partial<MDXRuntime>
 }
 
-export interface StyleInjector {
-  injectModuleCss(id: string, css: string): void;
-  removeModuleCss(id: string): void;
-  clearModules(): void;
+export interface StyleInjector
+{
+  injectModuleCss(id: string, css: string): void
+  removeModuleCss(id: string): void
+  clearModules(): void
 }
 
 // host-provided preload callbacks for environment-specific shim loading
 // standalone usage keeps default no-ops; VS Code webview registers real implementations
-export interface HostPreloadCallbacks {
-  initPreloadedModules?: (registry: ModuleRegistry, layout: unknown) => void;
+export interface HostPreloadCallbacks
+{
+  initPreloadedModules?: (registry: ModuleRegistry, layout: unknown) => void
   ensureFrameworkShims?: (
     registry: ModuleRegistry,
     framework: FrameworkId
-  ) => Promise<void>;
+  ) => Promise<void>
   ensureGenericShims?: (
     registry: ModuleRegistry,
     components: string[]
-  ) => Promise<void>;
+  ) => Promise<void>
 }

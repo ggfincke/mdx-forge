@@ -6,34 +6,37 @@ import React, {
   type Key,
   type ReactElement,
   type ReactNode,
-} from 'react';
-import { useTabListInteraction } from './useTabListInteraction';
+} from 'react'
+import { useTabListInteraction } from './useTabListInteraction'
 
-export interface TabScaffoldButton {
-  key: Key;
-  content: ReactNode;
-  selected: boolean;
-  className: string;
-  disabled?: boolean;
-  panelPresent?: boolean;
+export interface TabScaffoldButton
+{
+  key: Key
+  content: ReactNode
+  selected: boolean
+  className: string
+  disabled?: boolean
+  panelPresent?: boolean
 }
 
-export interface TabScaffoldPanel {
-  key: Key;
-  index: number;
-  content: ReactNode;
-  className: string;
-  hidden: boolean;
-  props?: Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'className'>;
+export interface TabScaffoldPanel
+{
+  key: Key
+  index: number
+  content: ReactNode
+  className: string
+  hidden: boolean
+  props?: Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'className'>
 }
 
-export interface TabScaffoldProps {
-  buttons: TabScaffoldButton[];
-  panels: TabScaffoldPanel[];
-  headerClassName: string;
-  contentClassName: string;
-  onSelect: (index: number) => void;
-  isDisabled?: (index: number) => boolean;
+export interface TabScaffoldProps
+{
+  buttons: TabScaffoldButton[]
+  panels: TabScaffoldPanel[]
+  headerClassName: string
+  contentClassName: string
+  onSelect: (index: number) => void
+  isDisabled?: (index: number) => boolean
 }
 
 export function TabScaffold({
@@ -43,12 +46,13 @@ export function TabScaffold({
   contentClassName,
   onSelect,
   isDisabled,
-}: TabScaffoldProps): ReactElement {
+}: TabScaffoldProps): ReactElement
+{
   const { tabId, panelId, tabButtonProps } = useTabListInteraction({
     count: buttons.length,
     onSelect,
     isDisabled,
-  });
+  })
 
   return (
     <>
@@ -85,5 +89,5 @@ export function TabScaffold({
         ))}
       </div>
     </>
-  );
+  )
 }

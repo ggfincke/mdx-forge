@@ -1,87 +1,102 @@
 // src/compiler/trusted/hasDefaultExport.ts
 // single-pass authored-default detection & layout ESM injection
 
-import { visit } from 'unist-util-visit';
-import type { Root } from 'mdast';
-import type { Node } from 'unist';
+import { visit } from 'unist-util-visit'
+import type { Root } from 'mdast'
+import type { Node } from 'unist'
 
 // resolved layout source shared by trusted compile paths
 export type LayoutResolution =
   | { kind: 'custom'; specifier: string }
   | { kind: 'host'; options: string }
-  | null;
+  | null
 
 // minimal estree shapes needed for default-export detection
-interface EstreeExportSpecifier {
-  type: string;
-  exported?: { type: string; name?: string; value?: unknown };
-  [key: string]: unknown;
+interface EstreeExportSpecifier
+{
+  type: string
+  exported?: { type: string; name?: string; value?: unknown }
+  [key: string]: unknown
 }
 
-interface EstreeStatement {
-  type: string;
-  specifiers?: EstreeExportSpecifier[];
-  [key: string]: unknown;
+interface EstreeStatement
+{
+  type: string
+  specifiers?: EstreeExportSpecifier[]
+  [key: string]: unknown
 }
 
-interface MdxjsEsmNode {
-  type: string;
-  value?: string;
+interface MdxjsEsmNode
+{
+  type: string
+  value?: string
   data?: {
     estree?: {
-      body?: EstreeStatement[];
-      [key: string]: unknown;
-    };
-  };
+      body?: EstreeStatement[]
+      [key: string]: unknown
+    }
+  }
 }
 
-interface RemarkInjectLayoutOptions {
-  insertionOffset?: number;
-  resolveLayout: () => LayoutResolution;
+interface RemarkInjectLayoutOptions
+{
+  insertionOffset?: number
+  resolveLayout: () => LayoutResolution
 }
 
-interface CompileFile {
-  data: Record<string, unknown>;
-  value: unknown;
+interface CompileFile
+{
+  data: Record<string, unknown>
+  value: unknown
 }
 
-interface LayoutInjection {
-  source: string;
-  nodes: Root['children'];
+interface LayoutInjection
+{
+  source: string
+  nodes: Root['children']
 }
 
 // true for `export { x as default }` & `export { default } from '...'` forms
-const exportsDefaultName = (spec: EstreeExportSpecifier): boolean => {
-  const exported = spec.exported;
-  if (!exported) {
-    return false;
+const exportsDefaultName = (spec: EstreeExportSpecifier): boolean =>
+{
+  const exported = spec.exported
+  if (!exported)
+  {
+    return false
   }
-  if (exported.type === 'Identifier') {
-    return exported.name === 'default';
+  if (exported.type === 'Identifier')
+  {
+    return exported.name === 'default'
   }
-  return exported.value === 'default';
-};
+  return exported.value === 'default'
+}
 
 // inspect parsed ESM nodes so fenced/prose `export default` never matches
-const hasDefaultExport = (tree: Root): boolean => {
-  for (const node of tree.children as MdxjsEsmNode[]) {
-    if (node.type !== 'mdxjsEsm') {
-      continue;
+const hasDefaultExport = (tree: Root): boolean =>
+{
+  for (const node of tree.children as MdxjsEsmNode[])
+  {
+    if (node.type !== 'mdxjsEsm')
+    {
+      continue
     }
-    for (const stmt of node.data?.estree?.body ?? []) {
-      if (stmt.type === 'ExportDefaultDeclaration') {
-        return true;
+    for (const stmt of node.data?.estree?.body ?? [])
+    {
+      if (stmt.type === 'ExportDefaultDeclaration')
+      {
+        return true
       }
       if (
         stmt.type === 'ExportNamedDeclaration' &&
         (stmt.specifiers ?? []).some(exportsDefaultName)
-      ) {
-        return true;
+      )
+      {
+        return true
       }
     }
   }
-  return false;
-};
+  return false
+}
 
 // create a positioned mdxjsEsm node backed by the supplied estree statement
 const createEsmNode = (
@@ -108,22 +123,23 @@ const createEsmNode = (
         offset: offset + value.length,
       },
     },
-  }) as unknown as Root['children'][number];
+  }) as unknown as Root['children'][number]
 
 // build the same import/default-export prefix formerly parsed w/ the document
 const createLayoutInjection = (
   layout: Exclude<LayoutResolution, null>,
   line: number,
   offset: number
-): LayoutInjection => {
+): LayoutInjection =>
+{
   const importValue =
     layout.kind === 'custom'
       ? `import Layout from ${layout.specifier};`
-      : `import { createLayout } from 'vscode-markdown-layout';`;
+      : `import { createLayout } from 'vscode-markdown-layout';`
   const exportValue =
     layout.kind === 'custom'
       ? 'export default Layout;'
-      : `export default createLayout(${layout.options});`;
+      : `export default createLayout(${layout.options});`
   const importStatement: EstreeStatement =
     layout.kind === 'custom'
       ? {
@@ -152,7 +168,7 @@ const createLayoutInjection = (
             type: 'Literal',
             value: 'vscode-markdown-layout',
           },
-        };
+        }
   const exportStatement: EstreeStatement = {
     type: 'ExportDefaultDeclaration',
     declaration:
@@ -190,8 +206,8 @@ const createLayoutInjection = (
                   ],
             optional: false,
           },
-  };
-  const exportOffset = offset + importValue.length + 2;
+  }
+  const exportOffset = offset + importValue.length + 2
 
   return {
     source: `${importValue}\n\n${exportValue}\n\n`,
@@ -199,8 +215,8 @@ const createLayoutInjection = (
       createEsmNode(importValue, importStatement, line, offset),
       createEsmNode(exportValue, exportStatement, line + 2, exportOffset),
     ],
-  };
-};
+  }
+}
 
 // shift parsed source positions to match the virtual layout prefix
 const shiftTreePositions = (
@@ -209,66 +225,79 @@ const shiftTreePositions = (
   insertionLine: number,
   lineDelta: number,
   offsetDelta: number
-): void => {
-  for (const child of tree.children) {
-    visit(child, (node: Node) => {
-      const position = node.position;
-      if (!position) {
-        return;
+): void =>
+{
+  for (const child of tree.children)
+  {
+    visit(child, (node: Node) =>
+    {
+      const position = node.position
+      if (!position)
+      {
+        return
       }
       const followsInsertion =
         position.start.offset === undefined
           ? position.start.line >= insertionLine
-          : position.start.offset >= insertionOffset;
-      if (!followsInsertion) {
-        return;
+          : position.start.offset >= insertionOffset
+      if (!followsInsertion)
+      {
+        return
       }
-      for (const point of [position.start, position.end]) {
-        point.line += lineDelta;
-        if (point.offset !== undefined) {
-          point.offset += offsetDelta;
+      for (const point of [position.start, position.end])
+      {
+        point.line += lineDelta
+        if (point.offset !== undefined)
+        {
+          point.offset += offsetDelta
         }
       }
-    });
+    })
   }
 
-  const rootEnd = tree.position?.end;
-  if (rootEnd) {
-    rootEnd.line += lineDelta;
-    if (rootEnd.offset !== undefined) {
-      rootEnd.offset += offsetDelta;
+  const rootEnd = tree.position?.end
+  if (rootEnd)
+  {
+    rootEnd.line += lineDelta
+    if (rootEnd.offset !== undefined)
+    {
+      rootEnd.offset += offsetDelta
     }
   }
-};
+}
 
 // inject a configured layout during the one @mdx-js/mdx parse pipeline
-export default function remarkInjectLayout(options: RemarkInjectLayoutOptions) {
-  return (tree: Root, file: CompileFile) => {
-    const authoredDefault = hasDefaultExport(tree);
-    file.data.hasAuthoredDefaultExport = authoredDefault;
-    if (authoredDefault) {
-      return;
+export default function remarkInjectLayout(options: RemarkInjectLayoutOptions)
+{
+  return (tree: Root, file: CompileFile) =>
+  {
+    const authoredDefault = hasDefaultExport(tree)
+    file.data.hasAuthoredDefaultExport = authoredDefault
+    if (authoredDefault)
+    {
+      return
     }
 
-    const layout = options.resolveLayout();
-    if (!layout) {
-      return;
+    const layout = options.resolveLayout()
+    if (!layout)
+    {
+      return
     }
 
-    const source = String(file.value);
-    const insertionOffset = options.insertionOffset ?? 0;
-    const insertionLine = source.slice(0, insertionOffset).split('\n').length;
+    const source = String(file.value)
+    const insertionOffset = options.insertionOffset ?? 0
+    const insertionLine = source.slice(0, insertionOffset).split('\n').length
     const insertionIndex = tree.children.findIndex(
       (node) =>
         ((node as Node).position?.start.offset ?? insertionOffset) >=
         insertionOffset
-    );
+    )
     const layoutInjection = createLayoutInjection(
       layout,
       insertionLine,
       insertionOffset
-    );
-    const lineDelta = layoutInjection.source.split('\n').length - 1;
+    )
+    const lineDelta = layoutInjection.source.split('\n').length - 1
 
     shiftTreePositions(
       tree,
@@ -276,20 +305,21 @@ export default function remarkInjectLayout(options: RemarkInjectLayoutOptions) {
       insertionLine,
       lineDelta,
       layoutInjection.source.length
-    );
+    )
     tree.children.splice(
       insertionIndex < 0 ? tree.children.length : insertionIndex,
       0,
       ...layoutInjection.nodes
-    );
+    )
     file.value =
       source.slice(0, insertionOffset) +
       layoutInjection.source +
-      source.slice(insertionOffset);
+      source.slice(insertionOffset)
 
-    const sourceLineOffset = file.data.sourceLineOffset;
-    if (typeof sourceLineOffset === 'number') {
-      file.data.sourceLineOffset = sourceLineOffset - lineDelta;
+    const sourceLineOffset = file.data.sourceLineOffset
+    if (typeof sourceLineOffset === 'number')
+    {
+      file.data.sourceLineOffset = sourceLineOffset - lineDelta
     }
-  };
+  }
 }

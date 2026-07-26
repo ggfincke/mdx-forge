@@ -1,11 +1,12 @@
 // src/compiler/types/pipeline.ts
 // type definitions for MDX pipeline configuration
 
-import type { Pluggable } from 'unified';
+import type { Pluggable } from 'unified'
 
 // warning codes for MDX pipeline operations
-export enum PipelineWarningCode {
-  // Safe Mode warnings
+export enum PipelineWarningCode
+{
+  // safe Mode warnings
   CUSTOM_PLUGINS_IGNORED = 'MDX001',
   CUSTOM_COMPONENTS_IGNORED = 'MDX002',
 
@@ -14,27 +15,30 @@ export enum PipelineWarningCode {
 }
 
 // structured warning object
-export interface PipelineWarning {
-  code: PipelineWarningCode;
-  message: string;
-  severity: 'info' | 'warning' | 'error';
-  context?: Record<string, unknown>;
+export interface PipelineWarning
+{
+  code: PipelineWarningCode
+  message: string
+  severity: 'info' | 'warning' | 'error'
+  context?: Record<string, unknown>
 }
 
 // result of loading plugins from config
-export interface LoadedPlugins {
+export interface LoadedPlugins
+{
   // custom remark plugins
-  remarkPlugins: Pluggable[];
+  remarkPlugins: Pluggable[]
   // custom rehype plugins
-  rehypePlugins: Pluggable[];
+  rehypePlugins: Pluggable[]
   // failed plugin count
-  errorCount: number;
+  errorCount: number
 }
 
 // parsed plugin specification w/ separated name & options
-export interface ParsedPluginSpec {
+export interface ParsedPluginSpec
+{
   // plugin name
-  name: string;
+  name: string
   // plugin options
-  options: Record<string, unknown> | undefined;
+  options: Record<string, unknown> | undefined
 }

@@ -1,24 +1,24 @@
 // src/browser/index.ts
 // main entry point - exports & high-level API for Trusted Mode module loading
 
-import { registry } from './registry/ModuleRegistry';
-import { clearInjectedStyles } from './styles/injectStyles';
+import { registry } from './registry/ModuleRegistry'
+import { clearInjectedStyles } from './styles/injectStyles'
 import {
   loadModule,
   loadModuleWithResolutionHints,
   resetModuleLoaderCoordination,
-} from './loader/loadModule';
+} from './loader/loadModule'
 import {
   initPreloadedModules,
   fallbackLayoutModule,
   ensureFrameworkShims,
   ensureGenericShims,
-} from './preload';
-import { configureModuleLoader } from './internal/runtime-config';
+} from './preload'
+import { configureModuleLoader } from './internal/runtime-config'
 import {
   createImportRuntimeRequest,
   normalizeModuleDependencies,
-} from './internal/dependency';
+} from './internal/dependency'
 import type {
   FetchResult,
   Framework,
@@ -26,14 +26,14 @@ import type {
   ModuleDependencyKind,
   ModuleFetcher,
   ModuleLoaderConfig,
-} from './types';
+} from './types'
 
 // re-exports for external use
-export { registry } from './registry/ModuleRegistry';
-export { clearInjectedStyles } from './styles/injectStyles';
-export { loadModule } from './loader/loadModule';
-export { evaluateModule } from './eval/evaluateModule';
-export { createSyncRequire } from './runtime/require';
+export { registry } from './registry/ModuleRegistry'
+export { clearInjectedStyles } from './styles/injectStyles'
+export { loadModule } from './loader/loadModule'
+export { evaluateModule } from './eval/evaluateModule'
+export { createSyncRequire } from './runtime/require'
 export type {
   FetchResult,
   Framework,
@@ -48,114 +48,130 @@ export type {
   ModuleLoaderConfig,
   ModuleRuntime,
   PreloadEntry,
-} from './types';
-export { PRELOADED_MODULE_IDS } from './types';
-export { createImportRuntimeRequest };
+} from './types'
+export { PRELOADED_MODULE_IDS } from './types'
+export { createImportRuntimeRequest }
 export {
   setPreloadEntries,
   registerPreloadEntries,
   setHostPreloadCallbacks,
-} from './preload';
+} from './preload'
 
 // state
-let preloadedModulesInitialized = false;
-let pendingFrameworkShimLoad: Promise<void> | null = null;
-let pendingGenericShimLoad: Promise<void> | null = null;
-let activeFetcher: ModuleFetcher | null = null;
-let preloadEpoch = 0;
+let preloadedModulesInitialized = false
+let pendingFrameworkShimLoad: Promise<void> | null = null
+let pendingGenericShimLoad: Promise<void> | null = null
+let activeFetcher: ModuleFetcher | null = null
+let preloadEpoch = 0
 
 // configure module loader behavior
-export function configureRuntime(config: ModuleLoaderConfig): void {
-  configureModuleLoader(config);
+export function configureRuntime(config: ModuleLoaderConfig): void
+{
+  configureModuleLoader(config)
 }
 
-export function setModuleFetcher(fetcher: ModuleFetcher): void {
-  activeFetcher = fetcher;
+export function setModuleFetcher(fetcher: ModuleFetcher): void
+{
+  activeFetcher = fetcher
 }
 
 // ensure preloaded modules are initialized - called internally before any module loading
-function ensurePreloadedModules(): void {
-  if (preloadedModulesInitialized) {
-    return;
+function ensurePreloadedModules(): void
+{
+  if (preloadedModulesInitialized)
+  {
+    return
   }
-  initPreloadedModules(registry, fallbackLayoutModule);
-  preloadedModulesInitialized = true;
+  initPreloadedModules(registry, fallbackLayoutModule)
+  preloadedModulesInitialized = true
 }
 
 // track last entry path for incremental invalidation
-let lastEntryPath: string | null = null;
+let lastEntryPath: string | null = null
 
 // clear all modules except preloaded ones - called when entry file changes to ensure fresh state
-export function resetModules(): void {
-  resetModuleLoaderCoordination();
-  registry.clearNonPreloaded();
-  clearInjectedStyles();
+export function resetModules(): void
+{
+  resetModuleLoaderCoordination()
+  registry.clearNonPreloaded()
+  clearInjectedStyles()
 }
 
 // clear dependency graph but keep module cache - called at start of each evaluation to rebuild dependency graph
-export function resetDependencies(): void {
-  registry.clearDependencies();
+export function resetDependencies(): void
+{
+  registry.clearDependencies()
 }
 
 // invalidate a specific module (for hot reload)
-export function invalidateModule(id: string): void {
-  resetModuleLoaderCoordination();
-  registry.invalidate(id);
+export function invalidateModule(id: string): void
+{
+  resetModuleLoaderCoordination()
+  registry.invalidate(id)
 }
 
 // invalidate a module & all modules that depend on it - return the set of invalidated module IDs
-export function invalidateModuleWithDependents(id: string): Set<string> {
-  resetModuleLoaderCoordination();
-  return registry.invalidateWithDependents(id);
+export function invalidateModuleWithDependents(id: string): Set<string>
+{
+  resetModuleLoaderCoordination()
+  return registry.invalidateWithDependents(id)
 }
 
 // clear all caches (modules, styles, dependencies) - called by manual cache refresh command
-export function clearAllCaches(): void {
-  preloadEpoch++;
-  pendingFrameworkShimLoad = null;
-  pendingGenericShimLoad = null;
-  resetModuleLoaderCoordination();
-  registry.clear();
-  clearInjectedStyles();
-  lastEntryPath = null;
-  preloadedModulesInitialized = false;
+export function clearAllCaches(): void
+{
+  preloadEpoch++
+  pendingFrameworkShimLoad = null
+  pendingGenericShimLoad = null
+  resetModuleLoaderCoordination()
+  registry.clear()
+  clearInjectedStyles()
+  lastEntryPath = null
+  preloadedModulesInitialized = false
 }
 
 // load framework-specific shims on demand - called by RPC handler when extension sends framework info
-export function ensureFrameworkShimsLoaded(framework: Framework): void {
+export function ensureFrameworkShimsLoaded(framework: Framework): void
+{
   // ensure preloaded modules are ready first
-  ensurePreloadedModules();
+  ensurePreloadedModules()
   // store the promise so evaluateModuleToComponent can await it
-  const epoch = preloadEpoch;
+  const epoch = preloadEpoch
   pendingFrameworkShimLoad = guardPreloadEpoch(
     ensureFrameworkShims(registry, framework),
     epoch
-  );
+  )
 }
 
 // load specific generic shims on demand - called by RPC handler for conditional preloading
-export function ensureGenericShimsLoaded(components: string[]): void {
+export function ensureGenericShimsLoaded(components: string[]): void
+{
   // ensure preloaded modules are ready first
-  ensurePreloadedModules();
+  ensurePreloadedModules()
   // store the promise so evaluateModuleToComponent can await it
   // this fixes the race condition where setUsedComponents is called right before updatePreview
-  const epoch = preloadEpoch;
+  const epoch = preloadEpoch
   pendingGenericShimLoad = guardPreloadEpoch(
     ensureGenericShims(registry, components),
     epoch
-  );
+  )
 }
 
 // superseded shim failures cannot leak into the next cache generation
 async function guardPreloadEpoch(
   load: Promise<void>,
   epoch: number
-): Promise<void> {
-  try {
-    await load;
-  } catch (error) {
-    if (epoch === preloadEpoch) {
-      throw error;
+): Promise<void>
+{
+  try
+  {
+    await load
+  }
+  catch (error)
+  {
+    if (epoch === preloadEpoch)
+    {
+      throw error
     }
   }
 }
@@ -166,16 +182,19 @@ async function rpcFetcher(
   isBare: boolean,
   parentId: string,
   kind?: ModuleDependencyKind
-): Promise<FetchResult | undefined> {
-  if (!activeFetcher) {
+): Promise<FetchResult | undefined>
+{
+  if (!activeFetcher)
+  {
     throw new Error(
       'Module fetcher is not configured. Call setModuleFetcher().'
-    );
+    )
   }
-  if (kind === undefined) {
-    return activeFetcher(request, isBare, parentId);
+  if (kind === undefined)
+  {
+    return activeFetcher(request, isBare, parentId)
   }
-  return activeFetcher(request, isBare, parentId, kind);
+  return activeFetcher(request, isBare, parentId, kind)
 }
 
 // evaluate MDX into a component & preserve dependency cache when possible
@@ -184,59 +203,73 @@ export async function evaluateModuleToComponent(
   code: string,
   entryFilePath: string,
   dependencies: ModuleDependencyInput[]
-): Promise<(...args: unknown[]) => unknown> {
-  const normalizedDependencies = normalizeModuleDependencies(dependencies);
+): Promise<(...args: unknown[]) => unknown>
+{
+  const normalizedDependencies = normalizeModuleDependencies(dependencies)
 
   // ensure preloaded modules are ready
-  ensurePreloadedModules();
+  ensurePreloadedModules()
 
   // wait for pending independent shim loads before evaluation
   // loop so a newer load installed mid-await is also honored
   // compare-&-clear exact handles so a newer generation is never erased
-  while (pendingGenericShimLoad || pendingFrameworkShimLoad) {
-    const genericSnapshot = pendingGenericShimLoad;
-    const frameworkSnapshot = pendingFrameworkShimLoad;
-    const pendingLoads: Promise<void>[] = [];
-    if (genericSnapshot) {
-      pendingLoads.push(genericSnapshot);
+  while (pendingGenericShimLoad || pendingFrameworkShimLoad)
+  {
+    const genericSnapshot = pendingGenericShimLoad
+    const frameworkSnapshot = pendingFrameworkShimLoad
+    const pendingLoads: Promise<void>[] = []
+    if (genericSnapshot)
+    {
+      pendingLoads.push(genericSnapshot)
     }
-    if (frameworkSnapshot) {
-      pendingLoads.push(frameworkSnapshot);
+    if (frameworkSnapshot)
+    {
+      pendingLoads.push(frameworkSnapshot)
     }
 
-    try {
-      await Promise.all(pendingLoads);
-    } finally {
+    try
+    {
+      await Promise.all(pendingLoads)
+    }
+    finally
+    {
       // clear only the exact awaited handles (settled or rejected)
-      if (pendingGenericShimLoad === genericSnapshot) {
-        pendingGenericShimLoad = null;
+      if (pendingGenericShimLoad === genericSnapshot)
+      {
+        pendingGenericShimLoad = null
       }
-      if (pendingFrameworkShimLoad === frameworkSnapshot) {
-        pendingFrameworkShimLoad = null;
+      if (pendingFrameworkShimLoad === frameworkSnapshot)
+      {
+        pendingFrameworkShimLoad = null
       }
     }
   }
 
-  let retainedResolutions: Map<string, string> | undefined;
+  let retainedResolutions: Map<string, string> | undefined
 
   // determine if we need full reset or incremental invalidation
-  if (lastEntryPath !== entryFilePath) {
+  if (lastEntryPath !== entryFilePath)
+  {
     // entry file changed - full reset required
-    resetModules();
-    lastEntryPath = entryFilePath;
-  } else {
-    retainedResolutions = new Map();
-    for (const dependency of normalizedDependencies) {
-      const { runtimeRequest } = dependency;
-      const resolvedId = registry.getResolution(entryFilePath, runtimeRequest);
-      if (resolvedId && registry.has(resolvedId)) {
-        retainedResolutions.set(runtimeRequest, resolvedId);
+    resetModules()
+    lastEntryPath = entryFilePath
+  }
+  else
+  {
+    retainedResolutions = new Map()
+    for (const dependency of normalizedDependencies)
+    {
+      const { runtimeRequest } = dependency
+      const resolvedId = registry.getResolution(entryFilePath, runtimeRequest)
+      if (resolvedId && registry.has(resolvedId))
+      {
+        retainedResolutions.set(runtimeRequest, resolvedId)
       }
     }
 
     // same-entry refresh retains dependency modules, graph edges, & owned styles
     // invalidation still removes the entry's committed metadata before reloading
-    invalidateModuleWithDependents(entryFilePath);
+    invalidateModuleWithDependents(entryFilePath)
   }
 
   // load the entry module & all dependencies
@@ -248,19 +281,20 @@ export async function evaluateModuleToComponent(
         rpcFetcher,
         retainedResolutions
       )
-    : await loadModule(entryFilePath, code, normalizedDependencies, rpcFetcher);
+    : await loadModule(entryFilePath, code, normalizedDependencies, rpcFetcher)
 
   // get the default export (MDX component)
-  const moduleExports = module.exports as Record<string, unknown>;
-  const component = moduleExports.default ?? module.exports;
+  const moduleExports = module.exports as Record<string, unknown>
+  const component = moduleExports.default ?? module.exports
 
-  if (typeof component !== 'function') {
+  if (typeof component !== 'function')
+  {
     throw new Error(
       `MDX module did not export a valid component. ` +
         `Got: ${typeof component}. ` +
         `Make sure the MDX file has valid content.`
-    );
+    )
   }
 
-  return component as (...args: unknown[]) => unknown;
+  return component as (...args: unknown[]) => unknown
 }

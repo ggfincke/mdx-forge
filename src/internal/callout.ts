@@ -1,7 +1,7 @@
 // src/internal/callout.ts
 // shared callout type definitions & normalization
 
-import { CALLOUT_ICONS } from './icons';
+import { CALLOUT_ICONS } from './icons'
 
 export type CalloutType =
   | 'note'
@@ -20,7 +20,7 @@ export type CalloutType =
   | 'example'
   | 'quote'
   | 'todo'
-  | 'attention';
+  | 'attention'
 
 export const VALID_CALLOUT_TYPES: readonly CalloutType[] = [
   'note',
@@ -40,11 +40,11 @@ export const VALID_CALLOUT_TYPES: readonly CalloutType[] = [
   'quote',
   'todo',
   'attention',
-] as const;
+] as const
 
 export const VALID_CALLOUT_TYPE_SET: ReadonlySet<string> = new Set(
   VALID_CALLOUT_TYPES
-);
+)
 
 export const CALLOUT_TYPE_ALIASES: Readonly<Record<string, CalloutType>> =
   Object.freeze(
@@ -62,7 +62,7 @@ export const CALLOUT_TYPE_ALIASES: Readonly<Record<string, CalloutType>> =
       error: 'danger',
       warn: 'warning',
     })
-  );
+  )
 
 export const CALLOUT_TITLES: Readonly<Record<CalloutType, string>> = {
   note: 'Note',
@@ -82,52 +82,60 @@ export const CALLOUT_TITLES: Readonly<Record<CalloutType, string>> = {
   quote: 'Quote',
   todo: 'Todo',
   attention: 'Attention',
-} as const;
+} as const
 
 // shared shape for callout/admonition/alert config objects
-export interface CalloutStyleConfig {
-  className: string;
-  label: string;
-  icon: string;
+export interface CalloutStyleConfig
+{
+  className: string
+  label: string
+  icon: string
 }
 
-export function normalizeCalloutType(type: string | undefined): CalloutType {
-  if (!type) {
-    return 'note';
+export function normalizeCalloutType(type: string | undefined): CalloutType
+{
+  if (!type)
+  {
+    return 'note'
   }
 
-  const normalized = type.toLowerCase();
-  if (Object.hasOwn(CALLOUT_TYPE_ALIASES, normalized)) {
-    return CALLOUT_TYPE_ALIASES[normalized];
+  const normalized = type.toLowerCase()
+  if (Object.hasOwn(CALLOUT_TYPE_ALIASES, normalized))
+  {
+    return CALLOUT_TYPE_ALIASES[normalized]
   }
 
-  if (VALID_CALLOUT_TYPE_SET.has(normalized)) {
-    return normalized as CalloutType;
+  if (VALID_CALLOUT_TYPE_SET.has(normalized))
+  {
+    return normalized as CalloutType
   }
 
-  return 'note';
+  return 'note'
 }
 
-export function isValidCalloutType(type: string): boolean {
-  const normalized = type.toLowerCase();
+export function isValidCalloutType(type: string): boolean
+{
+  const normalized = type.toLowerCase()
   return (
     VALID_CALLOUT_TYPE_SET.has(normalized) ||
     Object.hasOwn(CALLOUT_TYPE_ALIASES, normalized)
-  );
+  )
 }
 
 // build a CalloutStyleConfig map from a className-per-type mapper
 // both admonitions.ts & callout.ts derive their config from this
 export function buildCalloutStyleMap(
   classNameForType: (type: CalloutType) => string
-): Record<CalloutType, CalloutStyleConfig> {
-  const map = Object.create(null) as Record<CalloutType, CalloutStyleConfig>;
-  for (const type of VALID_CALLOUT_TYPES) {
+): Record<CalloutType, CalloutStyleConfig>
+{
+  const map = Object.create(null) as Record<CalloutType, CalloutStyleConfig>
+  for (const type of VALID_CALLOUT_TYPES)
+  {
     map[type] = {
       className: classNameForType(type),
       label: CALLOUT_TITLES[type],
       icon: CALLOUT_ICONS[type],
-    };
+    }
   }
-  return Object.freeze(map);
+  return Object.freeze(map)
 }

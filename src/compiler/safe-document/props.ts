@@ -1,21 +1,21 @@
 // src/compiler/safe-document/props.ts
 // decode & validate closed component & intrinsic props
 
-import { DIAGNOSTIC_CODES } from '../../diagnostics/types';
-import { addSafeDocumentDiagnostic, allowSafeDocumentUrl } from './internal';
+import { DIAGNOSTIC_CODES } from '../../diagnostics/types'
+import { addSafeDocumentDiagnostic, allowSafeDocumentUrl } from './internal'
 import type {
   SafeDocumentCompileContext,
   SafeDocumentMdastNode,
   SafeDocumentMdxAttribute,
-} from './internal';
-import { readSafeLiteral } from './literal';
-import { isForbiddenProp, validateSafeDocumentValue } from './schema';
+} from './internal'
+import { readSafeLiteral } from './literal'
+import { isForbiddenProp, validateSafeDocumentValue } from './schema'
 import type {
   SafeDocumentComponentSchema,
   SafeDocumentElementTag,
   SafeDocumentJsonValue,
   SafeDocumentValueSchema,
-} from './types';
+} from './types'
 
 const ELEMENT_SCHEMAS: Partial<
   Record<SafeDocumentElementTag, SafeDocumentComponentSchema>
@@ -53,35 +53,41 @@ const ELEMENT_SCHEMAS: Partial<
       align: { type: 'string', enum: ['left', 'right', 'center'] },
     },
   },
-};
+}
 
-interface ReadPropsOptions {
-  kind: 'component' | 'element';
-  name: string;
-  schema: SafeDocumentComponentSchema;
+interface ReadPropsOptions
+{
+  kind: 'component' | 'element'
+  name: string
+  schema: SafeDocumentComponentSchema
 }
 
 export function diagnoseDiscardedComponentProps(
   node: SafeDocumentMdastNode,
   name: string,
   context: SafeDocumentCompileContext
-): void {
+): void
+{
   const options: ReadPropsOptions = {
     kind: 'component',
     name,
     schema: {},
-  };
-  for (const attribute of node.attributes ?? []) {
-    if (attribute.type !== 'mdxJsxAttribute') {
-      unsupportedExpression(attribute, options, context, 'spread');
-      continue;
+  }
+  for (const attribute of node.attributes ?? [])
+  {
+    if (attribute.type !== 'mdxJsxAttribute')
+    {
+      unsupportedExpression(attribute, options, context, 'spread')
+      continue
     }
-    if (typeof attribute.value !== 'object' || attribute.value === null) {
-      continue;
+    if (typeof attribute.value !== 'object' || attribute.value === null)
+    {
+      continue
     }
-    const result = readSafeLiteral(attribute.value.data?.estree);
-    if (!result.ok) {
-      unsupportedExpression(attribute, options, context, result.reason);
+    const result = readSafeLiteral(attribute.value.data?.estree)
+    if (!result.ok)
+    {
+      unsupportedExpression(attribute, options, context, result.reason)
     }
   }
 }
@@ -91,8 +97,9 @@ export function readSafeComponentProps(
   name: string,
   schema: SafeDocumentComponentSchema,
   context: SafeDocumentCompileContext
-): Record<string, SafeDocumentJsonValue> {
-  return readProps(node, { kind: 'component', name, schema }, context);
+): Record<string, SafeDocumentJsonValue>
+{
+  return readProps(node, { kind: 'component', name, schema }, context)
 }
 
 export function readSafeElementProps(
@@ -100,10 +107,11 @@ export function readSafeElementProps(
   tag: SafeDocumentElementTag,
   context: SafeDocumentCompileContext
 ): {
-  props: Record<string, SafeDocumentJsonValue>;
-  required: boolean;
-} {
-  const schema = ELEMENT_SCHEMAS[tag] ?? {};
+  props: Record<string, SafeDocumentJsonValue>
+  required: boolean
+}
+{
+  const schema = ELEMENT_SCHEMAS[tag] ?? {}
   const props = readProps(
     node,
     {
@@ -112,39 +120,44 @@ export function readSafeElementProps(
       schema,
     },
     context
-  );
+  )
   return {
     props,
     required: (schema.requiredProps ?? []).every((name) =>
       Object.hasOwn(props, name)
     ),
-  };
+  }
 }
 
 function readProps(
   node: SafeDocumentMdastNode,
   options: ReadPropsOptions,
   context: SafeDocumentCompileContext
-): Record<string, SafeDocumentJsonValue> {
-  const props: Record<string, SafeDocumentJsonValue> = {};
-  const seen = new Set<string>();
-  for (const attribute of node.attributes ?? []) {
+): Record<string, SafeDocumentJsonValue>
+{
+  const props: Record<string, SafeDocumentJsonValue> = {}
+  const seen = new Set<string>()
+  for (const attribute of node.attributes ?? [])
+  {
     if (
       attribute.type !== 'mdxJsxAttribute' ||
       typeof attribute.name !== 'string'
-    ) {
-      unsupportedExpression(attribute, options, context, 'spread');
-      continue;
+    )
+    {
+      unsupportedExpression(attribute, options, context, 'spread')
+      continue
     }
-    const name = attribute.name;
+    const name = attribute.name
     if (
       isForbiddenProp(name) ||
       (options.kind === 'element' && /^on/i.test(name))
-    ) {
-      unsupportedAttribute(attribute, options, context);
-      continue;
+    )
+    {
+      unsupportedAttribute(attribute, options, context)
+      continue
     }
-    if (seen.has(name)) {
+    if (seen.has(name))
+    {
       addSafeDocumentDiagnostic(
         context,
         DIAGNOSTIC_CODES.INVALID_PROP_VALUE,
@@ -152,27 +165,30 @@ function readProps(
         `duplicate prop ${options.name}.${name}`,
         attribute.position,
         { componentName: options.name, propName: name }
-      );
-      continue;
+      )
+      continue
     }
-    seen.add(name);
+    seen.add(name)
 
     const schema =
       options.schema.props && Object.hasOwn(options.schema.props, name)
         ? options.schema.props[name]
-        : undefined;
-    if (!schema) {
-      unknownAttribute(attribute, options, context);
-      continue;
+        : undefined
+    if (!schema)
+    {
+      unknownAttribute(attribute, options, context)
+      continue
     }
-    const value = readAttributeValue(attribute, options, context);
-    if (!value.ok) {
-      continue;
+    const value = readAttributeValue(attribute, options, context)
+    if (!value.ok)
+    {
+      continue
     }
-    const reason = validateSafeDocumentValue(value.value, schema);
-    if (reason) {
-      invalidValue(attribute, options, name, reason, context);
-      continue;
+    const reason = validateSafeDocumentValue(value.value, schema)
+    if (reason)
+    {
+      invalidValue(attribute, options, name, reason, context)
+      continue
     }
     if (
       !allowSafeDocumentValueUrls(
@@ -183,14 +199,17 @@ function readProps(
         options,
         context
       )
-    ) {
-      continue;
+    )
+    {
+      continue
     }
-    props[name] = value.value;
+    props[name] = value.value
   }
 
-  for (const name of options.schema.requiredProps ?? []) {
-    if (!Object.hasOwn(props, name)) {
+  for (const name of options.schema.requiredProps ?? [])
+  {
+    if (!Object.hasOwn(props, name))
+    {
       addSafeDocumentDiagnostic(
         context,
         DIAGNOSTIC_CODES.MISSING_REQUIRED_PROP,
@@ -198,10 +217,10 @@ function readProps(
         `missing required prop ${options.name}.${name}`,
         node.position,
         { componentName: options.name, propName: name }
-      );
+      )
     }
   }
-  return props;
+  return props
 }
 
 function allowSafeDocumentValueUrls(
@@ -211,8 +230,10 @@ function allowSafeDocumentValueUrls(
   attribute: SafeDocumentMdxAttribute,
   options: ReadPropsOptions,
   context: SafeDocumentCompileContext
-): boolean {
-  switch (schema.type) {
+): boolean
+{
+  switch (schema.type)
+  {
     case 'string':
       return (
         schema.format !== 'url' ||
@@ -222,7 +243,7 @@ function allowSafeDocumentValueUrls(
           attribute.position,
           context
         )
-      );
+      )
     case 'array':
       return allowSafeDocumentArrayUrls(
         value as SafeDocumentJsonValue[],
@@ -231,7 +252,7 @@ function allowSafeDocumentValueUrls(
         attribute,
         options,
         context
-      );
+      )
     case 'object':
       return allowSafeDocumentObjectUrls(
         value as Record<string, SafeDocumentJsonValue>,
@@ -240,9 +261,9 @@ function allowSafeDocumentValueUrls(
         attribute,
         options,
         context
-      );
+      )
     default:
-      return true;
+      return true
   }
 }
 
@@ -253,9 +274,11 @@ function allowSafeDocumentArrayUrls(
   attribute: SafeDocumentMdxAttribute,
   options: ReadPropsOptions,
   context: SafeDocumentCompileContext
-): boolean {
-  let allowed = true;
-  for (let index = 0; index < value.length; index++) {
+): boolean
+{
+  let allowed = true
+  for (let index = 0; index < value.length; index++)
+  {
     if (
       !allowSafeDocumentValueUrls(
         value[index]!,
@@ -265,11 +288,12 @@ function allowSafeDocumentArrayUrls(
         options,
         context
       )
-    ) {
-      allowed = false;
+    )
+    {
+      allowed = false
     }
   }
-  return allowed;
+  return allowed
 }
 
 function allowSafeDocumentObjectUrls(
@@ -279,9 +303,11 @@ function allowSafeDocumentObjectUrls(
   attribute: SafeDocumentMdxAttribute,
   options: ReadPropsOptions,
   context: SafeDocumentCompileContext
-): boolean {
-  let allowed = true;
-  for (const [name, child] of Object.entries(value)) {
+): boolean
+{
+  let allowed = true
+  for (const [name, child] of Object.entries(value))
+  {
     if (
       !allowSafeDocumentValueUrls(
         child,
@@ -291,30 +317,35 @@ function allowSafeDocumentObjectUrls(
         options,
         context
       )
-    ) {
-      allowed = false;
+    )
+    {
+      allowed = false
     }
   }
-  return allowed;
+  return allowed
 }
 
 function readAttributeValue(
   attribute: SafeDocumentMdxAttribute,
   options: ReadPropsOptions,
   context: SafeDocumentCompileContext
-): { ok: true; value: SafeDocumentJsonValue } | { ok: false } {
-  if (attribute.value === null || attribute.value === undefined) {
-    return { ok: true, value: true };
+): { ok: true; value: SafeDocumentJsonValue } | { ok: false }
+{
+  if (attribute.value === null || attribute.value === undefined)
+  {
+    return { ok: true, value: true }
   }
-  if (typeof attribute.value === 'string') {
-    return { ok: true, value: attribute.value };
+  if (typeof attribute.value === 'string')
+  {
+    return { ok: true, value: attribute.value }
   }
-  const result = readSafeLiteral(attribute.value.data?.estree);
-  if (result.ok) {
-    return result;
+  const result = readSafeLiteral(attribute.value.data?.estree)
+  if (result.ok)
+  {
+    return result
   }
-  unsupportedExpression(attribute, options, context, result.reason);
-  return { ok: false };
+  unsupportedExpression(attribute, options, context, result.reason)
+  return { ok: false }
 }
 
 function unsupportedExpression(
@@ -322,7 +353,8 @@ function unsupportedExpression(
   options: ReadPropsOptions,
   context: SafeDocumentCompileContext,
   reason: string
-): void {
+): void
+{
   addSafeDocumentDiagnostic(
     context,
     DIAGNOSTIC_CODES.UNSUPPORTED_IN_SAFE_MODE,
@@ -330,14 +362,15 @@ function unsupportedExpression(
     `unsupported expression in ${options.name}: ${reason}`,
     attribute.position,
     { kind: 'prop-expression', name: options.name, reason }
-  );
+  )
 }
 
 function unsupportedAttribute(
   attribute: SafeDocumentMdxAttribute,
   options: ReadPropsOptions,
   context: SafeDocumentCompileContext
-): void {
+): void
+{
   addSafeDocumentDiagnostic(
     context,
     DIAGNOSTIC_CODES.UNSUPPORTED_ATTRIBUTE,
@@ -348,14 +381,15 @@ function unsupportedAttribute(
       componentName: options.name,
       propName: attribute.name ?? '',
     }
-  );
+  )
 }
 
 function unknownAttribute(
   attribute: SafeDocumentMdxAttribute,
   options: ReadPropsOptions,
   context: SafeDocumentCompileContext
-): void {
+): void
+{
   addSafeDocumentDiagnostic(
     context,
     options.kind === 'component'
@@ -370,7 +404,7 @@ function unknownAttribute(
       componentName: options.name,
       propName: attribute.name ?? '',
     }
-  );
+  )
 }
 
 function invalidValue(
@@ -379,7 +413,8 @@ function invalidValue(
   name: string,
   reason: string,
   context: SafeDocumentCompileContext
-): void {
+): void
+{
   addSafeDocumentDiagnostic(
     context,
     DIAGNOSTIC_CODES.INVALID_PROP_VALUE,
@@ -387,5 +422,5 @@ function invalidValue(
     `invalid prop ${options.name}.${name}: ${reason}`,
     attribute.position,
     { componentName: options.name, propName: name, reason }
-  );
+  )
 }

@@ -1,8 +1,9 @@
 // src/components/docusaurus/CodeBlock.tsx
-// Docusaurus CodeBlock component shim for MDX Preview
+// docusaurus CodeBlock component shim for MDX Preview
+
 // provide preview-compatible version of @theme/CodeBlock
 
-import { createCodeBlock } from '../base/BaseCodeBlock';
+import { createCodeBlock } from '../base/BaseCodeBlock'
 
 // code block component using shared factory
 export const CodeBlock = createCodeBlock({
@@ -10,10 +11,10 @@ export const CodeBlock = createCodeBlock({
   codeAsString: false,
   supportsFrames: false,
   showLangBadgeWithTitle: true,
-});
+})
 
 // re-export props type for consumers
-export type { BaseCodeBlockProps as CodeBlockProps } from '../base/BaseCodeBlock';
+export type { BaseCodeBlockProps as CodeBlockProps } from '../base/BaseCodeBlock'
 
 // default export for compatibility
-export default CodeBlock;
+export default CodeBlock

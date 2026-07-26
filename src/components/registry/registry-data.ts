@@ -5,14 +5,14 @@ import {
   COMPONENT_IDENTITY_DEFINITIONS,
   type ComponentIdentityDefinition,
   type ComponentIdentityEntry,
-} from '../internal/component-identity';
-import { COMPONENT_METADATA } from './component-metadata';
-import { deepFreeze } from './freeze';
+} from '../internal/component-identity'
+import { COMPONENT_METADATA } from './component-metadata'
+import { deepFreeze } from './freeze'
 import type {
   ComponentAuthoringMetadata,
   ComponentDefinition,
   ComponentRegistryEntry,
-} from './types';
+} from './types'
 
 export {
   FRAMEWORK_COMPONENTS,
@@ -23,19 +23,19 @@ export {
   type NextjsComponent,
   type NextraComponent,
   type StarlightComponent,
-} from '../internal/component-identity';
+} from '../internal/component-identity'
 
 type MetadataKeyFor<Identity extends ComponentIdentityEntry> =
-  `${Identity['framework']}:${Identity['name']}`;
+  `${Identity['framework']}:${Identity['name']}`
 
 type RegistryEntryForIdentity<Identity extends ComponentIdentityDefinition> =
   Identity extends ComponentIdentityEntry
     ? Identity & {
         readonly metadata: MetadataKeyFor<Identity> extends keyof typeof COMPONENT_METADATA
           ? (typeof COMPONENT_METADATA)[MetadataKeyFor<Identity>]
-          : never;
+          : never
       }
-    : Identity;
+    : Identity
 
 type ComponentRegistryTuple<
   Definitions extends readonly ComponentIdentityDefinition[],
@@ -44,12 +44,13 @@ type ComponentRegistryTuple<
     Index in keyof Definitions
   ]: Definitions[Index] extends ComponentIdentityDefinition
     ? RegistryEntryForIdentity<Definitions[Index]>
-    : never;
-};
+    : never
+}
 
 function buildComponentEntry(
   identity: Omit<ComponentDefinition, 'metadata'>
-): ComponentDefinition {
+): ComponentDefinition
+{
   const {
     name,
     aliases,
@@ -65,11 +66,11 @@ function buildComponentEntry(
     exposeAsBareImport,
     importKind,
     importName,
-  } = identity;
+  } = identity
   const metadata =
     COMPONENT_METADATA[
       `${framework}:${name}` as keyof typeof COMPONENT_METADATA
-    ];
+    ]
 
   return {
     kind: 'component',
@@ -88,19 +89,20 @@ function buildComponentEntry(
     ...(exposeAsBareImport === undefined ? {} : { exposeAsBareImport }),
     ...(importKind === undefined ? {} : { importKind }),
     ...(importName === undefined ? {} : { importName }),
-  };
+  }
 }
 
 function buildRegistryEntry(
   identity: ComponentIdentityDefinition
-): ComponentRegistryEntry {
+): ComponentRegistryEntry
+{
   return identity.kind === 'component'
     ? buildComponentEntry(identity)
-    : { ...identity };
+    : { ...identity }
 }
 
 export const COMPONENT_REGISTRY = deepFreeze(
   COMPONENT_IDENTITY_DEFINITIONS.map(buildRegistryEntry)
-) as unknown as ComponentRegistryTuple<typeof COMPONENT_IDENTITY_DEFINITIONS>;
+) as unknown as ComponentRegistryTuple<typeof COMPONENT_IDENTITY_DEFINITIONS>
 
-export type ComponentRegistryEntryType = (typeof COMPONENT_REGISTRY)[number];
+export type ComponentRegistryEntryType = (typeof COMPONENT_REGISTRY)[number]

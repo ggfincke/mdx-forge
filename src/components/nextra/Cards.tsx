@@ -1,32 +1,34 @@
 // src/components/nextra/Cards.tsx
-// Nextra Cards shim using compound Cards & Cards.Card pattern
+// nextra Cards shim using compound Cards & Cards.Card pattern
 
 import React, {
   ReactNode,
   ReactElement,
   HTMLAttributes,
   CSSProperties,
-} from 'react';
-import { cn } from '../internal/cn';
-import { ArrowIcon } from '../base/icons';
-import { BaseCard } from '../base/BaseCard';
+} from 'react'
+import { cn } from '../internal/cn'
+import { ArrowIcon } from '../base/icons'
+import { BaseCard } from '../base/BaseCard'
 
 // cards props (compatible w/ Nextra)
-export interface CardsProps extends HTMLAttributes<HTMLDivElement> {
-  children: ReactNode;
+export interface CardsProps extends HTMLAttributes<HTMLDivElement>
+{
+  children: ReactNode
   // column count
-  num?: number;
+  num?: number
 }
 
 // card props (for Cards.Card subcomponent)
 export interface CardProps extends HTMLAttributes<
   HTMLAnchorElement | HTMLDivElement
-> {
-  children?: ReactNode;
-  icon?: ReactNode;
-  title: string;
-  href?: string;
-  arrow?: boolean;
+>
+{
+  children?: ReactNode
+  icon?: ReactNode
+  title: string
+  href?: string
+  arrow?: boolean
 }
 
 // main Cards component (grid container)
@@ -36,12 +38,13 @@ function CardsComponent({
   className,
   style,
   ...props
-}: CardsProps): ReactElement {
+}: CardsProps): ReactElement
+{
   // use CSS custom property for column count
   const gridStyle: CSSProperties = {
     ...style,
     '--nextra-cards-num': num,
-  } as CSSProperties;
+  } as CSSProperties
 
   return (
     <div
@@ -51,7 +54,7 @@ function CardsComponent({
     >
       {children}
     </div>
-  );
+  )
 }
 
 // card subcomponent (Cards.Card)
@@ -63,7 +66,8 @@ function Card({
   arrow,
   className,
   ...props
-}: CardProps): ReactElement {
+}: CardProps): ReactElement
+{
   const content = (
     <>
       <div className="mdx-preview-nextra-card-header">
@@ -81,12 +85,12 @@ function Card({
         <div className="mdx-preview-nextra-card-content">{children}</div>
       )}
     </>
-  );
+  )
 
   // render as anchor if href is provided, otherwise as div
   // external http(s) hrefs auto-open in a new tab w/ safe rel
   const isExternal =
-    !!href && (href.startsWith('http://') || href.startsWith('https://'));
+    !!href && (href.startsWith('http://') || href.startsWith('https://'))
 
   return (
     <BaseCard
@@ -98,10 +102,10 @@ function Card({
     >
       {content}
     </BaseCard>
-  );
+  )
 }
 
 // attach Card as static property on Cards (compound component pattern)
-export const Cards = Object.assign(CardsComponent, { Card });
+export const Cards = Object.assign(CardsComponent, { Card })
 
-export default Cards;
+export default Cards

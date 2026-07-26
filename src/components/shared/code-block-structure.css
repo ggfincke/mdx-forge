@@ -2,17 +2,20 @@
 /* share framework code-block structure w/o visual policy */
 
 .docusaurus-codeblock,
-.mdx-preview-starlight-code {
+.mdx-preview-starlight-code
+{
   overflow: hidden;
 }
 
 .docusaurus-codeblock-container,
-.mdx-preview-starlight-code-container {
+.mdx-preview-starlight-code-container
+{
   position: relative;
 }
 
 .docusaurus-codeblock-copy,
-.mdx-preview-starlight-code-copy {
+.mdx-preview-starlight-code-copy
+{
   position: absolute;
   display: flex;
   align-items: center;
@@ -26,24 +29,28 @@
 .docusaurus-codeblock:hover .docusaurus-codeblock-copy,
 .mdx-preview-starlight-code-container:hover .mdx-preview-starlight-code-copy,
 .docusaurus-codeblock-copy.copied,
-.mdx-preview-starlight-code-copy.copied {
+.mdx-preview-starlight-code-copy.copied
+{
   opacity: 1;
 }
 
 .docusaurus-codeblock-lang,
-.mdx-preview-starlight-code-lang {
+.mdx-preview-starlight-code-lang
+{
   position: absolute;
   right: 3rem;
   text-transform: uppercase;
 }
 
 .docusaurus-codeblock pre,
-.mdx-preview-starlight-code pre {
+.mdx-preview-starlight-code pre
+{
   margin: 0;
   overflow-x: auto;
 }
 
 .docusaurus-codeblock code,
-.mdx-preview-starlight-code pre code {
+.mdx-preview-starlight-code pre code
+{
   line-height: 1.5;
 }

@@ -1,35 +1,38 @@
 // src/components/base/createIconComponent.tsx
 // factory for creating JSX icon components from shared SVG strings
 
-import React, { type ReactElement } from 'react';
+import React, { type ReactElement } from 'react'
 
-export interface IconProps {
-  size?: number;
-  className?: string;
+export interface IconProps
+{
+  size?: number
+  className?: string
 }
 
 // parsed SVG metadata extracted at module load time
-interface ParsedSvg {
-  viewBox: string;
-  fill: string;
-  stroke?: string;
-  strokeWidth?: string;
-  strokeLinecap?: string;
-  strokeLinejoin?: string;
+interface ParsedSvg
+{
+  viewBox: string
+  fill: string
+  stroke?: string
+  strokeWidth?: string
+  strokeLinecap?: string
+  strokeLinejoin?: string
   // inner SVG content (path, polyline, etc.)
-  innerHtml: string;
+  innerHtml: string
 }
 
 // parse an SVG string to extract viewBox, style attributes & inner content
 // called once per icon at module load time (not per-render)
-function parseSvg(svgString: string): ParsedSvg {
-  const viewBoxMatch = svgString.match(/viewBox="([^"]+)"/);
-  const fillMatch = svgString.match(/\sfill="([^"]+)"/);
-  const strokeMatch = svgString.match(/\sstroke="([^"]+)"/);
-  const strokeWidthMatch = svgString.match(/stroke-width="([^"]+)"/);
-  const strokeLinecapMatch = svgString.match(/stroke-linecap="([^"]+)"/);
-  const strokeLinejoinMatch = svgString.match(/stroke-linejoin="([^"]+)"/);
-  const innerMatch = svgString.match(/<svg[^>]*>([\s\S]*)<\/svg>/);
+function parseSvg(svgString: string): ParsedSvg
+{
+  const viewBoxMatch = svgString.match(/viewBox="([^"]+)"/)
+  const fillMatch = svgString.match(/\sfill="([^"]+)"/)
+  const strokeMatch = svgString.match(/\sstroke="([^"]+)"/)
+  const strokeWidthMatch = svgString.match(/stroke-width="([^"]+)"/)
+  const strokeLinecapMatch = svgString.match(/stroke-linecap="([^"]+)"/)
+  const strokeLinejoinMatch = svgString.match(/stroke-linejoin="([^"]+)"/)
+  const innerMatch = svgString.match(/<svg[^>]*>([\s\S]*)<\/svg>/)
 
   return {
     viewBox: viewBoxMatch?.[1] ?? '0 0 24 24',
@@ -39,7 +42,7 @@ function parseSvg(svgString: string): ParsedSvg {
     strokeLinecap: strokeLinecapMatch?.[1],
     strokeLinejoin: strokeLinejoinMatch?.[1],
     innerHtml: innerMatch?.[1] ?? '',
-  };
+  }
 }
 
 // create a React icon component from a shared SVG string
@@ -48,13 +51,15 @@ function parseSvg(svgString: string): ParsedSvg {
 export function createIconComponent(
   svgString: string,
   defaultSize: number = 16
-): React.FC<IconProps> {
-  const parsed = parseSvg(svgString);
+): React.FC<IconProps>
+{
+  const parsed = parseSvg(svgString)
 
   function IconComponent({
     size = defaultSize,
     className,
-  }: IconProps): ReactElement {
+  }: IconProps): ReactElement
+  {
     return (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -73,8 +78,8 @@ export function createIconComponent(
         className={className}
         dangerouslySetInnerHTML={{ __html: parsed.innerHtml }}
       />
-    );
+    )
   }
 
-  return IconComponent;
+  return IconComponent
 }

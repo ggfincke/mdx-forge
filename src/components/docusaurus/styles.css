@@ -6,11 +6,13 @@
 /* Tokens are imported once by the styles/ framework entry */
 
 /* ==================== Tabs ==================== */
-.docusaurus-tabs {
+.docusaurus-tabs
+{
   margin: var(--mdx-space-lg) 0;
 }
 
-.mdx-preview-tabs-header {
+.mdx-preview-tabs-header
+{
   display: flex;
   flex-wrap: wrap;
   gap: 0;
@@ -18,7 +20,8 @@
   margin-bottom: 0;
 }
 
-.mdx-preview-tabs-button {
+.mdx-preview-tabs-button
+{
   display: inline-flex;
   align-items: center;
   padding: var(--mdx-space-md) var(--mdx-space-lg);
@@ -36,7 +39,8 @@
   margin-bottom: -1px;
 }
 
-.mdx-preview-tabs-button:hover {
+.mdx-preview-tabs-button:hover
+{
   color: var(--vscode-textLink-foreground, var(--mdx-link-color));
   background-color: var(
     --vscode-list-hoverBackground,
@@ -44,52 +48,63 @@
   );
 }
 
-.mdx-preview-tabs-button.active {
+.mdx-preview-tabs-button.active
+{
   color: var(--vscode-textLink-foreground, var(--mdx-link-color));
   border-bottom-color: var(--vscode-textLink-foreground, var(--mdx-link-color));
 }
 
-.mdx-preview-tabs-button:focus-visible {
+.mdx-preview-tabs-button:focus-visible
+{
   outline: 2px solid var(--vscode-focusBorder, var(--mdx-link-color));
   outline-offset: -2px;
 }
 
-.mdx-preview-tabs-content {
+.mdx-preview-tabs-content
+{
   padding: var(--mdx-space-lg) 0;
 }
 
-.mdx-preview-tabs-panel {
+.mdx-preview-tabs-panel
+{
   animation: mdx-preview-tabs-fadeIn var(--mdx-transition-normal) ease;
 }
 
-.mdx-preview-tabs-panel[hidden] {
+.mdx-preview-tabs-panel[hidden]
+{
   display: none;
 }
 
-.mdx-preview-tabs-item {
+.mdx-preview-tabs-item
+{
   padding: var(--mdx-space-sm) 0;
 }
 
-@keyframes mdx-preview-tabs-fadeIn {
-  from {
+@keyframes mdx-preview-tabs-fadeIn
+{
+  from
+  {
     opacity: 0;
     transform: translateY(-4px);
   }
-  to {
+  to
+  {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
 /* ==================== CodeBlock ==================== */
-.docusaurus-codeblock {
+.docusaurus-codeblock
+{
   margin: var(--mdx-space-lg) 0;
   border-radius: var(--mdx-radius-md);
   background-color: var(--vscode-editor-background, #f6f8fa);
   border: 1px solid var(--vscode-panel-border, var(--mdx-border-color));
 }
 
-.docusaurus-codeblock-header {
+.docusaurus-codeblock-header
+{
   padding: var(--mdx-space-sm) var(--mdx-space-lg);
   background-color: var(--vscode-editorGroupHeader-tabsBackground, #f0f0f0);
   border-bottom: 1px solid var(--vscode-panel-border, var(--mdx-border-color));
@@ -98,11 +113,13 @@
   color: var(--vscode-foreground, var(--mdx-text-primary));
 }
 
-.docusaurus-codeblock-title {
+.docusaurus-codeblock-title
+{
   font-family: var(--vscode-editor-font-family, monospace);
 }
 
-.docusaurus-codeblock-copy {
+.docusaurus-codeblock-copy
+{
   top: var(--mdx-space-sm);
   right: var(--mdx-space-sm);
   width: 32px;
@@ -119,19 +136,22 @@
   color: var(--vscode-button-secondaryForeground, var(--mdx-text-primary));
 }
 
-.docusaurus-codeblock-copy:hover {
+.docusaurus-codeblock-copy:hover
+{
   background-color: var(
     --vscode-button-secondaryHoverBackground,
     rgba(128, 128, 128, 0.3)
   );
 }
 
-.docusaurus-codeblock-copy.copied {
+.docusaurus-codeblock-copy.copied
+{
   background-color: var(--vscode-testing-iconPassed, var(--mdx-color-tip));
   color: white;
 }
 
-.docusaurus-codeblock-lang {
+.docusaurus-codeblock-lang
+{
   top: var(--mdx-space-sm);
   padding: 0.125rem var(--mdx-space-sm);
   font-size: var(--mdx-font-size-xs);
@@ -143,18 +163,21 @@
   transition: opacity var(--mdx-transition-normal) ease;
 }
 
-.docusaurus-codeblock:hover .docusaurus-codeblock-lang {
+.docusaurus-codeblock:hover .docusaurus-codeblock-lang
+{
   opacity: 1;
 }
 
-.docusaurus-codeblock pre {
+.docusaurus-codeblock pre
+{
   padding: var(--mdx-space-lg);
   background-color: transparent !important;
   border: none !important;
   border-radius: 0;
 }
 
-.docusaurus-codeblock code {
+.docusaurus-codeblock code
+{
   font-family: var(
     --vscode-editor-font-family,
     'Consolas',
@@ -165,23 +188,27 @@
 }
 
 /* Line numbers for code blocks */
-.docusaurus-codeblock pre[data-show-line-numbers='true'] {
+.docusaurus-codeblock pre[data-show-line-numbers='true']
+{
   counter-reset: line;
 }
 
-.docusaurus-codeblock pre[data-show-line-numbers='true'] code {
+.docusaurus-codeblock pre[data-show-line-numbers='true'] code
+{
   display: block;
 }
 
 /* ==================== Details ==================== */
-.docusaurus-details {
+.docusaurus-details
+{
   margin: var(--mdx-space-lg) 0;
   border: 1px solid var(--vscode-panel-border, var(--mdx-border-color));
   border-radius: var(--mdx-radius-md);
   overflow: hidden;
 }
 
-.details-summary {
+.details-summary
+{
   display: flex;
   align-items: center;
   padding: var(--mdx-space-md) var(--mdx-space-lg);
@@ -196,22 +223,26 @@
   transition: background-color var(--mdx-transition-normal) ease;
 }
 
-.details-summary::-webkit-details-marker {
+.details-summary::-webkit-details-marker
+{
   display: none;
 }
 
-.details-summary::marker {
+.details-summary::marker
+{
   display: none;
 }
 
-.details-summary:hover {
+.details-summary:hover
+{
   background-color: var(
     --vscode-list-activeSelectionBackground,
     rgba(0, 0, 0, 0.06)
   );
 }
 
-.details-toggle-icon {
+.details-toggle-icon
+{
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -219,49 +250,58 @@
   transition: transform var(--mdx-transition-normal) ease;
 }
 
-.details-toggle-icon svg {
+.details-toggle-icon svg
+{
   transition: transform var(--mdx-transition-normal) ease;
 }
 
-.details-toggle-icon svg.expanded {
+.details-toggle-icon svg.expanded
+{
   transform: rotate(90deg);
 }
 
-.details-summary-text {
+.details-summary-text
+{
   flex: 1;
 }
 
-.details-content {
+.details-content
+{
   padding: var(--mdx-space-lg);
   border-top: 1px solid var(--vscode-panel-border, var(--mdx-border-color));
 }
 
-.details-content > :first-child {
+.details-content > :first-child
+{
   margin-top: 0;
 }
 
-.details-content > :last-child {
+.details-content > :last-child
+{
   margin-bottom: 0;
 }
 
 /* ==================== Dark Mode Adjustments ==================== */
 /* Dark mode values are handled by VS Code CSS variables w/ fallbacks to tokens */
 
-.vscode-dark .details-summary {
+.vscode-dark .details-summary
+{
   background-color: var(
     --vscode-list-hoverBackground,
     rgba(255, 255, 255, var(--mdx-alpha-subtle-dark))
   );
 }
 
-.vscode-dark .details-summary:hover {
+.vscode-dark .details-summary:hover
+{
   background-color: var(
     --vscode-list-activeSelectionBackground,
     rgba(255, 255, 255, 0.12)
   );
 }
 
-.vscode-dark .docusaurus-codeblock-copy {
+.vscode-dark .docusaurus-codeblock-copy
+{
   background-color: var(
     --vscode-button-secondaryBackground,
     rgba(255, 255, 255, 0.15)
@@ -269,23 +309,27 @@
   color: var(--vscode-button-secondaryForeground, #ccc);
 }
 
-.vscode-dark .docusaurus-codeblock-copy:hover {
+.vscode-dark .docusaurus-codeblock-copy:hover
+{
   background-color: var(
     --vscode-button-secondaryHoverBackground,
     rgba(255, 255, 255, 0.25)
   );
 }
 
-.vscode-dark .docusaurus-tabs .mdx-preview-tabs-header {
+.vscode-dark .docusaurus-tabs .mdx-preview-tabs-header
+{
   border-bottom-color: var(--vscode-panel-border, var(--mdx-border-color));
 }
 
-.vscode-dark .docusaurus-codeblock {
+.vscode-dark .docusaurus-codeblock
+{
   background-color: var(--vscode-editor-background, var(--mdx-bg-primary));
   border-color: var(--vscode-panel-border, var(--mdx-border-color));
 }
 
-.vscode-dark .docusaurus-codeblock-header {
+.vscode-dark .docusaurus-codeblock-header
+{
   background-color: var(
     --vscode-editorGroupHeader-tabsBackground,
     var(--mdx-bg-secondary)
@@ -293,11 +337,13 @@
   border-bottom-color: var(--vscode-panel-border, var(--mdx-border-color));
 }
 
-.vscode-dark .docusaurus-details {
+.vscode-dark .docusaurus-details
+{
   border-color: var(--vscode-panel-border, var(--mdx-border-color));
 }
 
-.vscode-dark .details-content {
+.vscode-dark .details-content
+{
   border-top-color: var(--vscode-panel-border, var(--mdx-border-color));
 }
 
@@ -306,23 +352,28 @@
 /* Reveal the copy button & language badge for keyboard users */
 .docusaurus-codeblock-copy:focus-visible,
 .docusaurus-codeblock:focus-within .docusaurus-codeblock-copy,
-.docusaurus-codeblock:focus-within .docusaurus-codeblock-lang {
+.docusaurus-codeblock:focus-within .docusaurus-codeblock-lang
+{
   opacity: 1;
 }
 
 /* Disable panel fade & chevron rotation motion when reduced motion is set */
-@media (prefers-reduced-motion: reduce) {
-  .mdx-preview-tabs-panel {
+@media (prefers-reduced-motion: reduce)
+{
+  .mdx-preview-tabs-panel
+  {
     animation: none;
   }
 
   .details-toggle-icon,
-  .details-toggle-icon svg {
+  .details-toggle-icon svg
+  {
     transition: none;
   }
 
   .docusaurus-codeblock-copy,
-  .docusaurus-codeblock-lang {
+  .docusaurus-codeblock-lang
+  {
     transition: none;
   }
 }
