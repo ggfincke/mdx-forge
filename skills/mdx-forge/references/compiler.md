@@ -56,7 +56,7 @@ Source: `src/compiler/index.ts`. Types: `src/compiler/types/` and
 function compileSafeDocument(
   source: string,
   options?: SafeDocumentCompileOptions
-): Promise<SafeDocument>;
+): Promise<SafeDocument>
 ```
 
 Structured compilation is the closed-data path for untrusted MDX that needs
@@ -76,45 +76,45 @@ Trusted Mode or component import generation.
 
 ```ts
 interface SafeDocumentCompileOptions {
-  components?: Readonly<Record<string, SafeDocumentComponentSchema>>;
-  unknownComponents?: 'reject' | 'inert'; // default: reject
-  rawHtml?: 'reject' | 'allow'; // default: reject
-  allowUrl?: (url: string, context: SafeDocumentUrlContext) => boolean;
+  components?: Readonly<Record<string, SafeDocumentComponentSchema>>
+  unknownComponents?: 'reject' | 'inert' // default: reject
+  rawHtml?: 'reject' | 'allow' // default: reject
+  allowUrl?: (url: string, context: SafeDocumentUrlContext) => boolean
 }
 
 interface SafeDocumentComponentSchema {
-  props?: Readonly<Record<string, SafeDocumentValueSchema>>;
-  requiredProps?: readonly string[];
-  children?: 'none' | 'optional' | 'required';
+  props?: Readonly<Record<string, SafeDocumentValueSchema>>
+  requiredProps?: readonly string[]
+  children?: 'none' | 'optional' | 'required'
 }
 
 type SafeDocumentValueSchema =
   | {
-      type: 'string';
-      enum?: readonly string[];
-      format?: 'url';
-      maxLength?: number;
+      type: 'string'
+      enum?: readonly string[]
+      format?: 'url'
+      maxLength?: number
     }
   | {
-      type: 'number';
-      integer?: boolean;
-      minimum?: number;
-      maximum?: number;
+      type: 'number'
+      integer?: boolean
+      minimum?: number
+      maximum?: number
     }
   | { type: 'boolean' }
   | { type: 'null' }
   | {
-      type: 'array';
-      items: SafeDocumentValueSchema;
-      maxItems?: number;
+      type: 'array'
+      items: SafeDocumentValueSchema
+      maxItems?: number
     }
   | {
-      type: 'object';
-      properties: Readonly<Record<string, SafeDocumentValueSchema>>;
-      required?: readonly string[];
-      additionalProperties?: false;
-      maxProperties?: number;
-    };
+      type: 'object'
+      properties: Readonly<Record<string, SafeDocumentValueSchema>>
+      required?: readonly string[]
+      additionalProperties?: false
+      maxProperties?: number
+    }
 ```
 
 Nested object schemas are closed. Unknown nested keys fail validation;
@@ -156,23 +156,23 @@ diagnostics and never appear in the returned tree.
 
 ```ts
 interface SafeDocument {
-  version: 1;
-  frontmatter: Record<string, SafeDocumentJsonValue>;
-  root: SafeDocumentRootNode;
-  diagnostics: SafeDocumentDiagnostic[];
+  version: 1
+  frontmatter: Record<string, SafeDocumentJsonValue>
+  root: SafeDocumentRootNode
+  diagnostics: SafeDocumentDiagnostic[]
 }
 
 interface SafeDocumentRootNode {
-  type: 'root';
-  children: SafeDocumentNode[];
-  source?: DiagnosticRange;
+  type: 'root'
+  children: SafeDocumentNode[]
+  source?: DiagnosticRange
 }
 
 type SafeDocumentNode =
   | SafeDocumentTextNode
   | SafeDocumentElementNode
   | SafeDocumentComponentNode
-  | SafeDocumentUnknownComponentNode;
+  | SafeDocumentUnknownComponentNode
 ```
 
 The parsed document is preflighted iteratively before conversion. Documents
@@ -265,11 +265,11 @@ JavaScript, JSX, React elements, or import specifiers.
 function compileSafe(
   mdxText: string,
   config: CompilerConfig
-): Promise<SafeHTMLResult>;
+): Promise<SafeHTMLResult>
 
 interface SafeHTMLResult {
-  html: string;
-  frontmatter: Record<string, unknown>;
+  html: string
+  frontmatter: Record<string, unknown>
 }
 ```
 
@@ -296,11 +296,11 @@ function compileTrusted(
   mdxText: string,
   _isEntry: boolean, // currently unused; pass `true`
   config: CompilerConfig
-): Promise<MdxTranspileResult>;
+): Promise<MdxTranspileResult>
 
 interface MdxTranspileResult {
-  code: string; // executable JavaScript
-  frontmatter: Record<string, unknown>;
+  code: string // executable JavaScript
+  frontmatter: Record<string, unknown>
 }
 ```
 
@@ -326,42 +326,42 @@ before passing them to `evaluateModuleToComponent` in the browser.
 ```ts
 interface CompilerConfig {
   // canonical document path used for relative import generation (REQUIRED)
-  documentPath: string;
+  documentPath: string
 
   // optional explicit document directory (defaults to dirname(documentPath))
-  documentDir?: string;
+  documentDir?: string
 
   // optional document URI for host-specific trust policies
-  documentUri?: string;
+  documentUri?: string
 
   // parse mode; defaults to 'detect' (.md -> md, otherwise mdx)
-  format?: 'detect' | 'md' | 'mdx';
+  format?: 'detect' | 'md' | 'mdx'
 
   // diagram fence output; defaults to 'placeholder' (empty data-attribute
   // divs for renderer-owning hosts); 'code' emits a visible, language-
   // labeled code fallback for hosts without a diagram runtime
-  diagramBehavior?: 'placeholder' | 'code';
+  diagramBehavior?: 'placeholder' | 'code'
 
   // layout injection (Trusted Mode only)
-  customLayoutFilePath?: string;
-  useHostMarkdownStyles?: boolean;
-  useWhiteBackground?: boolean;
+  customLayoutFilePath?: string
+  useHostMarkdownStyles?: boolean
+  useWhiteBackground?: boolean
 
   // generic component handling
-  componentsBuiltins?: boolean; // default: true
-  componentsUnknownBehavior?: UnknownBehavior; // default: 'placeholder'
+  componentsBuiltins?: boolean // default: true
+  componentsUnknownBehavior?: UnknownBehavior // default: 'placeholder'
 
   // resolved .mdx-previewrc.json (or equivalent)
-  configFile?: ResolvedConfig | null;
+  configFile?: ResolvedConfig | null
 
   // injected host services (all optional)
-  logger?: CompilerLogger;
-  trustValidator?: TrustValidator;
-  pluginLoader?: PluginLoader;
-  errorReporter?: ErrorReporter;
+  logger?: CompilerLogger
+  trustValidator?: TrustValidator
+  pluginLoader?: PluginLoader
+  errorReporter?: ErrorReporter
 
   // optional resolver for safe-mode component label rewriting
-  componentNameResolver?: (name: string) => string | undefined;
+  componentNameResolver?: (name: string) => string | undefined
 }
 ```
 
@@ -378,13 +378,13 @@ interface CompilerConfig {
 ## `extractFrontmatter(mdxText)`
 
 ```ts
-function extractFrontmatter(mdxText: string): FrontmatterResult;
+function extractFrontmatter(mdxText: string): FrontmatterResult
 
 interface FrontmatterResult {
-  content: string; // MDX body w/ frontmatter removed
-  frontmatter: Record<string, unknown>; // parsed YAML object
-  bodyStartLine: number; // 1-based original-doc body line
-  bodyStartColumn: number; // 1-based original-doc body column
+  content: string // MDX body w/ frontmatter removed
+  frontmatter: Record<string, unknown> // parsed YAML object
+  bodyStartLine: number // 1-based original-doc body line
+  bodyStartColumn: number // 1-based original-doc body column
 }
 ```
 
@@ -395,7 +395,7 @@ does not evaluate. Safe to call on input without frontmatter — returns
 ## `safeMatter(input)`
 
 ```ts
-function safeMatter(input: string): GrayMatterFile<string>;
+function safeMatter(input: string): GrayMatterFile<string>
 ```
 
 Wraps `gray-matter` with its executable JavaScript engine disabled, then
@@ -414,13 +414,13 @@ the Nextra-relevant fields:
 ```ts
 function extractNextraFrontmatter(
   frontmatter: Record<string, unknown>
-): Partial<NextraPageMeta>;
+): Partial<NextraPageMeta>
 
 interface NextraPageMeta {
-  title?: string;
-  layout?: 'default' | 'full' | 'raw';
-  description?: string;
-  toc?: boolean;
+  title?: string
+  layout?: 'default' | 'full' | 'raw'
+  description?: string
+  toc?: boolean
 }
 ```
 
@@ -431,7 +431,7 @@ Use when the host integrates with Nextra's page-meta conventions.
 ## `KNOWN_GENERIC_COMPONENTS`
 
 ```ts
-const KNOWN_GENERIC_COMPONENTS: Set<string>;
+const KNOWN_GENERIC_COMPONENTS: Set<string>
 ```
 
 Set of names mdx-forge transforms into HTML in Safe Mode (Callout, Tabs,
@@ -442,8 +442,8 @@ user's `components` config, it'll render as an "unknown" placeholder.
 ## `VALID_CALLOUT_TYPES` / `CalloutType`
 
 ```ts
-const VALID_CALLOUT_TYPES: readonly string[];
-type CalloutType = (typeof VALID_CALLOUT_TYPES)[number];
+const VALID_CALLOUT_TYPES: readonly string[]
+type CalloutType = (typeof VALID_CALLOUT_TYPES)[number]
 ```
 
 Canonical set of callout type strings (note, warning, info, tip, danger,
@@ -453,7 +453,7 @@ transforms.
 ## `GITHUB_ALERT_TYPES`
 
 ```ts
-const GITHUB_ALERT_TYPES: readonly string[];
+const GITHUB_ALERT_TYPES: readonly string[]
 ```
 
 Canonical GitHub-style alert types (NOTE, TIP, IMPORTANT, WARNING, CAUTION).
@@ -465,26 +465,26 @@ Matches the `> [!TYPE]` blockquote syntax.
 function loadPluginsFromConfig(
   config: ResolvedConfig | undefined,
   compilerConfig: CompilerConfig
-): Promise<LoadedPlugins>;
+): Promise<LoadedPlugins>
 
 interface ResolvedConfig {
-  config: MdxPreviewConfig; // the parsed config object
-  configPath: string; // absolute path to the config file
-  configDir: string; // dirname of the config file
+  config: MdxPreviewConfig // the parsed config object
+  configPath: string // absolute path to the config file
+  configDir: string // dirname of the config file
 }
 
 interface MdxPreviewConfig {
-  remarkPlugins?: PluginSpec[];
-  rehypePlugins?: PluginSpec[];
-  components?: ComponentMapping;
+  remarkPlugins?: PluginSpec[]
+  rehypePlugins?: PluginSpec[]
+  components?: ComponentMapping
 }
 
-type PluginSpec = string | [string, Record<string, unknown>];
+type PluginSpec = string | [string, Record<string, unknown>]
 
 interface LoadedPlugins {
-  remarkPlugins: Pluggable[];
-  rehypePlugins: Pluggable[];
-  errorCount: number;
+  remarkPlugins: Pluggable[]
+  rehypePlugins: Pluggable[]
+  errorCount: number
 }
 ```
 
@@ -500,7 +500,7 @@ For the schema users author in `.mdx-previewrc.json`, see
 ## `mergePlugins(builtIn, custom)`
 
 ```ts
-function mergePlugins(builtIn: Pluggable[], custom: Pluggable[]): Pluggable[];
+function mergePlugins(builtIn: Pluggable[], custom: Pluggable[]): Pluggable[]
 ```
 
 Returns `builtIn` if `custom.length === 0`, else `[...builtIn, ...custom]`.
@@ -513,34 +513,34 @@ These interfaces let consumers wire mdx-forge into their own observability
 
 ```ts
 interface CompilerLogger {
-  debug(message: string): void;
-  info(message: string): void;
-  warn(message: string): void;
-  error(message: string): void;
+  debug(message: string): void
+  info(message: string): void
+  warn(message: string): void
+  error(message: string): void
 }
 
 interface TrustValidator {
   isTrusted(params: {
-    documentPath: string;
-    documentUri?: string;
-    operation: string;
-  }): { canExecute: boolean; reason?: string };
+    documentPath: string
+    documentUri?: string
+    operation: string
+  }): { canExecute: boolean; reason?: string }
 }
 
 interface PluginLoader {
-  resolve(specifier: string, fromDir: string): string;
-  load(resolvedPath: string): Promise<unknown> | unknown;
+  resolve(specifier: string, fromDir: string): string
+  load(resolvedPath: string): Promise<unknown> | unknown
 }
 
 interface ErrorReporter {
-  reportPluginError(error: PluginLoadError): void;
+  reportPluginError(error: PluginLoadError): void
 }
 
 interface PluginLoadError {
-  message: string;
-  code: 'PLUGIN_LOAD_ERROR' | 'PLUGIN_INVALID_EXPORT';
-  pluginName: string;
-  cause?: Error;
+  message: string
+  code: 'PLUGIN_LOAD_ERROR' | 'PLUGIN_INVALID_EXPORT'
+  pluginName: string
+  cause?: Error
 }
 ```
 

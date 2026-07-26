@@ -6,19 +6,20 @@
 // declaration, so no other side-effecting import is needed
 
 // generic CSS is required if you use ANY shim — it provides shared tokens
-import 'mdx-forge/components/styles/tokens.css';
-import 'mdx-forge/components/styles/generic.css';
+import 'mdx-forge/components/styles/tokens.css'
+import 'mdx-forge/components/styles/generic.css'
 
 // pick the framework whose visual style you want
-import 'mdx-forge/components/styles/docusaurus.css';
+import 'mdx-forge/components/styles/docusaurus.css'
 
 // import shims from the matching subpath
-import { Tabs, TabItem, CodeBlock } from 'mdx-forge/components/docusaurus';
+import { Tabs, TabItem, CodeBlock } from 'mdx-forge/components/docusaurus'
 
 // generic primitives also provide Callout, CodeGroup & others
-import { Callout } from 'mdx-forge/components/generic';
+import { Callout } from 'mdx-forge/components/generic'
 
-export function Demo() {
+export function Demo()
+{
   return (
     <div>
       <Callout type="info">
@@ -34,7 +35,7 @@ export function Demo() {
         </TabItem>
       </Tabs>
     </div>
-  );
+  )
 }
 
 // per-framework component inventory

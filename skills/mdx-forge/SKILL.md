@@ -56,7 +56,7 @@ code execution.
 ## Minimal Structured Mode (Node)
 
 ```ts
-import { compileSafeDocument } from 'mdx-forge/compiler';
+import { compileSafeDocument } from 'mdx-forge/compiler'
 
 const document = await compileSafeDocument(source, {
   components: {
@@ -69,7 +69,7 @@ const document = await compileSafeDocument(source, {
       children: 'none',
     },
   },
-});
+})
 ```
 
 Treat any error diagnostic as a failed document. Render only the returned
@@ -78,11 +78,11 @@ closed node/tag vocabulary; never reinterpret source text as HTML or code.
 ## Minimal Safe Mode (Node)
 
 ```ts
-import { compileSafe } from 'mdx-forge/compiler';
+import { compileSafe } from 'mdx-forge/compiler'
 
 const { html, frontmatter } = await compileSafe(source, {
   documentPath: '/path/to/file.mdx',
-});
+})
 ```
 
 `documentPath` is required — it anchors relative-import resolution. Other
@@ -93,13 +93,13 @@ componentsBuiltins, componentsUnknownBehavior, etc.). See
 ## Minimal Trusted Mode (Node side)
 
 ```ts
-import { compileTrusted } from 'mdx-forge/compiler';
+import { compileTrusted } from 'mdx-forge/compiler'
 
 // signature: compileTrusted(mdxText, _isEntry, config)
 // the middle boolean is currently unused but required positionally
 const { code, frontmatter } = await compileTrusted(source, true, {
   documentPath: '/path/to/file.mdx',
-});
+})
 ```
 
 `compileTrusted` does **not** return a dependency list. The host computes
@@ -114,30 +114,30 @@ import {
   createImportRuntimeRequest,
   setModuleFetcher,
   evaluateModuleToComponent,
-} from 'mdx-forge/browser';
+} from 'mdx-forge/browser'
 
 // register React, MDX runtime, framework shims, etc.
 // (one-arg form targets the singleton registry)
-registerPreloadEntries(preloadManifest);
+registerPreloadEntries(preloadManifest)
 
 // supply a fetcher the runtime calls for each listed dependency
 // (typically RPC back to the host that ran compileTrusted)
 setModuleFetcher(async (request, isBare, parentId, kind) => {
   // return { fsPath, code, dependencies, css? } for the requested module
-  return await rpc.fetch(request, parentId, kind);
-});
+  return await rpc.fetch(request, parentId, kind)
+})
 
 const imported = {
   specifier: 'conditional-package',
   kind: 'import',
   runtimeRequest: createImportRuntimeRequest('conditional-package'),
-} as const;
+} as const
 
 const Component = await evaluateModuleToComponent(
   code, // from compileTrusted
   '/preview.mdx', // entry file path
   [imported] // direct dependency identities from transformed code
-);
+)
 ```
 
 The runtime fetches **only the dependencies you list** (plus whatever each

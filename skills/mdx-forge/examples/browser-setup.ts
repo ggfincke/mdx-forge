@@ -14,21 +14,21 @@ import {
   type ModuleDependencyInput,
   type ModuleDependencyKind,
   type PreloadEntry,
-} from 'mdx-forge/browser';
+} from 'mdx-forge/browser'
 
 // 1. register preloaded modules — React, MDX runtime, framework shims, etc
 //    the one-arg form targets the runtime's singleton module registry
 const preloadEntries: PreloadEntry[] = [
   // example shape — actual entries import the modules you want preloaded
   // { id: 'npm://react@18', exports: React, aliases: ['react'] },
-];
-registerPreloadEntries(preloadEntries);
+]
+registerPreloadEntries(preloadEntries)
 
 // 2. configure runtime budgets (optional — defaults are sensible)
 configureRuntime({
   maxModuleLoadDepth: 32,
   maxConcurrentFetches: 8,
-});
+})
 
 // 3. supply a fetcher for each listed dependency
 // `request` = './sibling.tsx' or 'lodash'; `isBare` distinguishes bare
@@ -39,7 +39,8 @@ setModuleFetcher(
     isBare: boolean,
     parentId: string,
     kind?: ModuleDependencyKind
-  ): Promise<FetchResult | undefined> => {
+  ): Promise<FetchResult | undefined> =>
+  {
     // typical flow: RPC to compileTrusted host -> resolve disk module -> transpile
     // return fsPath, code, dependencies & optional CSS in this shape
 
@@ -47,9 +48,9 @@ setModuleFetcher(
     //   code: '/* transpiled JS */', dependencies: [/* further dependencies */],
     //   css: '/* optional inline CSS to inject */' }
 
-    return undefined;
+    return undefined
   }
-);
+)
 
 // 4. evaluate Trusted Mode `code` from compileTrusted as a React component
 // `entryFilePath` is canonical for relatives; `dependencies` lists direct imports
@@ -58,19 +59,21 @@ async function renderEntry(
   code: string,
   entryFilePath: string,
   dependencies: ModuleDependencyInput[]
-) {
+)
+{
   const Component = await evaluateModuleToComponent(
     code,
     entryFilePath,
     dependencies
-  );
-  return Component;
+  )
+  return Component
 }
 
 // 5. reset between full re-renders (different entry files)
 //    use invalidateModule for HMR-style partial updates instead
-function reset() {
-  resetModules();
+function reset()
+{
+  resetModules()
 }
 
-export { renderEntry, reset };
+export { renderEntry, reset }

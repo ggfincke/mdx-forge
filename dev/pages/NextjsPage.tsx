@@ -1,15 +1,16 @@
 // dev/pages/NextjsPage.tsx
-// Showcase for Next.js component shims
+// showcase for Next.js component shims
 
-import { Image, Link } from '@forge/components/nextjs';
-import '@forge/components/styles/nextjs.css';
-import { Section } from '../components/Section';
+import { Image, Link } from '@forge/components/nextjs'
+import '@forge/components/styles/nextjs.css'
+import { Section } from '../components/Section'
 
 // 1x1 blue pixel as a placeholder data URI
 const PLACEHOLDER_BLUR =
-  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPj/HwADBwIAMCbHYQAAAABJRU5ErkJggg==';
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPj/HwADBwIAMCbHYQAAAABJRU5ErkJggg=='
 
-export function NextjsPage() {
+export function NextjsPage()
+{
   return (
     <div>
       <h1>Next.js Components</h1>
@@ -105,5 +106,5 @@ export function NextjsPage() {
         </p>
       </Section>
     </div>
-  );
+  )
 }

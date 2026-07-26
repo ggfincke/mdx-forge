@@ -1,17 +1,17 @@
 // dev/App.tsx
-// Dev showcase shell: sidebar nav, theme toggle, content area
+// dev showcase shell: sidebar nav, theme toggle, content area
 
-import { useState } from 'react';
-import { ThemeToggle } from './components/ThemeToggle';
-import { GenericPage } from './pages/GenericPage';
-import { DocusaurusPage } from './pages/DocusaurusPage';
-import { StarlightPage } from './pages/StarlightPage';
-import { NextraPage } from './pages/NextraPage';
-import { NextjsPage } from './pages/NextjsPage';
-import '@forge/components/shared/tokens.css';
-import './app.css';
+import { useState } from 'react'
+import { ThemeToggle } from './components/ThemeToggle'
+import { GenericPage } from './pages/GenericPage'
+import { DocusaurusPage } from './pages/DocusaurusPage'
+import { StarlightPage } from './pages/StarlightPage'
+import { NextraPage } from './pages/NextraPage'
+import { NextjsPage } from './pages/NextjsPage'
+import '@forge/components/shared/tokens.css'
+import './app.css'
 
-type PageId = 'generic' | 'docusaurus' | 'starlight' | 'nextra' | 'nextjs';
+type PageId = 'generic' | 'docusaurus' | 'starlight' | 'nextra' | 'nextjs'
 
 const PAGES: { id: PageId; label: string }[] = [
   { id: 'generic', label: 'Generic' },
@@ -19,7 +19,7 @@ const PAGES: { id: PageId; label: string }[] = [
   { id: 'starlight', label: 'Starlight' },
   { id: 'nextra', label: 'Nextra' },
   { id: 'nextjs', label: 'Next.js' },
-];
+]
 
 const PAGE_COMPONENTS: Record<PageId, React.FC> = {
   generic: GenericPage,
@@ -27,11 +27,12 @@ const PAGE_COMPONENTS: Record<PageId, React.FC> = {
   starlight: StarlightPage,
   nextra: NextraPage,
   nextjs: NextjsPage,
-};
+}
 
-export function App() {
-  const [activePage, setActivePage] = useState<PageId>('generic');
-  const ActiveComponent = PAGE_COMPONENTS[activePage];
+export function App()
+{
+  const [activePage, setActivePage] = useState<PageId>('generic')
+  const ActiveComponent = PAGE_COMPONENTS[activePage]
 
   return (
     <div className="dev-app">
@@ -58,5 +59,5 @@ export function App() {
         </main>
       </div>
     </div>
-  );
+  )
 }

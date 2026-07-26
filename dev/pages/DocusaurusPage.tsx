@@ -1,16 +1,12 @@
 // dev/pages/DocusaurusPage.tsx
-// Showcase for Docusaurus @theme component shims
+// showcase for Docusaurus @theme component shims
 
-import {
-  Tabs,
-  TabItem,
-  CodeBlock,
-  Details,
-} from '@forge/components/docusaurus';
-import '@forge/components/styles/docusaurus.css';
-import { Section } from '../components/Section';
+import { Tabs, TabItem, CodeBlock, Details } from '@forge/components/docusaurus'
+import '@forge/components/styles/docusaurus.css'
+import { Section } from '../components/Section'
 
-export function DocusaurusPage() {
+export function DocusaurusPage()
+{
   return (
     <div>
       <h1>Docusaurus Components</h1>
@@ -178,5 +174,5 @@ export function DocusaurusPage() {
         </Details>
       </Section>
     </div>
-  );
+  )
 }

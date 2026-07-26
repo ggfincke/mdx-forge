@@ -1,5 +1,5 @@
 // dev/pages/NextraPage.tsx
-// Showcase for Nextra component shims
+// showcase for Nextra component shims
 
 import {
   Callout,
@@ -8,11 +8,12 @@ import {
   FileTree,
   Steps,
   Bleed,
-} from '@forge/components/nextra';
-import '@forge/components/styles/nextra.css';
-import { Section } from '../components/Section';
+} from '@forge/components/nextra'
+import '@forge/components/styles/nextra.css'
+import { Section } from '../components/Section'
 
-export function NextraPage() {
+export function NextraPage()
+{
   return (
     <div>
       <h1>Nextra Components</h1>
@@ -184,5 +185,5 @@ export function NextraPage() {
         </Bleed>
       </Section>
     </div>
-  );
+  )
 }

@@ -25,26 +25,23 @@ to install `@mdx-js/mdx` or `unified` separately.
 ## Quick Start
 
 ```ts
-import { compileSafeDocument } from 'mdx-forge/compiler';
+import { compileSafeDocument } from 'mdx-forge/compiler'
 
-const result = await compileSafeDocument(
-  '# Hello\n\n<Hotspots limit={10} />',
-  {
-    components: {
-      Hotspots: {
-        props: {
-          limit: { type: 'number', integer: true, minimum: 1 },
-        },
+const result = await compileSafeDocument('# Hello\n\n<Hotspots limit={10} />', {
+  components: {
+    Hotspots: {
+      props: {
+        limit: { type: 'number', integer: true, minimum: 1 },
       },
     },
-  }
-);
+  },
+})
 
 if (result.diagnostics.some((item) => item.severity === 'error')) {
-  throw new Error(JSON.stringify(result.diagnostics));
+  throw new Error(JSON.stringify(result.diagnostics))
 }
 
-console.log(result.root);
+console.log(result.root)
 ```
 
 ## Public Entry Points

@@ -4,7 +4,7 @@
 // the resulting code runs in a browser via mdx-forge/browser
 // (see browser-setup.ts for the browser side)
 
-import { compileTrusted } from 'mdx-forge/compiler';
+import { compileTrusted } from 'mdx-forge/compiler'
 
 const source = `---
 title: Hello
@@ -17,17 +17,17 @@ import { Callout } from 'mdx-forge/components/generic';
 <Callout type="info">
   This component is real React because the browser will evaluate the compiled JS.
 </Callout>
-`;
+`
 
 // signature: compileTrusted(mdxText, _isEntry, config)
 // the middle boolean is currently unused but required positionally
 const { code, frontmatter } = await compileTrusted(source, true, {
   documentPath: '/preview.mdx',
   componentsBuiltins: true,
-});
+})
 
-console.log('frontmatter:', frontmatter);
-console.log('code length:', code.length);
+console.log('frontmatter:', frontmatter)
+console.log('code length:', code.length)
 
 // the host is now responsible for
 // 1. shipping `code` to a browser context

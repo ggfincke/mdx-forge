@@ -1,27 +1,34 @@
 // dev/components/ThemeToggle.tsx
-// Toggle between light, dark, & system color modes
+// toggle between light, dark, & system color modes
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'
 
-type Theme = 'light' | 'dark' | 'system';
+type Theme = 'light' | 'dark' | 'system'
 
-export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>('light');
+export function ThemeToggle()
+{
+  const [theme, setTheme] = useState<Theme>('light')
 
-  useEffect(() => {
-    const root = document.documentElement;
+  useEffect(() =>
+  {
+    const root = document.documentElement
 
-    if (theme === 'dark') {
-      root.classList.add('vscode-dark');
-      root.style.colorScheme = 'dark';
-    } else if (theme === 'light') {
-      root.classList.remove('vscode-dark');
-      root.style.colorScheme = 'light';
-    } else {
-      root.classList.remove('vscode-dark');
-      root.style.colorScheme = '';
+    if (theme === 'dark')
+    {
+      root.classList.add('vscode-dark')
+      root.style.colorScheme = 'dark'
     }
-  }, [theme]);
+    else if (theme === 'light')
+    {
+      root.classList.remove('vscode-dark')
+      root.style.colorScheme = 'light'
+    }
+    else
+    {
+      root.classList.remove('vscode-dark')
+      root.style.colorScheme = ''
+    }
+  }, [theme])
 
   return (
     <div className="dev-theme-toggle">
@@ -37,5 +44,5 @@ export function ThemeToggle() {
         </button>
       ))}
     </div>
-  );
+  )
 }
