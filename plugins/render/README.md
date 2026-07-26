@@ -35,7 +35,7 @@ This package is versioned independently from the `mdx-forge` core — the
 plugin version, the core version, and the marketplace metadata version are
 deliberately **not** coupled.
 
-- **Declared range:** the `mdx-forge` entry in `package.json` (`^0.6.2`)
+- **Declared range:** the `mdx-forge` entry in `package.json` (`^0.8.0`)
   is the minimum-supported core line. The lockfile pins the exact minimum
   the plugin is proven against.
 - **Current core:** the repository's `check:plugin-compat` gate also
@@ -50,24 +50,19 @@ deliberately **not** coupled.
 
 The plugin ships no Mermaid/PlantUML/Graphviz runtime, so it requests
 `diagramBehavior: 'code'` from the compiler: diagram fences render as
-visible, language-labeled code blocks instead of empty placeholder divs.
-Cores older than the option (the current `0.6.x` minimum) ignore the key
-and keep emitting empty placeholders — a documented gap of the minimum
-line that closes when the declared range is bumped.
+visible, language-labeled code blocks instead of empty placeholder divs
+across the supported core range.
 
 ### Unified diagnostics engine
 
-The lint pass feature-detects the core's extended analysis API
-(`mdx-forge/diagnostics/analyze` with `analyzeMdxDocument`, shipping in
-the next core release). When present, one core parse powers every
-diagnostic rule — correct JSX name grammar, prop validation, compound
-member checks, and file-relative positions across frontmatter — and the
-plugin only adapts stable `MDXF###` codes to its MCP shape. With the
-current `0.6.x` minimum the plugin falls back to its legacy analyzer,
-which keeps the previous behavior (body-relative line numbers after
-frontmatter; `open="false"`, `only=`, and unknown dotted members like
-`FileTree.Nope` are not flagged). Bumping the minimum core to close this
-gap is a pending deliberate release step, gated on `check:plugin-compat`.
+Every supported core exposes the extended analysis API at
+`mdx-forge/diagnostics/analyze`. The lint pass delegates to
+`analyzeMdxDocument`, so one core parse powers every diagnostic rule —
+correct JSX name grammar, prop validation, compound member checks, and
+file-relative positions across frontmatter — while the plugin only
+adapts stable `MDXF###` codes to its MCP shape. This includes diagnostics
+for values such as `open="false"` and `only=`, plus unknown dotted members
+such as `FileTree.Nope`.
 
 ## Tool: `render_mdx`
 
