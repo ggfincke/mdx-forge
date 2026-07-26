@@ -7,11 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-07-26
+
+Carries a broad correctness and performance hardening pass across compiler fidelity, browser module loading, diagnostics, and framework components, alongside canonical component identity and repository-wide quality gates. Hosts should re-check the behavior changes below: browser dependencies now preserve import-vs-require identity, open components forward their documented DOM props, and the nested render plugin now requires `mdx-forge@^0.8.0`.
+
 ### Changed
 
 - **Component metadata has one canonical identity source**: public metadata, registry queries, framework barrels, compound-member diagnostics, and compiler identity checks derive from the same immutable definition table while identity-only compiler paths remain React-free
 - **Open-prop contracts are authoritative**: components marked open now expose and forward their supported DOM props to the correct root; closed components no longer advertise unsupported forwarding
 - **Neutral compiler infrastructure**: browser/compiler LRU ownership, frontmatter extraction, source-position rebasing, reserved object-key policy, and component identity now live in dependency-neutral internal modules
+- **Render plugin minimum core**: the nested render plugin now requires `mdx-forge@^0.8.0` and locks `0.8.0`, dropping the legacy 0.7.x support path so visible diagram-code fallbacks, unified document diagnostics, original-file positions, invalid-prop checks, and compound-member checks are guaranteed across its supported core range
+- **Repository quality gates**: local ESLint rules now enforce file headers, comment tags and casing, block-doc placement, no inline comments, and ASCII arrows across the full repository; Prettier owns Allman braces and no-semicolon formatting; Husky runs lint-staged checks before commits and repository-wide formatting, lint, guardrails, and typechecking before pushes
+- **Repository maintenance**: owned source, tests, the render plugin, dev app, scripts, and shipped skill examples were normalized under the shared comment and formatting contract; unused browser/compiler/component/diagnostic surfaces and redundant or over-mocked tests were pruned while regression coverage was retained; current API examples and browser-runtime guidance were refreshed
+- **Development and render dependencies**: root tooling moves to `@testing-library/jest-dom` 7.0.0, `@vitejs/plugin-react` 6.0.4, Prettier 3.9.6, `typescript-eslint` 8.65.0, and React/React DOM 19.2.8; the nested render plugin also moves to React/React DOM 19.2.8
 
 ### Fixed
 
@@ -31,6 +39,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Custom plugin loading is cached**: resolved plugin modules are reused within the compiler session
 - **Safe document stripping is linear**: removable sibling runs compact without repeated array splices
 - **Compiler identity bundles are smaller**: identity-only imports no longer pull the component metadata table or React
+
+### Security
+
+- **Dependency advisory fixes**: the root lockfile updates `brace-expansion` to 5.0.8 to close GHSA-mh99-v99m-4gvg, while the render-plugin lockfile updates `fast-uri` to 3.1.4 to close GHSA-v2hh-gcrm-f6hx and GHSA-4c8g-83qw-93j6
 
 ## [0.8.0] - 2026-07-19
 
