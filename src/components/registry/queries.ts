@@ -78,7 +78,7 @@ export function getCanonicalComponentName(
 export function getFrameworkComponents<F extends Framework>(
   framework: F
 ): readonly string[] {
-  return FRAMEWORK_COMPONENTS[framework];
+  return [...FRAMEWORK_COMPONENTS[framework]];
 }
 
 export function getFrameworkComponentEntries(

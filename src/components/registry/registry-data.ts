@@ -9,13 +9,14 @@ import {
   type FrameworkId,
 } from './types';
 import { COMPONENT_METADATA } from './component-metadata';
+import { deepFreeze } from './freeze';
 import { VALID_CALLOUT_TYPES } from '../../internal/callout';
 
 // derive the Callout snippet type choice from the canonical type list
 // single-sources the VS Code snippet choices off VALID_CALLOUT_TYPES
 const CALLOUT_SNIPPET_TYPE_CHOICE = `\${1|${VALID_CALLOUT_TYPES.join(',')}|}`;
 
-export const COMPONENT_REGISTRY = [
+export const COMPONENT_REGISTRY = deepFreeze([
   // generic components (framework-agnostic)
   {
     kind: 'component',
@@ -298,6 +299,7 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'Tabs',
     aliases: [],
+    members: ['Tab'],
     metadata: COMPONENT_METADATA['nextra:Tabs'],
     framework: 'nextra',
     importSpecifiers: ['nextra/components/Tabs'],
@@ -307,6 +309,7 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'Cards',
     aliases: [],
+    members: ['Card'],
     metadata: COMPONENT_METADATA['nextra:Cards'],
     framework: 'nextra',
     importSpecifiers: ['nextra/components/Cards'],
@@ -316,6 +319,7 @@ export const COMPONENT_REGISTRY = [
     kind: 'component',
     name: 'FileTree',
     aliases: [],
+    members: ['Folder', 'File'],
     metadata: COMPONENT_METADATA['nextra:FileTree'],
     framework: 'nextra',
     importSpecifiers: ['nextra/components/FileTree'],
@@ -339,7 +343,7 @@ export const COMPONENT_REGISTRY = [
     importSpecifiers: ['nextra/components/Bleed'],
     shimPath: `${SHIM_PREFIX}/nextra/Bleed`,
   },
-] as const satisfies readonly ComponentRegistryEntry[];
+] as const satisfies readonly ComponentRegistryEntry[]);
 
 // derive types from the registry for stronger typing across the repo
 // note: derived types use `typeof COMPONENT_REGISTRY` & must stay in this file
@@ -366,10 +370,10 @@ export type NextjsComponent = EntryFor<'nextjs'>['name'];
 export type NextraComponent = EntryFor<'nextra'>['name'];
 
 // generic component definitions w/ aliases (derived from registry)
-export const GENERIC_COMPONENTS = buildGenericComponents();
+export const GENERIC_COMPONENTS = deepFreeze(buildGenericComponents());
 
 // framework component lists (derived from registry)
-export const FRAMEWORK_COMPONENTS = buildFrameworkComponents();
+export const FRAMEWORK_COMPONENTS = deepFreeze(buildFrameworkComponents());
 
 function buildGenericComponents(): Record<string, { aliases: string[] }> {
   const entries = COMPONENT_REGISTRY.filter(

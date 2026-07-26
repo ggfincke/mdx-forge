@@ -3,6 +3,24 @@
 
 export type DiagnosticSeverity = 'error' | 'warning' | 'info' | 'hint';
 
+export const DIAGNOSTIC_RULE_IDS = [
+  'unknown-component',
+  'unknown-prop',
+  'invalid-enum-value',
+  'deprecated-prop',
+  'deprecated-alias',
+  'missing-required-prop',
+  'invalid-prop-value',
+  'unknown-compound-member',
+] as const;
+
+export type DiagnosticRuleId = (typeof DIAGNOSTIC_RULE_IDS)[number];
+export type DiagnosticRuleSetting = DiagnosticSeverity | 'off';
+export type DiagnosticRuleOptions = Partial<
+  Record<DiagnosticRuleId, DiagnosticRuleSetting>
+> &
+  Partial<Record<string, DiagnosticRuleSetting>>;
+
 // 1-based line & column (unist convention); offset is 0-based char index
 export interface DiagnosticPoint {
   line: number;

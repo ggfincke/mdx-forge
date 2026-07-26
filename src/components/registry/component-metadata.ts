@@ -11,6 +11,7 @@ import {
   BADGE_VARIANTS,
   NEXTRA_CALLOUT_TYPES,
 } from '../internal/metadata';
+import { deepFreeze } from './freeze';
 import type {
   ComponentAuthoringMetadata,
   ComponentKey,
@@ -24,7 +25,7 @@ const DOM_OPEN_PROPS: ComponentOpenPropsPolicy = {
   eventHandlers: true,
 };
 
-export const COMPONENT_METADATA = {
+export const COMPONENT_METADATA = deepFreeze({
   'generic:Callout': {
     summary: 'Callout box w/ themed icon + title.',
     childrenKind: 'block',
@@ -864,4 +865,4 @@ export const COMPONENT_METADATA = {
     ],
     openProps: DOM_OPEN_PROPS,
   },
-} as const satisfies Record<ComponentKey, ComponentAuthoringMetadata>;
+} as const satisfies Record<ComponentKey, ComponentAuthoringMetadata>);

@@ -9,6 +9,7 @@ import type { Root } from 'mdast';
 import type { Position } from 'unist';
 import type {
   ClassDeclaration,
+  ExportDefaultDeclaration,
   ExportNamedDeclaration,
   FunctionDeclaration,
   Identifier,
@@ -28,6 +29,8 @@ export interface DetectedAttribute {
   name?: string;
   // literal string value or raw expression source
   value?: string;
+  // statically-resolved string expression value
+  staticValue?: string;
 }
 
 export interface DetectedComponent {
@@ -55,6 +58,7 @@ interface MdxEsmNode {
 interface MdxJsxAttributeValueExpression {
   type: string;
   value?: string;
+  data?: { estree?: Program };
 }
 
 interface MdxJsxAttributeNode {
@@ -67,6 +71,31 @@ interface MdxJsxNode {
   name: string | null;
   attributes?: MdxJsxAttributeNode[];
   position?: Position;
+}
+
+function staticStringExpression(
+  value: MdxJsxAttributeValueExpression
+): string | undefined {
+  const statements = value.data?.estree?.body;
+  if (
+    statements?.length !== 1 ||
+    statements[0].type !== 'ExpressionStatement'
+  ) {
+    return undefined;
+  }
+
+  const expression = statements[0].expression;
+  if (expression.type === 'Literal' && typeof expression.value === 'string') {
+    return expression.value;
+  }
+  if (
+    expression.type === 'TemplateLiteral' &&
+    expression.expressions.length === 0 &&
+    expression.quasis.length === 1
+  ) {
+    return expression.quasis[0].value.cooked ?? expression.quasis[0].value.raw;
+  }
+  return undefined;
 }
 
 // JSX name semantics: lowercase-start & dashed single identifiers are
@@ -101,7 +130,12 @@ function collectAttributes(node: MdxJsxNode): DetectedAttribute[] {
       out.push({ kind: 'string', name: attr.name, value: attr.value });
       continue;
     }
-    out.push({ kind: 'expression', name: attr.name, value: attr.value.value });
+    out.push({
+      kind: 'expression',
+      name: attr.name,
+      value: attr.value.value,
+      staticValue: staticStringExpression(attr.value),
+    });
   }
   return out;
 }
@@ -159,6 +193,10 @@ function collectLocalBindings(program: Program, bindings: Set<string>): void {
     }
     if (stmt.type === 'ExportNamedDeclaration') {
       collectExportBindings(stmt, bindings);
+      continue;
+    }
+    if (stmt.type === 'ExportDefaultDeclaration') {
+      collectDefaultExportBinding(stmt, bindings);
     }
   }
 }
@@ -190,6 +228,20 @@ function collectExportBindings(
   }
 }
 
+function collectDefaultExportBinding(
+  stmt: ExportDefaultDeclaration,
+  bindings: Set<string>
+): void {
+  const declaration = stmt.declaration;
+  if (
+    (declaration.type === 'FunctionDeclaration' ||
+      declaration.type === 'ClassDeclaration') &&
+    isIdentifier(declaration.id)
+  ) {
+    bindings.add(declaration.id.name);
+  }
+}
+
 function collectDeclarationBindings(
   declaration: ExportNamedDeclaration['declaration'],
   bindings: Set<string>
@@ -216,8 +268,31 @@ function collectVariableBindings(
 }
 
 function collectPatternBindings(pattern: Pattern, bindings: Set<string>): void {
-  if (pattern.type === 'Identifier') {
-    bindings.add(pattern.name);
+  switch (pattern.type) {
+    case 'Identifier':
+      bindings.add(pattern.name);
+      break;
+    case 'ObjectPattern':
+      for (const property of pattern.properties) {
+        collectPatternBindings(
+          property.type === 'RestElement' ? property.argument : property.value,
+          bindings
+        );
+      }
+      break;
+    case 'ArrayPattern':
+      for (const element of pattern.elements) {
+        if (element) {
+          collectPatternBindings(element, bindings);
+        }
+      }
+      break;
+    case 'RestElement':
+      collectPatternBindings(pattern.argument, bindings);
+      break;
+    case 'AssignmentPattern':
+      collectPatternBindings(pattern.left, bindings);
+      break;
   }
 }
 

@@ -253,6 +253,27 @@ describe('cache generations (T3)', () => {
 });
 
 describe('preload registration transactions (T3)', () => {
+  it('resolves one-argument preload aliases without host fetching', async () => {
+    const fetcher = vi.fn(async () => undefined);
+    setModuleFetcher(fetcher);
+    registerPreloadEntries([
+      {
+        id: '/preloaded/shared.js',
+        exports: { value: 'preloaded' },
+        aliases: ['shared'],
+      },
+    ]);
+
+    const component = await evaluateModuleToComponent(
+      'const shared = require("shared"); module.exports = { default: () => shared.value };',
+      '/entry.mdx',
+      ['shared']
+    );
+
+    expect(component()).toBe('preloaded');
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
   it('leaves the prior batch intact when a new alias collides', () => {
     registerPreloadEntries([
       {

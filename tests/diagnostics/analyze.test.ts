@@ -3,7 +3,10 @@
 
 import { describe, expect, it } from 'vitest';
 import { analyzeMdx } from '../../src/diagnostics/analyze/index';
-import { DIAGNOSTIC_CODES } from '../../src/diagnostics/index';
+import {
+  DIAGNOSTIC_CODES,
+  DIAGNOSTIC_RULE_IDS,
+} from '../../src/diagnostics/index';
 
 const probe = globalThis as Record<string, unknown>;
 const PWNED = '__mdxForgeAnalyzePwned';
@@ -51,6 +54,26 @@ describe('analyzeMdx', () => {
         framework: 'generic',
       })
     ).toEqual([]);
+  });
+
+  it('collects named default declarations and recursive export patterns', () => {
+    expect(
+      analyzeMdx(
+        'export default function Layout() { return null; }\n\n<Layout />\n',
+        { framework: 'generic' }
+      )
+    ).toEqual([]);
+    expect(
+      analyzeMdx('export default class Shell {}\n\n<Shell />\n', {
+        framework: 'generic',
+      })
+    ).toEqual([]);
+
+    const patterns =
+      'export const { Card: Renamed, nested: { Deep = null }, ...Rest } = source;\n' +
+      'export const [First, , Assigned = null, ...Remaining] = items;\n\n' +
+      '<Renamed /><Deep /><Rest /><First /><Assigned /><Remaining />\n';
+    expect(analyzeMdx(patterns, { framework: 'generic' })).toEqual([]);
   });
 
   it('treats config-declared components as known', () => {
@@ -117,13 +140,26 @@ describe('analyzeMdx', () => {
     ).toEqual([]);
   });
 
-  it('accepts known compound members & rejects unknown ones', () => {
+  it('validates compound members against the active framework runtime', () => {
     expect(
       analyzeMdx(
-        '<FileTree.Folder name="src"><FileTree.File name="a" /></FileTree.Folder>\n',
+        '<Tabs.Tab />\n<Cards.Card title="Card" />\n' +
+          '<FileTree.Folder name="src"><FileTree.File name="a" /></FileTree.Folder>\n',
         { framework: 'nextra' }
       )
     ).toEqual([]);
+
+    const [starlightFile] = analyzeMdx('<FileTree.File />\n', {
+      framework: 'starlight',
+    });
+    expect(starlightFile.code).toBe(DIAGNOSTIC_CODES.UNKNOWN_COMPOUND_MEMBER);
+    expect(starlightFile.data).toMatchObject({ allowedMembers: [] });
+
+    for (const framework of ['generic', 'docusaurus', 'starlight'] as const) {
+      const [tabsTab] = analyzeMdx('<Tabs.Tab />\n', { framework });
+      expect(tabsTab.code).toBe(DIAGNOSTIC_CODES.UNKNOWN_COMPOUND_MEMBER);
+    }
+
     const [diag] = analyzeMdx('<FileTree.Nope />\n', { framework: 'nextra' });
     expect(diag.code).toBe(DIAGNOSTIC_CODES.UNKNOWN_COMPOUND_MEMBER);
     expect(diag.data).toMatchObject({
@@ -136,6 +172,48 @@ describe('analyzeMdx', () => {
       framework: 'generic',
     });
     expect(calloutDiag.code).toBe(DIAGNOSTIC_CODES.UNKNOWN_COMPOUND_MEMBER);
+  });
+
+  it('applies public rule suppression and severity overrides', () => {
+    expect(DIAGNOSTIC_RULE_IDS).toEqual([
+      'unknown-component',
+      'unknown-prop',
+      'invalid-enum-value',
+      'deprecated-prop',
+      'deprecated-alias',
+      'missing-required-prop',
+      'invalid-prop-value',
+      'unknown-compound-member',
+    ]);
+
+    expect(
+      analyzeMdx('<Frobnicate />\n', {
+        framework: 'generic',
+        rules: { 'unknown-component': 'off' },
+      })
+    ).toEqual([]);
+
+    const propDiagnostics = analyzeMdx(
+      '<Callout bogus type="invalid">x</Callout>\n',
+      {
+        framework: 'generic',
+        rules: {
+          'unknown-prop': 'off',
+          'invalid-enum-value': 'error',
+        },
+      }
+    );
+    expect(propDiagnostics).toHaveLength(1);
+    expect(propDiagnostics[0]).toMatchObject({
+      ruleId: 'invalid-enum-value',
+      severity: 'error',
+    });
+
+    const [compound] = analyzeMdx('<Tabs.Nope />\n', {
+      framework: 'generic',
+      rules: { 'unknown-compound-member': 'hint' },
+    });
+    expect(compound.severity).toBe('hint');
   });
 
   it('handles unknown framework strings without throwing', () => {

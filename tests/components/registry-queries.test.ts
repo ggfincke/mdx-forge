@@ -11,8 +11,12 @@ import * as starlightBarrel from '../../src/components/starlight/index';
 import * as nextraBarrel from '../../src/components/nextra/index';
 import * as nextjsBarrel from '../../src/components/nextjs/index';
 import {
+  COMPONENT_METADATA,
   COMPONENT_REGISTRY,
+  FRAMEWORK_COMPONENTS,
+  GENERIC_COMPONENTS,
   getComponentMetadata,
+  findComponentEntry,
   getFrameworkComponentEntries,
   getAllGenericComponentNames,
   getGenericComponentSet,
@@ -83,6 +87,10 @@ describe('registry queries', () => {
   it('returns defensive copies that cannot mutate canonical state', () => {
     const names = getAllGenericComponentNames();
     const set = getGenericComponentSet();
+    const frameworkNames = getFrameworkComponents('nextra') as string[];
+    const entries = getFrameworkComponentEntries('nextra') as Array<{
+      name: string;
+    }>;
 
     // returned collections are snapshots, not the shared lookup state
     expect(getAllGenericComponentNames()).not.toBe(names);
@@ -90,11 +98,44 @@ describe('registry queries', () => {
 
     names.length = 0;
     set.clear();
+    frameworkNames.length = 0;
+    entries.length = 0;
 
     expect(getAllGenericComponentNames()).toContain('Callout');
     expect(getGenericComponentSet().has('Alert')).toBe(true);
+    expect(getFrameworkComponents('nextra')).toContain('Tabs');
+    expect(getFrameworkComponentEntries('nextra')).toHaveLength(6);
     expect(isGenericComponent('Callout')).toBe(true);
     expect(isGenericComponent('Admonition')).toBe(true);
+  });
+
+  it('freezes canonical registry collections at runtime', () => {
+    const nextraTabs = findComponentEntry('nextra', 'Tabs');
+
+    expect(Object.isFrozen(COMPONENT_METADATA)).toBe(true);
+    expect(Object.isFrozen(COMPONENT_REGISTRY)).toBe(true);
+    expect(Object.isFrozen(GENERIC_COMPONENTS)).toBe(true);
+    expect(Object.isFrozen(GENERIC_COMPONENTS.Callout.aliases)).toBe(true);
+    expect(Object.isFrozen(FRAMEWORK_COMPONENTS)).toBe(true);
+    expect(Object.isFrozen(FRAMEWORK_COMPONENTS.nextra)).toBe(true);
+    expect(Object.isFrozen(nextraTabs)).toBe(true);
+    expect(Object.isFrozen(nextraTabs?.members)).toBe(true);
+    expect(Object.isFrozen(nextraTabs?.metadata.props)).toBe(true);
+  });
+
+  it('records only compound members exposed by each framework runtime', () => {
+    expect(findComponentEntry('nextra', 'Tabs')?.members).toEqual(['Tab']);
+    expect(findComponentEntry('nextra', 'Cards')?.members).toEqual(['Card']);
+    expect(findComponentEntry('nextra', 'FileTree')?.members).toEqual([
+      'Folder',
+      'File',
+    ]);
+    expect(findComponentEntry('generic', 'Tabs')?.members).toBeUndefined();
+    expect(findComponentEntry('docusaurus', 'Tabs')?.members).toBeUndefined();
+    expect(findComponentEntry('starlight', 'Tabs')?.members).toBeUndefined();
+    expect(
+      findComponentEntry('starlight', 'FileTree')?.members
+    ).toBeUndefined();
   });
 
   it('returns primary generic names without aliases', () => {

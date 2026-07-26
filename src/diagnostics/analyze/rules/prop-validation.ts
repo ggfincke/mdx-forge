@@ -37,15 +37,42 @@ function isUniversallyAllowedProp(name: string): boolean {
   );
 }
 
+function literalStringExpression(
+  value: string | undefined
+): string | undefined {
+  const expression = value?.trim();
+  if (!expression) {
+    return undefined;
+  }
+
+  const quoted = /^(['"])((?:\\.|(?!\1)[^\\\r\n])*)\1$/.exec(expression);
+  if (quoted) {
+    return quoted[2];
+  }
+
+  const template = /^`((?:\\.|[^\\`\r\n])*)`$/.exec(expression);
+  if (!template) {
+    return undefined;
+  }
+  for (let index = 0; index < template[1].length; index += 1) {
+    if (template[1][index] === '\\') {
+      index += 1;
+      continue;
+    }
+    if (template[1][index] === '$' && template[1][index + 1] === '{') {
+      return undefined;
+    }
+  }
+  return template[1];
+}
+
 // resolve static string values for enum checks; skip dynamic expressions
 function literalStringValue(attr: DetectedAttribute): string | undefined {
   if (attr.kind === 'string') {
     return attr.value;
   }
   if (attr.kind === 'expression') {
-    // read {'danger'} expressions as static string literals
-    const m = /^\s*['"`]([^'"`]*)['"`]\s*$/.exec(attr.value ?? '');
-    return m?.[1];
+    return attr.staticValue ?? literalStringExpression(attr.value);
   }
   return undefined;
 }
@@ -182,6 +209,9 @@ export function analyzeComponentProps(
   const known = new Set(props.map((p) => p.name));
   const knownProps = [...known];
   const byName = new Map<string, DetectedAttribute>();
+  const hasUnresolvedSpread = component.attributes.some(
+    (attr) => attr.kind === 'spread'
+  );
 
   for (const attr of component.attributes) {
     // spread attributes can carry anything -> bail out of that slot
@@ -208,7 +238,7 @@ export function analyzeComponentProps(
   }
 
   for (const prop of props) {
-    if (prop.required && !byName.has(prop.name)) {
+    if (prop.required && !byName.has(prop.name) && !hasUnresolvedSpread) {
       out.push(
         propDiagnostic(
           DIAGNOSTIC_CODES.MISSING_REQUIRED_PROP,

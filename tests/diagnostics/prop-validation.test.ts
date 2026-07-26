@@ -62,6 +62,36 @@ describe('prop validation via analyzeMdx', () => {
     expect(diag.data).toMatchObject({ propName: 'title' });
   });
 
+  it('does not claim required props are missing behind an unresolved spread', () => {
+    const diagnostics = analyzeMdx(
+      '<LinkCard {...props} bogus href="/docs" />\n',
+      {
+        framework: 'starlight',
+      }
+    );
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]).toMatchObject({
+      code: DIAGNOSTIC_CODES.UNKNOWN_PROP,
+      data: { propName: 'bogus' },
+    });
+  });
+
+  it('checks only literal strings and no-substitution templates as enums', () => {
+    for (const value of ["{'bogus'}", '{"bogus"}', '{`bogus`}']) {
+      const [diag] = analyzeMdx(`<Callout type=${value}>x</Callout>\n`, {
+        framework: 'generic',
+      });
+      expect(diag.code).toBe(DIAGNOSTIC_CODES.INVALID_ENUM_VALUE);
+    }
+
+    expect(
+      analyzeMdx('<Callout type={`bogus${variant}`}>x</Callout>\n', {
+        framework: 'generic',
+      })
+    ).toEqual([]);
+  });
+
   it('reports original-file positions for prop diagnostics after frontmatter', () => {
     const src =
       '---\ntitle: Demo\n---\n\n# Heading\n\n<Collapsible open="false">x</Collapsible>\n';

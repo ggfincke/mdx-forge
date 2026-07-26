@@ -1,7 +1,7 @@
 // src/diagnostics/analyze/index.ts
 // render-free MDX analysis -> Diagnostic[]
 
-import type { Diagnostic } from '../types';
+import type { Diagnostic, DiagnosticRuleOptions } from '../types';
 import type { FrameworkId } from '../../components/registry';
 import { getComponentMetadata } from '../../components/registry';
 import { extractFrontmatter } from '../../compiler/pipeline/common/mdx-common';
@@ -31,10 +31,8 @@ export interface AnalyzeContext {
   framework: FrameworkId;
   // component names declared in .mdx-previewrc.json (host-supplied)
   configComponents?: readonly string[];
-  // future: per-rule enablement & severity overrides
-  rules?: Partial<
-    Record<string, 'off' | 'hint' | 'info' | 'warning' | 'error'>
-  >;
+  // per-rule enablement & severity overrides
+  rules?: DiagnosticRuleOptions;
 }
 
 export interface AnalyzeParseError {
@@ -67,7 +65,7 @@ function analyzeComponent(
     return [];
   }
   if (component.members.length > 0) {
-    const diag = analyzeCompoundMember(component);
+    const diag = analyzeCompoundMember(component, ctx.framework);
     return diag ? [diag] : [];
   }
   const metadata =
@@ -78,6 +76,29 @@ function analyzeComponent(
     return [];
   }
   return analyzeComponentProps(component, metadata.props);
+}
+
+function applyRuleOptions(
+  diagnostics: readonly Diagnostic[],
+  rules: DiagnosticRuleOptions | undefined
+): Diagnostic[] {
+  if (!rules) {
+    return [...diagnostics];
+  }
+
+  const out: Diagnostic[] = [];
+  for (const diagnostic of diagnostics) {
+    const setting = rules[diagnostic.ruleId];
+    if (setting === 'off') {
+      continue;
+    }
+    out.push(
+      setting && setting !== diagnostic.severity
+        ? { ...diagnostic, severity: setting }
+        : diagnostic
+    );
+  }
+  return out;
 }
 
 export function analyzeMdxDocument(
@@ -118,6 +139,7 @@ export function analyzeMdxDocument(
     for (const component of parsed.components) {
       result.diagnostics.push(...analyzeComponent(component, classifyCtx));
     }
+    result.diagnostics = applyRuleOptions(result.diagnostics, ctx.rules);
   } catch (error) {
     result.parseError = { phase: 'mdx', error };
     result.diagnostics = [];
