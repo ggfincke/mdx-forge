@@ -1,19 +1,15 @@
 // src/internal/frontmatter.ts
-// gray-matter wrapper that disables executable JS frontmatter (eval) & bounds
-// the parsed data into acyclic plain values to stop amplification / cycles
+// parse & extract no-eval frontmatter into bounded plain data
 
 import matter from 'gray-matter';
+import { isReservedObjectKey } from './object-key';
+import { bodyOriginForContent, type SourceOrigin } from './source-position';
 
 // bounds for normalized frontmatter; reject graphs that exceed any of them
 // depth guards deep alias nesting; nodes/bytes guard exponential alias fan-out
 export const MAX_FRONTMATTER_DEPTH = 8;
 export const MAX_FRONTMATTER_NODES = 5000;
 export const MAX_FRONTMATTER_SERIALIZED_BYTES = 256 * 1024;
-const FORBIDDEN_FRONTMATTER_KEYS = new Set([
-  '__proto__',
-  'constructor',
-  'prototype',
-]);
 const UTF8_ENCODER = new TextEncoder();
 
 // ! thrown deterministically when frontmatter is cyclic or over the caps above
@@ -27,6 +23,12 @@ export class FrontmatterBoundsError extends Error {
 interface NormalizeState {
   nodes: number;
   bytes: number;
+}
+
+export interface ExtractedFrontmatter {
+  content: string;
+  frontmatter: Record<string, unknown>;
+  bodyOrigin: SourceOrigin;
 }
 
 // approximate serialized size of a scalar so we can bound projected JSON output
@@ -95,7 +97,7 @@ function cloneBounded(
   } else {
     const out: Record<string, unknown> = {};
     for (const [key, entry] of Object.entries(value)) {
-      if (FORBIDDEN_FRONTMATTER_KEYS.has(key)) {
+      if (isReservedObjectKey(key)) {
         continue;
       }
       state.bytes += UTF8_ENCODER.encode(key).byteLength + 4;
@@ -143,4 +145,27 @@ export function safeMatter(input: string) {
   // bound the parsed graph so downstream JSON.stringify / consumers stay safe
   parsed.data = normalizeFrontmatterData(parsed.data);
   return parsed;
+}
+
+// extract normalized frontmatter & retain the original body origin
+export function extractFrontmatter(input: string): ExtractedFrontmatter {
+  const source = typeof input === 'string' ? input : String(input);
+  return toExtractedFrontmatter(source, safeMatter(source));
+}
+
+// preserve raw YAML keys for structured JSON validation
+export function extractRawFrontmatter(input: string): ExtractedFrontmatter {
+  const source = typeof input === 'string' ? input : String(input);
+  return toExtractedFrontmatter(source, parseRawFrontmatter(source));
+}
+
+function toExtractedFrontmatter(
+  source: string,
+  parsed: ReturnType<typeof safeMatter>
+): ExtractedFrontmatter {
+  return {
+    content: parsed.content,
+    frontmatter: parsed.data as Record<string, unknown>,
+    bodyOrigin: bodyOriginForContent(source, parsed.content),
+  };
 }

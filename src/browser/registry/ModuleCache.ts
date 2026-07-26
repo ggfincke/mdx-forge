@@ -2,7 +2,7 @@
 // module cache w/ LRU eviction (count + memory based) & pending fetch tracking
 // use shared LRUCache w/ isProtected for preloaded module protection
 
-import { LRUCache } from '../internal/lru-cache';
+import { LRUCache } from '../../internal/lru-cache';
 import {
   DEFAULT_MAX_MODULES,
   DEFAULT_MAX_MEMORY_BYTES,

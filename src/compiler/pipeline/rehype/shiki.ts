@@ -12,7 +12,7 @@ import {
   type ShikiTransformer,
 } from '@shikijs/core';
 import { createJavaScriptRegexEngine } from '@shikijs/engine-javascript';
-import { LRUCache } from '../../../browser/internal/lru-cache';
+import { LRUCache } from '../../../internal/lru-cache';
 import {
   PREVIEW_CODEBLOCK,
   PREVIEW_CODEBLOCK_TITLE,

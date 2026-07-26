@@ -1,7 +1,7 @@
 // src/browser/registry/StyleCache.ts
 // injected-style presence tracking; the cached CSS module owns its style
 
-import { LRUCache } from '../internal/lru-cache';
+import { LRUCache } from '../../internal/lru-cache';
 import { DEFAULT_MAX_STYLES } from '../internal/constants';
 
 // style entry keeps injected bytes so changed CSS can be detected & replaced

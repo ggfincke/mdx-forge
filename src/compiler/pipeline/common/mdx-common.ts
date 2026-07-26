@@ -1,67 +1,26 @@
 // src/compiler/pipeline/common/mdx-common.ts
-// shared utilities for MDX compilation (trusted & safe modes)
+// compiler frontmatter facade & Nextra page-metadata adapter
 
 import type { FrontmatterResult, NextraPageMeta } from '../../types/compiler';
-import { parseRawFrontmatter, safeMatter } from '../../../internal/frontmatter';
+import {
+  extractFrontmatter as extractNeutralFrontmatter,
+  type ExtractedFrontmatter,
+} from '../../../internal/frontmatter';
 
-// extract frontmatter from MDX text w/ gray-matter (returns content & parsed data)
+// expose neutral extraction through the public compiler contract
 export function extractFrontmatter(mdxText: string): FrontmatterResult {
-  const source = typeof mdxText === 'string' ? mdxText : String(mdxText);
-  return toFrontmatterResult(source, safeMatter(source));
-}
-
-// preserve raw YAML keys for structured JSON validation
-export function extractRawFrontmatter(mdxText: string): FrontmatterResult {
-  const source = typeof mdxText === 'string' ? mdxText : String(mdxText);
-  return toFrontmatterResult(source, parseRawFrontmatter(source));
+  return toFrontmatterResult(extractNeutralFrontmatter(mdxText));
 }
 
 function toFrontmatterResult(
-  source: string,
-  parsed: ReturnType<typeof safeMatter>
+  extracted: ExtractedFrontmatter
 ): FrontmatterResult {
-  const bodyStart = computeBodyStartPosition(source, parsed.content);
   return {
-    content: parsed.content,
-    frontmatter: parsed.data as Record<string, unknown>,
-    bodyStartLine: bodyStart.line,
-    bodyStartColumn: bodyStart.column,
+    content: extracted.content,
+    frontmatter: extracted.frontmatter,
+    bodyStartLine: extracted.bodyOrigin.line,
+    bodyStartColumn: extracted.bodyOrigin.column,
   };
-}
-
-interface BodyStartPosition {
-  line: number;
-  column: number;
-}
-
-// calc original-doc body start from gray-matter's stripped prefix
-function computeBodyStartPosition(
-  mdxText: string,
-  content: string
-): BodyStartPosition {
-  if (!mdxText.endsWith(content)) {
-    return { line: 1, column: 1 };
-  }
-  const stripped = mdxText.slice(0, mdxText.length - content.length);
-  let line = 1;
-  let column = 1;
-  for (let i = 0; i < stripped.length; i++) {
-    if (stripped[i] === '\r') {
-      line++;
-      column = 1;
-      if (stripped[i + 1] === '\n') {
-        i++;
-      }
-      continue;
-    }
-    if (stripped[i] === '\n') {
-      line++;
-      column = 1;
-      continue;
-    }
-    column++;
-  }
-  return { line, column };
 }
 
 // extract Nextra-specific frontmatter fields for page metadata

@@ -18,6 +18,10 @@ import type {
   Program,
   VariableDeclaration,
 } from 'estree';
+import {
+  rebasePosition,
+  type SourceOrigin,
+} from '../../internal/source-position';
 import type { DiagnosticRange } from '../types';
 
 export type DetectedAttributeKind =
@@ -142,11 +146,9 @@ function collectAttributes(node: MdxJsxNode): DetectedAttribute[] {
 
 export function parseMdxForAnalysis(
   content: string,
-  bodyStartLine: number,
-  bodyStartColumn = 1
+  bodyOrigin: SourceOrigin
 ): ParsedMdx {
   const tree = parser.parse(content) as Root;
-  const lineOffset = bodyStartLine - 1;
 
   const imports = new Set<string>();
   visit(tree, 'mdxjsEsm', (node) => {
@@ -177,7 +179,7 @@ export function parseMdxForAnalysis(
       name: jsx.name,
       root: info.root,
       members: info.members,
-      range: toRange(jsx.position, lineOffset, bodyStartColumn),
+      range: toRange(jsx.position, bodyOrigin),
       attributes: collectAttributes(jsx),
     });
   });
@@ -319,25 +321,17 @@ function isIdentifier(node: unknown): node is Identifier {
 
 function toRange(
   position: Position,
-  lineOffset: number,
-  bodyStartColumn: number
+  bodyOrigin: SourceOrigin
 ): DiagnosticRange {
-  const startColumn =
-    position.start.line === 1
-      ? position.start.column + bodyStartColumn - 1
-      : position.start.column;
-  const endColumn =
-    position.end.line === 1
-      ? position.end.column + bodyStartColumn - 1
-      : position.end.column;
+  const rebased = rebasePosition(position, bodyOrigin);
   return {
     start: {
-      line: position.start.line + lineOffset,
-      column: startColumn,
+      line: rebased.start.line,
+      column: rebased.start.column,
     },
     end: {
-      line: position.end.line + lineOffset,
-      column: endColumn,
+      line: rebased.end.line,
+      column: rebased.end.column,
     },
   };
 }

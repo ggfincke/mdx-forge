@@ -3,7 +3,7 @@
 // ! cross-repo parity: mirror vsc tests/shared/utility-parity.test.ts
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { LRUCache } from '../../src/browser/internal/lru-cache';
+import { LRUCache } from '../../src/internal/lru-cache';
 import { isBareImport } from '../../src/browser/internal/module-id';
 import { Semaphore } from '../../src/browser/internal/semaphore';
 import { copyToClipboard } from '../../src/components/internal/clipboard';

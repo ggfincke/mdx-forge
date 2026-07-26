@@ -8,11 +8,17 @@ import { unified } from 'unified';
 import type { Point, Position } from 'unist';
 import { DIAGNOSTIC_CODES } from '../../diagnostics/types';
 import {
+  extractRawFrontmatter,
   MAX_FRONTMATTER_DEPTH,
   MAX_FRONTMATTER_NODES,
   MAX_FRONTMATTER_SERIALIZED_BYTES,
 } from '../../internal/frontmatter';
-import { extractRawFrontmatter } from '../pipeline/common/mdx-common';
+import { isReservedObjectKey } from '../../internal/object-key';
+import {
+  pointAtLineColumn,
+  pointAtOffset,
+  SOURCE_START,
+} from '../../internal/source-position';
 import {
   collectSafeDocumentDefinitions,
   convertSafeDocumentChildren,
@@ -31,7 +37,6 @@ import {
 } from './types';
 
 const parser = unified().use(remarkParse).use(remarkGfm).use(remarkMdx);
-const FORBIDDEN_JSON_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 const UTF8_ENCODER = new TextEncoder();
 
 export async function compileSafeDocument(
@@ -46,9 +51,7 @@ export async function compileSafeDocument(
     options: normalizedOptions,
     diagnostics: [],
     definitions: new Map(),
-    bodyLineOffset: 0,
-    bodyStartColumn: 1,
-    bodyOffset: 0,
+    bodyOrigin: SOURCE_START,
   };
 
   let content: string;
@@ -56,9 +59,7 @@ export async function compileSafeDocument(
   try {
     const extracted = extractRawFrontmatter(source);
     content = extracted.content;
-    context.bodyLineOffset = extracted.bodyStartLine - 1;
-    context.bodyStartColumn = extracted.bodyStartColumn;
-    context.bodyOffset = source.length - content.length;
+    context.bodyOrigin = extracted.bodyOrigin;
     const normalized = toSafeJson(extracted.frontmatter, new Set(), 0, {
       bytes: 0,
       nodes: 0,
@@ -69,7 +70,7 @@ export async function compileSafeDocument(
       invalidFrontmatter(
         context,
         normalized.ok ? 'frontmatter must be an object' : normalized.reason,
-        frontmatterPosition(source, context.bodyOffset)
+        frontmatterPosition(source, context.bodyOrigin.offset)
       );
     }
   } catch (error) {
@@ -206,7 +207,7 @@ function toSafeJson(
     }
     const output: Record<string, SafeDocumentJsonValue> = {};
     for (const [key, child] of Object.entries(value)) {
-      if (FORBIDDEN_JSON_KEYS.has(key)) {
+      if (isReservedObjectKey(key)) {
         return { ok: false, reason: `frontmatter key ${key} is forbidden` };
       }
       state.bytes += UTF8_ENCODER.encode(key).byteLength + 4;
@@ -263,7 +264,7 @@ function invalidFrontmatter(
 }
 
 function frontmatterPosition(source: string, endOffset: number): Position {
-  const end = pointAt(source, Math.max(0, endOffset));
+  const end = pointAtOffset(source, endOffset);
   return {
     start: { line: 1, column: 1, offset: 0 },
     end,
@@ -292,62 +293,6 @@ function frontmatterErrorPosition(
   const column = candidate.column + 1;
   const point = pointAtLineColumn(source, line, column);
   return { start: point, end: point };
-}
-
-function pointAtLineColumn(
-  source: string,
-  targetLine: number,
-  targetColumn: number
-): Point {
-  let offset = 0;
-  let line = 1;
-  let column = 1;
-  while (
-    offset < source.length &&
-    (line < targetLine || column < targetColumn)
-  ) {
-    const char = source[offset];
-    if (char === '\r') {
-      line++;
-      column = 1;
-      offset++;
-      if (source[offset] === '\n') {
-        offset++;
-      }
-      continue;
-    }
-    if (char === '\n') {
-      line++;
-      column = 1;
-      offset++;
-      continue;
-    }
-    column++;
-    offset++;
-  }
-  return { line, column, offset };
-}
-
-function pointAt(source: string, offset: number): Point {
-  let line = 1;
-  let column = 1;
-  for (let index = 0; index < offset; index++) {
-    if (source[index] === '\r') {
-      line++;
-      column = 1;
-      if (source[index + 1] === '\n') {
-        index++;
-      }
-      continue;
-    }
-    if (source[index] === '\n') {
-      line++;
-      column = 1;
-      continue;
-    }
-    column++;
-  }
-  return { line, column, offset };
 }
 
 function parseErrorPosition(error: unknown): Position | undefined {

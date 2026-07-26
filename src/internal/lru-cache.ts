@@ -1,5 +1,5 @@
-// src/browser/internal/lru-cache.ts
-// MIT browser LRU cache; shared subset mirrors vsc runtime-utils LRU
+// src/internal/lru-cache.ts
+// MIT LRU cache; shared subset mirrors vsc runtime-utils LRU
 // ! cross-repo duplicate: keep common behavior covered by parity tests
 
 export interface LRUCacheOptions<K, V> {
