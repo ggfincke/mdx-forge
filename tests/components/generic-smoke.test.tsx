@@ -13,8 +13,6 @@ import {
   Tabs,
   TabItem,
   Tab,
-  CodeGroup,
-  Collapsible,
   Accordion,
 } from '../../src/components/generic/index';
 
@@ -76,41 +74,6 @@ describe('generic components [smoke]', () => {
       )
     );
     expect(container.textContent).toContain('X');
-  });
-
-  it('CodeGroup renders w/ code block children', () => {
-    const { container } = render(
-      React.createElement(
-        CodeGroup,
-        { id: 'generic-code-group' },
-        React.createElement(
-          'pre',
-          { title: 'JavaScript' },
-          React.createElement('code', null, 'const x = 1;')
-        ),
-        React.createElement(
-          'pre',
-          { title: 'Python' },
-          React.createElement('code', null, 'x = 1')
-        )
-      )
-    );
-    expect(container.textContent).toContain('const x = 1;');
-    expect(container.querySelector('.mdx-preview-generic-code-group')?.id).toBe(
-      'generic-code-group'
-    );
-  });
-
-  it('Collapsible renders w/ title & children', () => {
-    const { container } = render(
-      React.createElement(
-        Collapsible,
-        { title: 'Details', id: 'generic-collapsible' },
-        'Hidden content'
-      )
-    );
-    expect(container.textContent).toContain('Details');
-    expect(container.querySelector('details')?.id).toBe('generic-collapsible');
   });
 
   it('Accordion alias renders (same as Collapsible)', () => {

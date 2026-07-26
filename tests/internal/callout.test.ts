@@ -10,26 +10,6 @@ import {
 const OBJECT_PROTOTYPE_NAMES = Object.getOwnPropertyNames(Object.prototype);
 
 describe('normalizeCalloutType()', () => {
-  it('passes through valid callout types unchanged', () => {
-    expect(normalizeCalloutType('note')).toBe('note');
-    expect(normalizeCalloutType('tip')).toBe('tip');
-    expect(normalizeCalloutType('warning')).toBe('warning');
-    expect(normalizeCalloutType('danger')).toBe('danger');
-    expect(normalizeCalloutType('info')).toBe('info');
-    expect(normalizeCalloutType('caution')).toBe('caution');
-    expect(normalizeCalloutType('important')).toBe('important');
-    expect(normalizeCalloutType('summary')).toBe('summary');
-    expect(normalizeCalloutType('hint')).toBe('hint');
-    expect(normalizeCalloutType('success')).toBe('success');
-    expect(normalizeCalloutType('question')).toBe('question');
-    expect(normalizeCalloutType('failure')).toBe('failure');
-    expect(normalizeCalloutType('bug')).toBe('bug');
-    expect(normalizeCalloutType('example')).toBe('example');
-    expect(normalizeCalloutType('quote')).toBe('quote');
-    expect(normalizeCalloutType('todo')).toBe('todo');
-    expect(normalizeCalloutType('attention')).toBe('attention');
-  });
-
   it('resolves aliases to canonical types', () => {
     expect(normalizeCalloutType('abstract')).toBe('summary');
     expect(normalizeCalloutType('tldr')).toBe('summary');

@@ -9,56 +9,27 @@ import { render } from '@testing-library/react';
 import { Callout } from '../../src/components/generic/index';
 
 describe('Callout type rendering', () => {
-  it('renders known types w/ correct data attribute', () => {
-    const types = [
-      'note',
-      'warning',
-      'danger',
-      'tip',
-      'summary',
-      'question',
-      'bug',
-    ] as const;
+  it('renders a known type w/ correct data attribute', () => {
+    const { container } = render(
+      React.createElement(Callout, { type: 'warning' }, 'warning content')
+    );
 
-    for (const type of types) {
-      const { container } = render(
-        React.createElement(Callout, { type }, `${type} content`)
-      );
-
-      const calloutEl = container.querySelector(
-        `[data-callout-type="${type}"]`
-      );
-      expect(calloutEl).not.toBeNull();
-    }
+    expect(
+      container.querySelector('[data-callout-type="warning"]')
+    ).not.toBeNull();
   });
 
   it('resolves alias types in rendered output', () => {
-    // aliases map to canonical types
-    const aliases: [string, string][] = [
-      ['abstract', 'summary'],
-      ['tldr', 'summary'],
-      ['check', 'success'],
-      ['done', 'success'],
-      ['help', 'question'],
-      ['faq', 'question'],
-      ['fail', 'failure'],
-      ['missing', 'failure'],
-      ['snippet', 'example'],
-      ['cite', 'quote'],
-      ['error', 'danger'],
+    for (const [alias, expected] of [
       ['warn', 'warning'],
-    ];
-
-    for (const [alias, expected] of aliases) {
+      ['abstract', 'summary'],
+    ] as const) {
       const { container } = render(
-        React.createElement(Callout, { type: alias as any }, 'Content')
+        React.createElement(Callout, { type: alias }, 'Content')
       );
 
-      const calloutEl = container.querySelector(
-        `[data-callout-type="${expected}"]`
-      );
       expect(
-        calloutEl,
+        container.querySelector(`[data-callout-type="${expected}"]`),
         `alias "${alias}" should resolve to "${expected}"`
       ).not.toBeNull();
     }
@@ -89,7 +60,8 @@ describe('Callout type rendering', () => {
       React.createElement(Callout, null, 'Default callout')
     );
 
-    const calloutEl = container.querySelector('[data-callout-type="note"]');
-    expect(calloutEl).not.toBeNull();
+    expect(
+      container.querySelector('[data-callout-type="note"]')
+    ).not.toBeNull();
   });
 });

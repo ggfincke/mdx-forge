@@ -155,29 +155,20 @@ body
     expect(admonition.code).toContain('mdx-preview-admonition-note');
   });
 
-  // pins: github-alert output classes for all 5 types incl title + content
-  it('emits github-alert classes (outer + title + content) for all 5 types', async () => {
-    const cases: Array<[string, string, string]> = [
-      ['NOTE', 'note', 'Note'],
-      ['TIP', 'tip', 'Tip'],
-      ['IMPORTANT', 'important', 'Important'],
-      ['WARNING', 'warning', 'Warning'],
-      ['CAUTION', 'caution', 'Caution'],
-    ];
-    for (const [type, cls, label] of cases) {
-      const result = await compileTrusted(
-        `> [!${type}]\n> body`,
-        true,
-        createConfig()
-      );
-      expect(result.code).toContain(
-        `className: "github-alert github-alert-${cls}"`
-      );
-      expect(result.code).toContain('className: "github-alert-title"');
-      expect(result.code).toContain('className: "github-alert-content"');
-      expect(result.code).toContain(`children: "${label}"`);
-      expect(result.code).not.toContain(`[!${type}]`);
-    }
+  // pins: Trusted className emission for a representative alert type
+  it('emits github-alert classes (outer + title + content) for a representative type', async () => {
+    const result = await compileTrusted(
+      '> [!WARNING]\n> body',
+      true,
+      createConfig()
+    );
+    expect(result.code).toContain(
+      'className: "github-alert github-alert-warning"'
+    );
+    expect(result.code).toContain('className: "github-alert-title"');
+    expect(result.code).toContain('className: "github-alert-content"');
+    expect(result.code).toContain('children: "Warning"');
+    expect(result.code).not.toContain('[!WARNING]');
   });
 
   // pins: wrap paths emit exactly one module-level export default

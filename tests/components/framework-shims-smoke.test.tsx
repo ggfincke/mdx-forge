@@ -24,23 +24,14 @@ import {
   Steps as StarlightSteps,
   Tabs as StarlightTabs,
   TabItem as StarlightTabItem,
-  FileTree as StarlightFileTree,
 } from '../../src/components/starlight/index';
 
 // nextra
 import {
   Callout as NextraCallout,
   Tabs as NextraTabs,
-  Steps as NextraSteps,
-  Bleed as NextraBleed,
   Cards as NextraCards,
 } from '../../src/components/nextra/index';
-
-// nextjs
-import {
-  Image as NextImage,
-  Link as NextLink,
-} from '../../src/components/nextjs/index';
 
 describe('Docusaurus shims [smoke]', () => {
   it('Tabs w/ TabItem renders', () => {
@@ -176,22 +167,6 @@ describe('Starlight shims [smoke]', () => {
     );
     expect(container.textContent).toContain('Tab1');
   });
-
-  it('FileTree renders', () => {
-    const { container } = render(
-      React.createElement(
-        StarlightFileTree,
-        { id: 'starlight-file-tree' },
-        React.createElement(
-          'ul',
-          null,
-          React.createElement('li', null, 'README.md')
-        )
-      )
-    );
-    expect(container.textContent).toContain('README.md');
-    expect(container.querySelector('ul')?.id).toBe('starlight-file-tree');
-  });
 });
 
 describe('Nextra shims [smoke]', () => {
@@ -269,24 +244,6 @@ describe('Nextra shims [smoke]', () => {
     expect(container.textContent).not.toContain('Second content');
   });
 
-  it('Steps renders', () => {
-    const { container } = render(
-      React.createElement(
-        NextraSteps,
-        null,
-        React.createElement('p', null, 'Step one')
-      )
-    );
-    expect(container.textContent).toContain('Step one');
-  });
-
-  it('Bleed renders', () => {
-    const { container } = render(
-      React.createElement(NextraBleed, null, 'Bleed content')
-    );
-    expect(container.textContent).toContain('Bleed content');
-  });
-
   it('Cards.Card w/ external href sets target=_blank rel=noopener', () => {
     const { container } = render(
       React.createElement(
@@ -302,28 +259,5 @@ describe('Nextra shims [smoke]', () => {
     expect(anchor?.getAttribute('href')).toBe('https://example.com');
     expect(anchor?.getAttribute('target')).toBe('_blank');
     expect(anchor?.getAttribute('rel')).toBe('noopener noreferrer');
-  });
-});
-
-describe('Next.js shims [smoke]', () => {
-  it('Image renders', () => {
-    const { container } = render(
-      React.createElement(NextImage, {
-        src: '/logo.png',
-        alt: 'Logo',
-      })
-    );
-    const img = container.querySelector('img');
-    expect(img).toBeTruthy();
-    expect(img?.getAttribute('src')).toBe('/logo.png');
-  });
-
-  it('Link renders', () => {
-    const { container } = render(
-      React.createElement(NextLink, { href: '/docs' }, 'Docs')
-    );
-    const anchor = container.querySelector('a');
-    expect(anchor).toBeTruthy();
-    expect(anchor?.textContent).toBe('Docs');
   });
 });

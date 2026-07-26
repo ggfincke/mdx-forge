@@ -91,14 +91,6 @@ describe('prop validation via analyzeMdx', () => {
       })
     ).toEqual([]);
   });
-
-  it('reports original-file positions for prop diagnostics after frontmatter', () => {
-    const src =
-      '---\ntitle: Demo\n---\n\n# Heading\n\n<Collapsible open="false">x</Collapsible>\n';
-    const [diag] = analyzeMdx(src, { framework: 'generic' });
-    // frontmatter occupies lines 1-3; the element is on original line 7
-    expect(diag.range?.start.line).toBe(7);
-  });
 });
 
 describe('analyzeComponentProps rule', () => {

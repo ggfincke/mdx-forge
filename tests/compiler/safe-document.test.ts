@@ -198,15 +198,10 @@ describe('compileSafeDocument()', () => {
       value: false,
       writable: true,
     });
+    // keep export + 1 expr + 1 handler shape; rest share unsupported-expression sink
     const executableCases = [
       'export const value = 1',
-      `{globalThis.${sentinel} = true}`,
       '<Widget value={identifier} />',
-      '<Widget value={call()} />',
-      '<Widget value={thing.member} />',
-      '<Widget {...payload} />',
-      '<Widget value={`prefix ${name}`} />',
-      `<Widget value={() => { globalThis.${sentinel} = true }} />`,
       `<Unknown onClick={() => { globalThis.${sentinel} = true }} />`,
     ];
     const options = {

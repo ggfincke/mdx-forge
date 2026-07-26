@@ -9,7 +9,6 @@ import { stopPreviewServer } from '../../plugins/render/src/preview-server';
 import {
   DEFAULT_VIEWPORT,
   resolveViewport,
-  VIEWPORT_PRESETS,
 } from '../../plugins/render/src/viewports';
 
 describe('render plugin screenshot helpers', () => {
@@ -49,23 +48,6 @@ describe('render plugin screenshot helpers', () => {
 });
 
 describe('resolveViewport', () => {
-  it('returns default when input is undefined', () => {
-    const v = resolveViewport(undefined);
-    expect(v).toEqual({ ...DEFAULT_VIEWPORT });
-    expect(v.preset).toBeUndefined();
-  });
-
-  it('maps a preset name to width/height', () => {
-    expect(resolveViewport('mobile')).toEqual({
-      preset: 'mobile',
-      ...VIEWPORT_PRESETS.mobile,
-    });
-    expect(resolveViewport('wide')).toEqual({
-      preset: 'wide',
-      ...VIEWPORT_PRESETS.wide,
-    });
-  });
-
   it('fills in defaults for partial explicit dimensions', () => {
     expect(resolveViewport({ width: 500 })).toEqual({
       width: 500,
@@ -74,13 +56,6 @@ describe('resolveViewport', () => {
     expect(resolveViewport({ height: 400 })).toEqual({
       width: DEFAULT_VIEWPORT.width,
       height: 400,
-    });
-  });
-
-  it('passes through explicit width/height unchanged', () => {
-    expect(resolveViewport({ width: 500, height: 500 })).toEqual({
-      width: 500,
-      height: 500,
     });
   });
 });

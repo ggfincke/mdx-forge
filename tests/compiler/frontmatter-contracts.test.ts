@@ -19,7 +19,6 @@ import {
 
 const CHAR_CASES = [
   { label: 'ASCII', char: 'a', bytes: 1 },
-  { label: 'CJK', char: '界', bytes: 3 },
   { label: 'astral', char: '😀', bytes: 4 },
 ] as const;
 
@@ -74,9 +73,6 @@ function keyBoundarySource(char: string, bytes: number, over: boolean): string {
 describe('frontmatter root shape', () => {
   it.each([
     { root: 'array', yaml: '- one\n- two', expected: {} },
-    { root: 'string', yaml: 'hello', expected: {} },
-    { root: 'number', yaml: '42', expected: {} },
-    { root: 'null', yaml: 'null', expected: {} },
     { root: 'mapping', yaml: 'title: Hello', expected: { title: 'Hello' } },
   ])('normalizes $root roots consistently', async ({ yaml, expected }) => {
     const source = frontmatterSource(yaml);

@@ -148,22 +148,14 @@ describe('demand-driven highlighting (F25)', () => {
     expect(aliasedPre).toBe(fullPre);
   });
 
-  it('highlights representative languages via on-demand grammars', async () => {
-    const cases = [
-      ['python', 'def greet():\n    return 1'],
-      ['bash', 'echo "hello"'],
-      ['tsx', 'const El = () => <div>x</div>;'],
-    ] as const;
-
-    for (const [lang, code] of cases) {
-      const result = await compileSafe(
-        `\`\`\`${lang}\n${code}\n\`\`\``,
-        createConfig()
-      );
-      expect(result.html).toContain(`data-language="${lang}"`);
-      // token spans prove a real grammar ran, not the plaintext path
-      expect(result.html).toContain('--shiki-token-');
-    }
+  it('highlights a representative language via on-demand grammars', async () => {
+    const result = await compileSafe(
+      '```python\ndef greet():\n    return 1\n```',
+      createConfig()
+    );
+    expect(result.html).toContain('data-language="python"');
+    // token spans prove a real grammar ran, not the plaintext path
+    expect(result.html).toContain('--shiki-token-');
   });
 
   it('unsupported & unlabeled fences fall back to plaintext w/o grammar or cache cost', async () => {

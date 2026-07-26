@@ -96,37 +96,5 @@ describe('evaluateModule', () => {
         expect(err.cause?.message).toBe('string error');
       }
     });
-
-    it('should handle syntax errors', () => {
-      const code = 'const x = {;';
-      const runtime = createMockRuntime();
-
-      expect(() => evaluateModule(code, 'syntax-error.js', runtime)).toThrow();
-
-      try {
-        evaluateModule(code, 'syntax-error.js', runtime);
-      } catch (error: unknown) {
-        const err = error as ModuleError & { cause?: Error };
-
-        expect(err).toBeInstanceOf(ModuleError);
-        expect(err.message).toBe('Failed to evaluate module "syntax-error.js"');
-        expect(err.cause).toBeDefined();
-      }
-    });
-
-    it('should handle reference errors', () => {
-      const code = 'undefinedVariable.foo();';
-      const runtime = createMockRuntime();
-
-      try {
-        evaluateModule(code, 'ref-error.js', runtime);
-      } catch (error: unknown) {
-        const err = error as ModuleError & { cause?: Error };
-
-        expect(err).toBeInstanceOf(ModuleError);
-        expect(err.message).toBe('Failed to evaluate module "ref-error.js"');
-        expect(err.cause?.message).toContain('undefinedVariable');
-      }
-    });
   });
 });

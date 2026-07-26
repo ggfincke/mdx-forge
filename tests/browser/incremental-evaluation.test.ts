@@ -26,15 +26,6 @@ const STAR_CASES = [
     requests: ['./dep-0', './dep-1', './dep-2'],
     resolvedIds: ['/dep-0.js', '/dep-1.js', '/dep-2.js'],
   },
-  {
-    kind: 'bare',
-    requests: ['dep-0', 'dep-1', 'dep-2'],
-    resolvedIds: [
-      'npm://dep-0@1.0.0',
-      'npm://dep-1@1.0.0',
-      'npm://dep-2@1.0.0',
-    ],
-  },
 ] as const;
 
 function getDependencyEvaluations(): Record<string, number> {

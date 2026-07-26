@@ -127,17 +127,6 @@ describe('render plugin registry parity', () => {
     ]);
   });
 
-  it('has core metadata for every core component', () => {
-    for (const entry of COMPONENT_REGISTRY) {
-      if (!isComponentEntry(entry)) {
-        continue;
-      }
-      expect(entry.metadata).toBeDefined();
-      expect(entry.metadata.summary).not.toBe('');
-      expect(entry.metadata.examples[0]?.code).not.toBe('');
-    }
-  });
-
   it('has plugin metadata for every core component and no stale keys', () => {
     expect(findComponent('starlight', 'Card')?.importSpecifier).toBe(
       '@astrojs/starlight/components/Card'

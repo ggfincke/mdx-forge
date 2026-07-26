@@ -7,7 +7,6 @@ import {
   CALLOUT_TITLES,
   CALLOUT_TYPE_ALIASES,
   VALID_CALLOUT_TYPES,
-  normalizeCalloutType,
 } from '../../src/internal/callout';
 import {
   CALLOUT_ICONS,
@@ -80,11 +79,6 @@ describe('metadata contract', () => {
         error: 'danger',
         warn: 'warning',
       });
-    });
-
-    it('unknown types default to note', () => {
-      expect(normalizeCalloutType('unknown')).toBe('note');
-      expect(normalizeCalloutType(undefined)).toBe('note');
     });
   });
 

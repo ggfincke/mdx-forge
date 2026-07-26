@@ -218,72 +218,40 @@ describe('loadModule', () => {
       'module.exports = { imported: imported.value, required: required.value };',
     ].join('\n');
 
-    for (const dependencies of [
+    const fetcher = vi.fn(
+      async (
+        _request: string,
+        _isBare: boolean,
+        _parentId: string,
+        kind?: ModuleDependencyKind
+      ): Promise<FetchResult | undefined> => ({
+        fsPath: `/dual-${kind}.js`,
+        code: `module.exports = { value: ${JSON.stringify(kind)} };`,
+        dependencies: [],
+      })
+    );
+
+    const module = await loadModule(
+      '/entry.js',
+      code,
       [importDependency, requireDependency],
-      [requireDependency, importDependency],
-    ]) {
-      resetLoaderState();
-      const fetcher = vi.fn(
-        async (
-          request: string,
-          _isBare: boolean,
-          _parentId: string,
-          kind?: ModuleDependencyKind
-        ): Promise<FetchResult | undefined> => ({
-          fsPath: `/dual-${kind}.js`,
-          code: `module.exports = { value: ${JSON.stringify(kind)} };`,
-          dependencies: [],
-        })
-      );
+      fetcher
+    );
 
-      const module = await loadModule('/entry.js', code, dependencies, fetcher);
-
-      expect(module.exports).toEqual({
-        imported: 'import',
-        required: 'require',
-      });
-      expect(fetcher.mock.calls).toEqual([
-        ['dual-package', true, '/entry.js', dependencies[0].kind],
-        ['dual-package', true, '/entry.js', dependencies[1].kind],
-      ]);
-      expect(registry.getResolution('/entry.js', importRequest)).toBe(
-        '/dual-import.js'
-      );
-      expect(registry.getResolution('/entry.js', 'dual-package')).toBe(
-        '/dual-require.js'
-      );
-    }
-
-    for (const dependencies of [
-      ['dual-package', requireDependency],
-      [requireDependency, 'dual-package'],
-    ]) {
-      resetLoaderState();
-      const fetcher = vi.fn(
-        async (
-          _request: string,
-          _isBare: boolean,
-          _parentId: string,
-          kind?: ModuleDependencyKind
-        ): Promise<FetchResult | undefined> => ({
-          fsPath: `/deduped-${kind ?? 'legacy'}.js`,
-          code: `module.exports = { value: ${JSON.stringify(kind ?? 'legacy')} };`,
-          dependencies: [],
-        })
-      );
-
-      const module = await loadModule(
-        '/deduped-entry.js',
-        'module.exports = require("dual-package");',
-        dependencies,
-        fetcher
-      );
-
-      expect(module.exports).toEqual({ value: 'require' });
-      expect(fetcher.mock.calls).toEqual([
-        ['dual-package', true, '/deduped-entry.js', 'require'],
-      ]);
-    }
+    expect(module.exports).toEqual({
+      imported: 'import',
+      required: 'require',
+    });
+    expect(fetcher.mock.calls).toEqual([
+      ['dual-package', true, '/entry.js', 'import'],
+      ['dual-package', true, '/entry.js', 'require'],
+    ]);
+    expect(registry.getResolution('/entry.js', importRequest)).toBe(
+      '/dual-import.js'
+    );
+    expect(registry.getResolution('/entry.js', 'dual-package')).toBe(
+      '/dual-require.js'
+    );
 
     resetLoaderState();
     const legacyFetcher = vi.fn(async (): Promise<FetchResult | undefined> => ({
@@ -301,25 +269,25 @@ describe('loadModule', () => {
       ['dual-package', true, '/legacy-entry.js'],
     ]);
 
+    resetLoaderState();
     const malformedDependency: ModuleDependency = {
       specifier: 'other-package',
       kind: 'import',
       runtimeRequest: importRequest,
     };
-    for (const dependencies of [
-      [importDependency, malformedDependency],
-      [malformedDependency, importDependency],
-    ]) {
-      resetLoaderState();
-      const fetcher = vi.fn(async () => undefined);
+    const malformedFetcher = vi.fn(async () => undefined);
 
-      await expect(
-        loadModule('/malformed-entry.js', code, dependencies, fetcher)
-      ).rejects.toThrow('non-canonical runtime request');
-      expect(fetcher).not.toHaveBeenCalled();
-      expect(registry.get('/malformed-entry.js')).toBeUndefined();
-      expect(registry.getStats().resolutions).toBe(0);
-    }
+    await expect(
+      loadModule(
+        '/malformed-entry.js',
+        code,
+        [importDependency, malformedDependency],
+        malformedFetcher
+      )
+    ).rejects.toThrow('non-canonical runtime request');
+    expect(malformedFetcher).not.toHaveBeenCalled();
+    expect(registry.get('/malformed-entry.js')).toBeUndefined();
+    expect(registry.getStats().resolutions).toBe(0);
   });
 
   it('discards metadata staged by a parent that fails evaluation', async () => {

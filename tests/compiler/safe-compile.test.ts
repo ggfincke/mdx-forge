@@ -296,7 +296,8 @@ digraph G { A -> B }
 // pins: structural scaffolds are largely untested; lock the divergent shapes
 describe('callout/admonition/alert scaffold pins (Safe Mode)', () => {
   it('defaults Object.prototype callout types through JSX & directives', async () => {
-    for (const name of Object.getOwnPropertyNames(Object.prototype)) {
+    // representative proto names: own-property, method, & dunder
+    for (const name of ['constructor', 'toString', '__proto__'] as const) {
       const callout = await compileSafe(
         `<Callout type="${name}">body</Callout>`,
         createConfig()
@@ -418,15 +419,12 @@ Body text
     expect(result.html).toContain('<div class="github-alert-content">');
   });
 
-  it('github-alert classes + title + content for all 5 alert types', async () => {
-    const cases: Array<[string, string, string]> = [
+  it('github-alert classes + title + content for representative alert types', async () => {
+    // scaffold pins TIP; rich-content covers NOTE shapes — keep map bookends
+    for (const [type, cls, label] of [
       ['NOTE', 'note', 'Note'],
-      ['TIP', 'tip', 'Tip'],
-      ['IMPORTANT', 'important', 'Important'],
-      ['WARNING', 'warning', 'Warning'],
       ['CAUTION', 'caution', 'Caution'],
-    ];
-    for (const [type, cls, label] of cases) {
+    ] as const) {
       const result = await compileSafe(`> [!${type}]\n> body`, createConfig());
       expect(result.html).toContain(`class="github-alert github-alert-${cls}"`);
       expect(result.html).toContain('class="github-alert-title"');

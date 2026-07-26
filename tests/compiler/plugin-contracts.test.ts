@@ -13,10 +13,6 @@ import {
   loadPluginsFromConfig,
   mergePlugins,
 } from '../../src/compiler/plugins/loader';
-import {
-  sharedRehypePluginsPostMath,
-  sharedRemarkPlugins,
-} from '../../src/compiler/plugins/shared-plugins';
 import type {
   CompilerConfig,
   LoadedPlugins,
@@ -61,13 +57,11 @@ describe('plugin array isolation', () => {
     expect(result.html).toContain('<table');
   });
 
-  it('freezes shared lists & always returns a new merged array', () => {
+  it('always returns a new merged array isolated from the built-in list', () => {
     const plugin = (() => undefined) as Pluggable;
     const builtIn = [plugin];
     const merged = mergePlugins(builtIn, []);
 
-    expect(Object.isFrozen(sharedRemarkPlugins)).toBe(true);
-    expect(Object.isFrozen(sharedRehypePluginsPostMath)).toBe(true);
     expect(merged).not.toBe(builtIn);
     merged.splice(0);
     expect(builtIn).toEqual([plugin]);

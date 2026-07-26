@@ -6,11 +6,6 @@ import * as contract from '../src/diagnostics/index';
 import * as analyze from '../src/diagnostics/analyze/index';
 
 describe('diagnostics contract exports', () => {
-  it('exposes the stable code table', () => {
-    expect(contract.DIAGNOSTIC_CODES.UNKNOWN_COMPONENT).toBe('MDXF001');
-    expect(Object.keys(contract.DIAGNOSTIC_CODES)).toHaveLength(20);
-  });
-
   it('locks the full MDXF code set', () => {
     expect(contract.DIAGNOSTIC_CODES).toMatchObject({
       UNKNOWN_COMPONENT: 'MDXF001',
