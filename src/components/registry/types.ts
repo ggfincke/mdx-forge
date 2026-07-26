@@ -18,6 +18,7 @@ export type ComponentPropType =
   | 'boolean'
   | 'array'
   | 'object'
+  | 'function'
   | 'node'
   | 'enum'
   | 'union';

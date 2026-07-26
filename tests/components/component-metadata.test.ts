@@ -1,6 +1,7 @@
 // tests/components/component-metadata.test.ts
 // verify component authoring metadata contract
 
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
   COMPONENT_METADATA,
@@ -19,6 +20,7 @@ import {
   BADGE_VARIANTS,
   NEXTRA_CALLOUT_TYPES,
 } from '../../src/components/internal/metadata';
+import { COMPONENT_IDENTITY_DEFINITIONS } from '../../src/components/internal/component-identity';
 import {
   NEXTRA_CALLOUT_ICONS,
   NEXTRA_CALLOUT_TYPES as NEXTRA_CALLOUT_TYPES_FROM_ICONS,
@@ -34,11 +36,164 @@ function isComponentEntry(
   return entry.kind === 'component';
 }
 
-function componentKey(entry: ComponentDefinition): ComponentKey {
+function componentKey(
+  entry: Pick<ComponentDefinition, 'framework' | 'name'>
+): ComponentKey {
   return `${entry.framework}:${entry.name}`;
 }
 
 describe('component authoring metadata', () => {
+  it('derives ordered registry identity & metadata keys from one table', () => {
+    const registryIdentities = COMPONENT_REGISTRY.map((entry) => {
+      if (!isComponentEntry(entry)) {
+        return entry;
+      }
+      const { metadata: _metadata, ...identity } = entry;
+      return identity;
+    });
+    const componentIdentities = COMPONENT_IDENTITY_DEFINITIONS.filter(
+      (identity) => identity.kind === 'component'
+    );
+
+    expect(registryIdentities).toEqual(COMPONENT_IDENTITY_DEFINITIONS);
+    expect(Object.keys(COMPONENT_METADATA)).toEqual(
+      componentIdentities.map(componentKey)
+    );
+    expect(Object.isFrozen(COMPONENT_IDENTITY_DEFINITIONS)).toBe(true);
+
+    for (const entry of COMPONENT_REGISTRY) {
+      if (isComponentEntry(entry)) {
+        expect(entry.metadata).toBe(COMPONENT_METADATA[componentKey(entry)]);
+      }
+    }
+
+    for (const identity of componentIdentities) {
+      const aliasDocs = COMPONENT_METADATA[componentKey(identity)].aliasDocs;
+      expect(aliasDocs?.map((alias) => alias.name)).toEqual(
+        identity.aliases.length > 0 ? identity.aliases : undefined
+      );
+    }
+  });
+
+  it('keeps every positional identity paired w/ its summary & props', () => {
+    const identityMetadata = COMPONENT_IDENTITY_DEFINITIONS.filter(
+      (identity) => identity.kind === 'component'
+    ).map((identity) => {
+      const metadata = COMPONENT_METADATA[componentKey(identity)];
+      return [
+        componentKey(identity),
+        metadata.summary,
+        metadata.props.map((prop) => prop.name).join(','),
+      ];
+    });
+
+    expect(identityMetadata).toEqual([
+      [
+        'generic:Callout',
+        'Callout box w/ themed icon + title.',
+        'type,title,icon',
+      ],
+      [
+        'generic:Collapsible',
+        'Expandable section w/ click-to-toggle header.',
+        'title,summary,defaultOpen,open,className',
+      ],
+      [
+        'generic:Tabs',
+        'Tab group. Wrap each panel in <TabItem>.',
+        'defaultValue,values,className,groupId,lazy',
+      ],
+      [
+        'generic:TabItem',
+        'Single tab panel; nest inside <Tabs>.',
+        'label,value,default',
+      ],
+      [
+        'generic:CodeGroup',
+        'Wrap multiple code blocks into a tab group.',
+        'labels',
+      ],
+      [
+        'docusaurus:Tabs',
+        'Docusaurus-flavored tab group; supports groupId sync.',
+        'defaultValue,values,groupId,queryString,lazy',
+      ],
+      ['docusaurus:TabItem', 'Docusaurus tab panel.', 'label,value,default'],
+      [
+        'docusaurus:CodeBlock',
+        'Docusaurus highlighted code block w/ optional title.',
+        'language,title,showLineNumbers',
+      ],
+      [
+        'docusaurus:Details',
+        'Docusaurus disclosure wrapper (renders <details>).',
+        'summary,open',
+      ],
+      ['starlight:Card', 'Starlight card w/ icon + title.', 'title,icon'],
+      ['starlight:CardGrid', 'Responsive grid for Card / LinkCard.', 'stagger'],
+      [
+        'starlight:LinkCard',
+        'Clickable card linking to a destination.',
+        'title,href,description',
+      ],
+      ['starlight:Steps', 'Numbered step list; wrap an <ol>.', ''],
+      ['starlight:Badge', 'Inline status badge.', 'text,variant,size'],
+      [
+        'starlight:Aside',
+        'Starlight aside/admonition; JSX alternative to ::: directives.',
+        'type,title',
+      ],
+      ['starlight:Tabs', 'Starlight tab group.', 'defaultValue,values,syncKey'],
+      ['starlight:TabItem', 'Starlight tab panel.', 'label,value,icon'],
+      ['starlight:FileTree', 'Render a list as a file/directory tree.', ''],
+      [
+        'starlight:Code',
+        'Starlight syntax-highlighted code block.',
+        'code,lang,language,title,frame,showLineNumbers',
+      ],
+      [
+        'nextjs:Image',
+        'Next.js image; preview falls back to <img> (no optimization).',
+        'src,alt,width,height,fill,priority,placeholder,sizes,quality,blurDataURL,unoptimized,loader',
+      ],
+      [
+        'nextjs:Link',
+        'Next.js link; preview renders as <a>.',
+        'href,as,replace,scroll,prefetch,shallow,passHref,locale,legacyBehavior',
+      ],
+      [
+        'nextra:Callout',
+        'Nextra callout; no title, icon comes from `emoji` or type.',
+        'type,emoji',
+      ],
+      [
+        'nextra:Tabs',
+        'Nextra tabs; uses `items` prop + <Tabs.Tab> children.',
+        'items,defaultIndex,selectedIndex,storageKey,onChange,className,tabClassName',
+      ],
+      ['nextra:Cards', 'Nextra card grid.', 'num'],
+      ['nextra:FileTree', 'Nextra file/folder tree.', ''],
+      ['nextra:Steps', 'Nextra numbered steps (wraps heading hierarchy).', ''],
+      ['nextra:Bleed', 'Break out of content width.', 'full'],
+    ]);
+  });
+
+  it('keeps byte-stable public metadata & registry snapshots', () => {
+    const metadataHash = createHash('sha256')
+      .update(JSON.stringify(COMPONENT_METADATA))
+      .digest('hex');
+    const registryHash = createHash('sha256')
+      .update(JSON.stringify(COMPONENT_REGISTRY))
+      .digest('hex');
+
+    expect(metadataHash).toBe(
+      'd416af81080be3e299f0f095c647eee6cba262dc54b6368edd4a1230c63b7ba2'
+    );
+    expect(registryHash).toBe(
+      '1218c3ebfc8a96d64b44f3ebc8715316dd24c4585bdcfbc6cff1def50ac9dd1d'
+    );
+  });
+
   it('covers every component entry and no barrel entries', () => {
     const componentKeys = REGISTRY_ENTRIES.filter(isComponentEntry)
       .map(componentKey)
@@ -123,5 +278,37 @@ describe('component authoring metadata', () => {
     );
     expect(badgeVariant?.values).toEqual(BADGE_VARIANTS);
     expect(BADGE_VARIANTS_FROM_BADGE).toEqual(BADGE_VARIANTS);
+  });
+
+  it('documents framework-specific props beyond the open DOM surface', () => {
+    const starlightTabs = getComponentMetadata('starlight', 'Tabs')?.props.map(
+      (prop) => prop.name
+    );
+    expect(starlightTabs).toEqual(['defaultValue', 'values', 'syncKey']);
+
+    const starlightCode = getComponentMetadata('starlight', 'Code')?.props.map(
+      (prop) => prop.name
+    );
+    expect(starlightCode).toEqual([
+      'code',
+      'lang',
+      'language',
+      'title',
+      'frame',
+      'showLineNumbers',
+    ]);
+
+    const nextLink = getComponentMetadata('nextjs', 'Link');
+    expect(nextLink?.props.find((prop) => prop.name === 'href')?.type).toBe(
+      'union'
+    );
+    expect(nextLink?.props.map((prop) => prop.name)).toContain(
+      'legacyBehavior'
+    );
+
+    const nextImage = getComponentMetadata('nextjs', 'Image');
+    expect(nextImage?.props.find((prop) => prop.name === 'loader')?.type).toBe(
+      'function'
+    );
   });
 });

@@ -1,8 +1,8 @@
 // src/components/starlight/Badge.tsx
-// Starlight Badge component shim for MDX Preview
-// provide preview-compatible version of @astrojs/starlight/components Badge
+// preview-compatible @astrojs/starlight Badge shim
 
-import React, { ReactNode, ReactElement } from 'react';
+import React, { ReactNode, ReactElement, HTMLAttributes } from 'react';
+import { cn } from '../internal/cn';
 import type { BadgeSize, BadgeVariant } from '../internal/metadata';
 
 export {
@@ -13,7 +13,7 @@ export {
 } from '../internal/metadata';
 
 // badge props (compatible w/ Starlight)
-export interface BadgeProps {
+export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   text: ReactNode;
   variant?: BadgeVariant;
   size?: BadgeSize;
@@ -24,10 +24,18 @@ export function Badge({
   text,
   variant = 'default',
   size = 'small',
+  className,
+  ...props
 }: BadgeProps): ReactElement {
   return (
     <span
-      className={`mdx-preview-starlight-badge mdx-preview-starlight-badge-${variant} mdx-preview-starlight-badge-${size}`}
+      {...props}
+      className={cn(
+        'mdx-preview-starlight-badge',
+        `mdx-preview-starlight-badge-${variant}`,
+        `mdx-preview-starlight-badge-${size}`,
+        className
+      )}
     >
       {text}
     </span>

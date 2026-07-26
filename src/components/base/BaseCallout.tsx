@@ -1,7 +1,7 @@
 // src/components/base/BaseCallout.tsx
 // factory for creating framework-specific Callout/Aside components
 
-import React, { ReactNode, ReactElement } from 'react';
+import React, { ReactNode, ReactElement, HTMLAttributes } from 'react';
 import { cn } from '../internal/cn';
 
 // icon source configuration - SVG string or React component
@@ -20,13 +20,14 @@ export interface BaseCalloutConfig<T extends string> {
 }
 
 // common callout props
-export interface BaseCalloutProps<T extends string> {
+export interface BaseCalloutProps<
+  T extends string,
+> extends HTMLAttributes<HTMLElement> {
   children: ReactNode;
   type?: T;
   title?: string;
   // override default icon
   icon?: ReactNode;
-  className?: string;
 }
 
 // render an icon from SVG string
@@ -72,6 +73,7 @@ export function createCallout<T extends string>(
     title,
     icon,
     className,
+    ...props
   }: BaseCalloutProps<T>): ReactElement {
     const effectiveType = (type ?? defaultType) as T;
     const displayTitle = title ?? defaultTitles[effectiveType];
@@ -114,7 +116,11 @@ export function createCallout<T extends string>(
     // header layout (Generic, Starlight)
     if (layout === 'header') {
       return (
-        <aside className={rootClass} data-callout-type={effectiveType}>
+        <aside
+          {...props}
+          className={rootClass}
+          data-callout-type={effectiveType}
+        >
           <div className={`${classPrefix}-header`}>
             {renderIcon()}
             <span className={`${classPrefix}-title`}>{displayTitle}</span>
@@ -126,7 +132,7 @@ export function createCallout<T extends string>(
 
     // inline layout (Nextra)
     return (
-      <aside className={rootClass}>
+      <aside {...props} className={rootClass}>
         {renderIcon()}
         <div className={`${classPrefix}-content`}>{children}</div>
       </aside>

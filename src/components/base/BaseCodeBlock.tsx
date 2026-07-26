@@ -1,7 +1,11 @@
 // src/components/base/BaseCodeBlock.tsx
 // factory for creating code block components (Docusaurus, Starlight, etc.)
 
-import React, { type ReactNode, type ReactElement } from 'react';
+import React, {
+  type HTMLAttributes,
+  type ReactNode,
+  type ReactElement,
+} from 'react';
 import { extractTextContent } from './extractTextContent';
 import { CopyButton } from './CopyButton';
 import { cn } from '../internal/cn';
@@ -23,7 +27,10 @@ interface CodeBlockConfig {
 }
 
 // props for the generated code block component
-interface BaseCodeBlockProps {
+interface BaseCodeBlockProps extends Omit<
+  HTMLAttributes<HTMLPreElement>,
+  'children' | 'title'
+> {
   code?: string;
   children?: ReactNode;
   language?: string;
@@ -62,14 +69,15 @@ export function createCodeBlock(
     frame = 'auto',
     className,
     showLineNumbers,
+    metastring: _metastring,
+    meta: _meta,
+    ...preProps
   }: BaseCodeBlockProps): ReactElement {
     // resolve language (support both `language` & `lang` props)
     const effectiveLanguage = language ?? lang;
 
     // extract code text: from `code` prop if codeAsString, otherwise from children
-    const codeText = codeAsString
-      ? (code ?? '')
-      : extractTextContent(children).trim();
+    const codeText = codeAsString ? (code ?? '') : extractTextContent(children);
 
     // determine effective frame type
     let effectiveFrame: 'code' | 'terminal' | 'none' = 'code';
@@ -133,6 +141,7 @@ export function createCodeBlock(
 
           {/* code block */}
           <pre
+            {...preProps}
             className={combinedPreClass}
             data-show-line-numbers={showLineNumbers}
           >

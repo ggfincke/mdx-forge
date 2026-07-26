@@ -20,8 +20,15 @@ import {
 
 describe('generic components [smoke]', () => {
   it('Callout renders w/ children', () => {
-    const { container } = render(React.createElement(Callout, null, 'Hello'));
+    const { container } = render(
+      React.createElement(
+        Callout,
+        { id: 'generic-callout', 'data-probe': 'callout' },
+        'Hello'
+      )
+    );
     expect(container.textContent).toContain('Hello');
+    expect(container.querySelector('aside')?.id).toBe('generic-callout');
   });
 
   it('Alert alias renders (same as Callout)', () => {
@@ -42,12 +49,22 @@ describe('generic components [smoke]', () => {
     const { container } = render(
       React.createElement(
         Tabs,
-        null,
-        React.createElement(TabItem, { value: 'a', label: 'A' }, 'Content A'),
+        { id: 'generic-tabs' },
+        React.createElement(
+          TabItem,
+          { value: 'a', label: 'A', 'data-panel': 'first' },
+          'Content A'
+        ),
         React.createElement(TabItem, { value: 'b', label: 'B' }, 'Content B')
       )
     );
     expect(container.textContent).toContain('A');
+    expect(container.querySelector('[data-component="tabs"]')?.id).toBe(
+      'generic-tabs'
+    );
+    expect(
+      container.querySelector('[role="tabpanel"]')?.getAttribute('data-panel')
+    ).toBe('first');
   });
 
   it('Tab alias renders (same as TabItem)', () => {
@@ -65,7 +82,7 @@ describe('generic components [smoke]', () => {
     const { container } = render(
       React.createElement(
         CodeGroup,
-        null,
+        { id: 'generic-code-group' },
         React.createElement(
           'pre',
           { title: 'JavaScript' },
@@ -79,13 +96,21 @@ describe('generic components [smoke]', () => {
       )
     );
     expect(container.textContent).toContain('const x = 1;');
+    expect(container.querySelector('.mdx-preview-generic-code-group')?.id).toBe(
+      'generic-code-group'
+    );
   });
 
   it('Collapsible renders w/ title & children', () => {
     const { container } = render(
-      React.createElement(Collapsible, { title: 'Details' }, 'Hidden content')
+      React.createElement(
+        Collapsible,
+        { title: 'Details', id: 'generic-collapsible' },
+        'Hidden content'
+      )
     );
     expect(container.textContent).toContain('Details');
+    expect(container.querySelector('details')?.id).toBe('generic-collapsible');
   });
 
   it('Accordion alias renders (same as Collapsible)', () => {

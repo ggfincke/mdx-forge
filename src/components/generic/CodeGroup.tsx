@@ -1,5 +1,4 @@
 // src/components/generic/CodeGroup.tsx
-// Generic CodeGroup component shim for MDX Preview
 // provide tabbed code blocks w/o framework dependency
 
 import React, {
@@ -11,7 +10,11 @@ import React, {
 import { CodeGroupProps } from './types';
 import { cn } from '../internal/cn';
 import { useIndexTabs } from '../base/useTabState';
-import { useTabListInteraction } from '../base/useTabListInteraction';
+import {
+  TabScaffold,
+  type TabScaffoldButton,
+  type TabScaffoldPanel,
+} from '../base/TabScaffold';
 
 // extract label from code block element
 function extractLabelFromCodeBlock(child: ReactElement): string {
@@ -56,7 +59,12 @@ interface CodeGroupTab {
 }
 
 // render tabbed code blocks from children
-export function CodeGroup({ children, labels }: CodeGroupProps): ReactElement {
+export function CodeGroup({
+  children,
+  labels,
+  className,
+  ...props
+}: CodeGroupProps): ReactElement {
   const childArray = Children.toArray(children).filter(isValidElement);
 
   // extract tabs from children
@@ -69,61 +77,58 @@ export function CodeGroup({ children, labels }: CodeGroupProps): ReactElement {
   // shared index-based tab state (matches base tabs factory)
   const { activeIndex, setActiveIndex } = useIndexTabs({ items: tabs });
 
-  // shared interaction machinery
-  const { tabId, panelId, tabButtonProps } = useTabListInteraction({
-    count: tabs.length,
-    onSelect: setActiveIndex,
-  });
-
   if (tabs.length === 0) {
     return (
-      <div className="mdx-preview-generic-code-group-empty">{children}</div>
+      <div
+        {...props}
+        className={cn('mdx-preview-generic-code-group-empty', className)}
+      >
+        {children}
+      </div>
     );
   }
 
   // if only one code block, just render it directly
   if (tabs.length === 1) {
     return (
-      <div className="mdx-preview-generic-code-group">{tabs[0].content}</div>
+      <div
+        {...props}
+        className={cn('mdx-preview-generic-code-group', className)}
+      >
+        {tabs[0].content}
+      </div>
     );
   }
 
-  return (
-    <div className="mdx-preview-generic-code-group">
-      {/* Tab headers */}
-      <div className="mdx-preview-generic-code-group-header" role="tablist">
-        {tabs.map((tab, index) => (
-          <button
-            key={index}
-            {...tabButtonProps(index, index === activeIndex)}
-            className={cn(
-              'mdx-preview-generic-code-group-button',
-              index === activeIndex && 'active'
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+  const scaffoldButtons: TabScaffoldButton[] = tabs.map((tab, index) => ({
+    key: index,
+    content: tab.label,
+    selected: index === activeIndex,
+    className: cn(
+      'mdx-preview-generic-code-group-button',
+      index === activeIndex && 'active'
+    ),
+  }));
+  const scaffoldPanels: TabScaffoldPanel[] = tabs.map((tab, index) => ({
+    key: index,
+    index,
+    content: tab.content,
+    className: cn(
+      'mdx-preview-generic-code-group-panel',
+      index === activeIndex && 'active'
+    ),
+    hidden: index !== activeIndex,
+  }));
 
-      {/* Tab content */}
-      <div className="mdx-preview-generic-code-group-content">
-        {tabs.map((tab, index) => (
-          <div
-            key={index}
-            id={panelId(index)}
-            role="tabpanel"
-            aria-labelledby={tabId(index)}
-            className={cn(
-              'mdx-preview-generic-code-group-panel',
-              index === activeIndex && 'active'
-            )}
-            hidden={index !== activeIndex}
-          >
-            {tab.content}
-          </div>
-        ))}
-      </div>
+  return (
+    <div {...props} className={cn('mdx-preview-generic-code-group', className)}>
+      <TabScaffold
+        buttons={scaffoldButtons}
+        panels={scaffoldPanels}
+        headerClassName="mdx-preview-generic-code-group-header"
+        contentClassName="mdx-preview-generic-code-group-content"
+        onSelect={setActiveIndex}
+      />
     </div>
   );
 }

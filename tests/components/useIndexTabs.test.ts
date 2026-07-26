@@ -126,6 +126,36 @@ describe('useIndexTabs', () => {
     expect(result.current.activeIndex).toBe(1);
   });
 
+  it('restores again when the storage key changes', () => {
+    storage.setItem('nextra-tabs-first', '1');
+    storage.setItem('nextra-tabs-second', '2');
+    const { result, rerender } = renderHook(
+      ({ storageKey }: { storageKey: string }) =>
+        useIndexTabs({
+          items: ['A', 'B', 'C'],
+          storageKey,
+        }),
+      { initialProps: { storageKey: 'first' } }
+    );
+
+    expect(result.current.activeIndex).toBe(1);
+    rerender({ storageKey: 'second' });
+    expect(result.current.activeIndex).toBe(2);
+  });
+
+  it('retries a stored index when the item set changes', () => {
+    storage.setItem('nextra-tabs-test-tabs', '2');
+    const { result, rerender } = renderHook(
+      ({ items }: { items: string[] }) =>
+        useIndexTabs({ items, storageKey: 'test-tabs' }),
+      { initialProps: { items: ['A', 'B'] } }
+    );
+
+    expect(result.current.activeIndex).toBe(0);
+    rerender({ items: ['A', 'B', 'C'] });
+    expect(result.current.activeIndex).toBe(2);
+  });
+
   it('ignores invalid localStorage value', () => {
     storage.setItem('nextra-tabs-test-tabs', 'garbage');
 

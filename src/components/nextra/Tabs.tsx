@@ -1,20 +1,32 @@
 // src/components/nextra/Tabs.tsx
-// Nextra Tabs shim using createIndexTabs
+// Nextra Tabs shim w/ compound panels & render props
 
-import { ReactNode } from 'react';
-import { createIndexTabs, type IndexTabsProps } from '../base/BaseTabs';
+import { ReactElement } from 'react';
+import {
+  createIndexTabs,
+  type IndexTabPanelProps,
+  type IndexTabsProps,
+} from '../base/BaseTabs';
 
-// tab item can be a string or an object w/ label & other properties
-export type TabItem = string | { label: string; disabled?: boolean };
+export type TabLabel = string | ReactElement;
+export interface TabObjectItem {
+  label: TabLabel;
+  disabled?: boolean;
+}
+export type TabItem = TabLabel | TabObjectItem;
+
+function isTabObjectItem(item: TabItem): item is TabObjectItem {
+  return typeof item === 'object' && 'label' in item;
+}
 
 // helper to get label from TabItem
-function getTabLabel(item: TabItem): string {
-  return typeof item === 'string' ? item : item.label;
+function getTabLabel(item: TabItem): TabLabel {
+  return isTabObjectItem(item) ? item.label : item;
 }
 
 // helper to check if tab is disabled
 function isTabDisabled(item: TabItem): boolean {
-  return typeof item === 'object' && item.disabled === true;
+  return isTabObjectItem(item) && item.disabled === true;
 }
 
 // create Nextra Tabs using factory
@@ -31,9 +43,7 @@ const { Tabs: NextraTabs, TabsContext } = createIndexTabs<TabItem>(
 
 // re-export types for API compatibility
 export type TabsProps = IndexTabsProps<TabItem>;
-export interface TabProps {
-  children: ReactNode;
-}
+export type TabProps = IndexTabPanelProps;
 
 // export Tab subcomponent separately for convenience
 export const Tab = NextraTabs.Tab;

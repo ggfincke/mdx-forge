@@ -3,7 +3,7 @@
 
 // @vitest-environment jsdom
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import React from 'react';
 import { render } from '@testing-library/react';
 import { Link, Image } from '../../src/components/nextjs/index';
@@ -64,6 +64,15 @@ describe('Next.js Link shim', () => {
     const anchor = container.querySelector('a');
     expect(anchor?.getAttribute('target')).toBe('_blank');
   });
+
+  it('keeps non-HTTP URL schemes in the current tab', () => {
+    const { container } = render(
+      React.createElement(Link, { href: 'mailto:docs@example.com' }, 'Email')
+    );
+    const anchor = container.querySelector('a');
+    expect(anchor?.getAttribute('target')).toBeNull();
+    expect(anchor?.getAttribute('rel')).toBeNull();
+  });
 });
 
 describe('Next.js Image shim', () => {
@@ -102,12 +111,44 @@ describe('Next.js Image shim', () => {
         fill: true,
         width: 200,
         height: 100,
+        style: { objectFit: 'contain', opacity: 0.75 },
       })
     );
     const img = container.querySelector('img');
     expect(img?.getAttribute('width')).toBeNull();
     expect(img?.getAttribute('height')).toBeNull();
     expect(img?.style.position).toBe('absolute');
+    expect(img?.style.objectFit).toBe('contain');
+    expect(img?.style.opacity).toBe('0.75');
+  });
+
+  it('uses the custom loader & forwards responsive sizes', () => {
+    const loader = vi.fn(
+      ({ src, width, quality }) =>
+        `/loader?src=${src}&width=${width}&quality=${quality}`
+    );
+    const { container } = render(
+      React.createElement(Image, {
+        src: '/photo.jpg',
+        alt: 'Photo',
+        width: 640,
+        height: 320,
+        quality: 80,
+        sizes: '(max-width: 640px) 100vw, 640px',
+        loader,
+      })
+    );
+    const img = container.querySelector('img');
+
+    expect(loader).toHaveBeenCalledWith({
+      src: '/photo.jpg',
+      width: 640,
+      quality: 80,
+    });
+    expect(img?.getAttribute('src')).toBe(
+      '/loader?src=/photo.jpg&width=640&quality=80'
+    );
+    expect(img?.getAttribute('sizes')).toBe('(max-width: 640px) 100vw, 640px');
   });
 
   it('priority sets loading=eager', () => {

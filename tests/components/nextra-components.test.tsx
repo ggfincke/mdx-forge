@@ -9,12 +9,13 @@ import { render } from '@testing-library/react';
 import { FileTree } from '../../src/components/nextra/FileTree';
 import { Steps } from '../../src/components/nextra/Steps';
 import { Bleed } from '../../src/components/nextra/Bleed';
+import { Callout } from '../../src/components/nextra/Callout';
 
 describe('Nextra FileTree compound statics (F15)', () => {
   it('renders the canonical registry example as a real tree', () => {
     // mirrors component-metadata example for nextra:FileTree
     const { container } = render(
-      <FileTree>
+      <FileTree id="project-tree" className="custom-tree" data-scope="project">
         <FileTree.Folder name="src" defaultOpen>
           <FileTree.File name="index.ts" />
         </FileTree.Folder>
@@ -32,6 +33,23 @@ describe('Nextra FileTree compound statics (F15)', () => {
     expect(
       container.querySelector('.mdx-preview-starlight-file-tree-file')
     ).toBeTruthy();
+    const tree = container.querySelector('ul#project-tree');
+    expect(tree?.classList.contains('custom-tree')).toBe(true);
+    expect(tree?.getAttribute('data-scope')).toBe('project');
+    const nextraWrapper = container.firstElementChild;
+    const sharedTree = nextraWrapper?.firstElementChild;
+    expect(nextraWrapper?.className).toBe('mdx-preview-nextra-file-tree');
+    expect(sharedTree?.className).toBe('mdx-preview-starlight-file-tree');
+    expect(sharedTree?.firstElementChild).toBe(tree);
+    expect(tree?.querySelector(':scope > li')?.className).toBe(
+      'mdx-preview-starlight-file-tree-directory'
+    );
+    expect(
+      details?.querySelector(':scope > summary')?.hasAttribute('class')
+    ).toBe(false);
+    expect(details?.querySelector(':scope > ul > li')?.className).toBe(
+      'mdx-preview-starlight-file-tree-file'
+    );
   });
 
   it('folders are collapsed unless defaultOpen is set', () => {
@@ -61,6 +79,32 @@ describe('Nextra FileTree compound statics (F15)', () => {
     expect(
       container.querySelector('.mdx-preview-starlight-file-tree-file')
     ).toBeTruthy();
+    const nextraWrapper = container.firstElementChild;
+    const sharedTree = nextraWrapper?.firstElementChild;
+    const outputList = sharedTree?.firstElementChild;
+    expect(nextraWrapper?.className).toBe('mdx-preview-nextra-file-tree');
+    expect(sharedTree?.className).toBe('mdx-preview-starlight-file-tree');
+    expect(outputList?.tagName).toBe('UL');
+    expect(outputList?.children).toHaveLength(1);
+    expect(outputList?.firstElementChild?.className).toBe(
+      'mdx-preview-starlight-file-tree-file'
+    );
+    expect(outputList?.querySelectorAll('ul')).toHaveLength(0);
+  });
+});
+
+describe('Nextra Callout unstyled mode', () => {
+  it('keeps type=null free of variant styling & default icons', () => {
+    const { container } = render(
+      <Callout type={null}>Unstyled content</Callout>
+    );
+    const callout = container.querySelector('.mdx-preview-nextra-callout');
+
+    expect(callout?.className).toBe('mdx-preview-nextra-callout');
+    expect(
+      callout?.querySelector('.mdx-preview-nextra-callout-icon')
+    ).toBeNull();
+    expect(callout?.textContent).toContain('Unstyled content');
   });
 });
 

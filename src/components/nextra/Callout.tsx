@@ -1,6 +1,5 @@
 // src/components/nextra/Callout.tsx
-// Nextra Callout component shim for MDX Preview
-// provide preview-compatible version of nextra/components Callout
+// preview-compatible nextra/components Callout shim
 
 import React, { ReactNode, ReactElement, HTMLAttributes } from 'react';
 import { cn } from '../internal/cn';
@@ -46,16 +45,26 @@ export function Callout({
 }: CalloutProps): ReactElement {
   // use emoji as custom icon if provided
   const icon = emoji ?? undefined;
-  const effectiveType = type ?? 'default';
+  const callout =
+    type === null ? (
+      <aside className="mdx-preview-nextra-callout">
+        {emoji !== undefined && emoji !== null && (
+          <span className="mdx-preview-nextra-callout-icon">{emoji}</span>
+        )}
+        <div className="mdx-preview-nextra-callout-content">{children}</div>
+      </aside>
+    ) : (
+      <BaseCallout type={type} icon={icon}>
+        {children}
+      </BaseCallout>
+    );
 
   return (
     <div
       className={cn('mdx-preview-nextra-callout-wrapper', className)}
       {...props}
     >
-      <BaseCallout type={effectiveType} icon={icon}>
-        {children}
-      </BaseCallout>
+      {callout}
     </div>
   );
 }

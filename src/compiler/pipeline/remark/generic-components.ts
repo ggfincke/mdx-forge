@@ -15,11 +15,11 @@ import {
   transformCodeGroup,
 } from '../transforms';
 
-import type { GenericComponentName } from '../../../components/registry/registry-data';
+import type { GenericComponentName } from '../../../components/internal/component-identity';
 import {
   getGenericComponentAliases,
   getGenericComponentSet,
-} from '../../../components/registry/queries';
+} from '../../../components/internal/component-identity-queries';
 
 function getComponentNames(canonical: GenericComponentName): Set<string> {
   return new Set([canonical, ...getGenericComponentAliases(canonical)]);

@@ -37,6 +37,15 @@ describe('Starlight LinkCard (F18)', () => {
     expect(rel).toContain('noreferrer');
   });
 
+  it('treats non-HTTP URL schemes as external', () => {
+    const anchor = anchorFor(
+      <LinkCard title="Email" href="mailto:docs@example.com" />
+    );
+
+    expect(anchor.getAttribute('target')).toBe('_blank');
+    expect(anchor.getAttribute('rel')).toBe('noopener noreferrer');
+  });
+
   it('explicit target wins & rel stays untouched w/o _blank', () => {
     const anchor = anchorFor(
       <LinkCard title="Site" href="https://example.com" target="_self" />

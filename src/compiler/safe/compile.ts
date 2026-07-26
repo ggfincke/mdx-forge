@@ -19,7 +19,7 @@ import {
   warnMarkdownModeIgnoredConfig,
 } from '../pipeline/common/pipeline-warnings';
 import remarkGenericComponents from '../pipeline/remark/generic-components';
-import { isGenericComponent } from '../../components/registry/queries';
+import { isGenericComponent } from '../../components/internal/component-identity-queries';
 import { escapeHtml } from '../pipeline/transforms/utils';
 import { getLogger } from '../internal/logging';
 

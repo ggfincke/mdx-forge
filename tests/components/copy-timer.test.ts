@@ -82,4 +82,30 @@ describe('useCopyToClipboard timers (F19)', () => {
     expect(errorSpy).not.toHaveBeenCalled();
     errorSpy.mockRestore();
   });
+
+  it('ignores a clipboard completion after unmount', async () => {
+    let resolveWrite: (() => void) | undefined;
+    writeText.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        resolveWrite = resolve;
+      })
+    );
+    const { result, unmount } = renderHook(() => useCopyToClipboard());
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    let pendingCopy: Promise<void> | undefined;
+    act(() => {
+      pendingCopy = result.current.copy('late');
+    });
+    unmount();
+
+    await act(async () => {
+      resolveWrite?.();
+      await pendingCopy;
+    });
+
+    expect(vi.getTimerCount()).toBe(0);
+    expect(errorSpy).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
 });

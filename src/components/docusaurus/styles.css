@@ -1,7 +1,7 @@
 /* src/components/docusaurus/styles.css */
-/* Docusaurus component shim styles */
-/* Designed to closely match Docusaurus default styling */
-/* CSS naming convention: mdx-preview-* for generic classes, docusaurus-* for wrapper classes */
+/* style Docusaurus component shims */
+
+@import '../shared/code-block-structure.css';
 
 /* Tokens are imported once by the styles/ framework entry */
 
@@ -85,7 +85,6 @@
 .docusaurus-codeblock {
   margin: var(--mdx-space-lg) 0;
   border-radius: var(--mdx-radius-md);
-  overflow: hidden;
   background-color: var(--vscode-editor-background, #f6f8fa);
   border: 1px solid var(--vscode-panel-border, var(--mdx-border-color));
 }
@@ -103,37 +102,21 @@
   font-family: var(--vscode-editor-font-family, monospace);
 }
 
-.docusaurus-codeblock-container {
-  position: relative;
-}
-
 .docusaurus-codeblock-copy {
-  position: absolute;
   top: var(--mdx-space-sm);
   right: var(--mdx-space-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: 32px;
   height: 32px;
-  padding: 0;
   background-color: var(
     --vscode-button-secondaryBackground,
     rgba(128, 128, 128, 0.2)
   );
   border: none;
   border-radius: var(--mdx-radius-sm);
-  cursor: pointer;
-  opacity: 0;
   transition:
     opacity var(--mdx-transition-normal) ease,
     background-color var(--mdx-transition-normal) ease;
   color: var(--vscode-button-secondaryForeground, var(--mdx-text-primary));
-  z-index: 1;
-}
-
-.docusaurus-codeblock:hover .docusaurus-codeblock-copy {
-  opacity: 1;
 }
 
 .docusaurus-codeblock-copy:hover {
@@ -146,17 +129,13 @@
 .docusaurus-codeblock-copy.copied {
   background-color: var(--vscode-testing-iconPassed, var(--mdx-color-tip));
   color: white;
-  opacity: 1;
 }
 
 .docusaurus-codeblock-lang {
-  position: absolute;
   top: var(--mdx-space-sm);
-  right: 3rem;
   padding: 0.125rem var(--mdx-space-sm);
   font-size: var(--mdx-font-size-xs);
   font-weight: var(--mdx-font-weight-medium);
-  text-transform: uppercase;
   color: var(--vscode-descriptionForeground, var(--mdx-text-secondary));
   background-color: var(--vscode-badge-background, rgba(128, 128, 128, 0.15));
   border-radius: 3px;
@@ -169,9 +148,7 @@
 }
 
 .docusaurus-codeblock pre {
-  margin: 0;
   padding: var(--mdx-space-lg);
-  overflow-x: auto;
   background-color: transparent !important;
   border: none !important;
   border-radius: 0;
@@ -185,7 +162,6 @@
     monospace
   );
   font-size: var(--vscode-editor-font-size, 13px);
-  line-height: 1.5;
 }
 
 /* Line numbers for code blocks */

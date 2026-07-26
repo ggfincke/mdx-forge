@@ -16,10 +16,13 @@ export interface UseCopyToClipboardResult {
 export function useCopyToClipboard(): UseCopyToClipboardResult {
   const [copied, setCopied] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mountedRef = useRef(false);
 
   // clear any pending feedback timer on unmount
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
+      mountedRef.current = false;
       if (timerRef.current !== null) {
         clearTimeout(timerRef.current);
       }
@@ -28,7 +31,7 @@ export function useCopyToClipboard(): UseCopyToClipboardResult {
 
   const copy = useCallback(async (text: string) => {
     const success = await copyToClipboard(text);
-    if (success) {
+    if (success && mountedRef.current) {
       setCopied(true);
       // restart the feedback window on every successful copy
       if (timerRef.current !== null) {

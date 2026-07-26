@@ -41,4 +41,36 @@ describe('components registry exports', () => {
       false
     );
   });
+
+  it('keeps compiler identity consumers off authoring metadata', async () => {
+    const result = await build({
+      absWorkingDir: process.cwd(),
+      bundle: true,
+      entryPoints: [
+        'src/compiler/pipeline/remark/generic-components.ts',
+        'src/compiler/safe/compile.ts',
+        'src/compiler/trusted/component-mapper.ts',
+      ],
+      format: 'esm',
+      logLevel: 'silent',
+      metafile: true,
+      outdir: 'identity-consumers',
+      platform: 'node',
+      write: false,
+    });
+    const inputs = Object.keys(result.metafile?.inputs ?? {});
+
+    expect(inputs).toContain('src/components/internal/component-identity.ts');
+    expect(inputs).toContain(
+      'src/components/internal/component-identity-queries.ts'
+    );
+    expect(inputs).not.toContain(
+      'src/components/registry/component-metadata.ts'
+    );
+    expect(inputs).not.toContain('src/components/registry/registry-data.ts');
+    expect(inputs).not.toContain('src/components/registry/queries.ts');
+    expect(inputs.some((input) => input.includes('node_modules/react'))).toBe(
+      false
+    );
+  });
 });

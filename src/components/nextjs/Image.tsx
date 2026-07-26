@@ -32,10 +32,10 @@ export function Image({
   priority,
   placeholder,
   blurDataURL,
-  loader: _loader,
-  unoptimized: _unoptimized,
-  quality: _quality,
-  sizes: _sizes,
+  loader,
+  unoptimized,
+  quality,
+  sizes,
   className,
   style,
   ...rest
@@ -48,6 +48,19 @@ export function Image({
     width ?? (typeof src === 'object' ? src.width : undefined);
   const actualHeight =
     height ?? (typeof src === 'object' ? src.height : undefined);
+  const numericWidth =
+    typeof actualWidth === 'number'
+      ? actualWidth
+      : actualWidth !== undefined
+        ? Number(actualWidth)
+        : undefined;
+  const loadedSrc =
+    loader &&
+    !unoptimized &&
+    numericWidth !== undefined &&
+    Number.isFinite(numericWidth)
+      ? loader({ src: srcString, width: numericWidth, quality })
+      : srcString;
 
   // fill mode: image fills parent container
   const fillStyles: React.CSSProperties = fill
@@ -59,7 +72,6 @@ export function Image({
         top: 0,
         right: 0,
         bottom: 0,
-        objectFit: 'cover',
       }
     : {};
 
@@ -75,12 +87,13 @@ export function Image({
 
   return (
     <img
-      src={srcString}
+      src={loadedSrc}
       alt={alt}
       width={fill ? undefined : actualWidth}
       height={fill ? undefined : actualHeight}
       loading={priority ? 'eager' : 'lazy'}
       decoding="async"
+      sizes={sizes}
       className={className}
       style={{
         ...fillStyles,
