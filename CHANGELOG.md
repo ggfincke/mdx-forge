@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-07-26
+
+### Added
+
+- **React JSX development runtime preload ID**: `PRELOADED_MODULE_IDS.jsxDevRuntime` gives browser hosts one canonical module identity for dependencies compiled against `react/jsx-dev-runtime`
+
 ## [0.9.0] - 2026-07-26
 
 Carries a broad correctness and performance hardening pass across compiler fidelity, browser module loading, diagnostics, and framework components, alongside canonical component identity and repository-wide quality gates. Hosts should re-check the behavior changes below: browser dependencies now preserve import-vs-require identity, open components forward their documented DOM props, and the nested render plugin now requires `mdx-forge@^0.8.0`.
