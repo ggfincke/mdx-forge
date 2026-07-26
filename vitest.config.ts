@@ -1,12 +1,12 @@
 // vitest.config.ts
 // test runner configuration
 
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath } from 'node:url'
 
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vitest/config'
 
 const localPath = (path: string): string =>
-  fileURLToPath(new URL(path, import.meta.url));
+  fileURLToPath(new URL(path, import.meta.url))
 
 export default defineConfig({
   resolve: {
@@ -23,4 +23,4 @@ export default defineConfig({
     execArgv: ['--no-experimental-webstorage'],
     include: ['tests/**/*.test.{ts,tsx}'],
   },
-});
+})

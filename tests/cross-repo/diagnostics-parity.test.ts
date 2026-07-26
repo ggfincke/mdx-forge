@@ -1,56 +1,60 @@
 // tests/cross-repo/diagnostics-parity.test.ts
 // verify diagnostics contract & classification align across mdx-forge & vsc-mdx-preview
+
 // ! cross-repo parity: mirror vsc tests/shared/diagnostics-parity.test.ts
 
-import { describe, expect, it } from 'vitest';
-import { DIAGNOSTIC_CODES } from '../../src/diagnostics/index';
+import { describe, expect, it } from 'vitest'
+import { DIAGNOSTIC_CODES } from '../../src/diagnostics/index'
 import {
   classifyComponentSource,
   type ClassifyContext,
-} from '../../src/diagnostics/analyze/index';
+} from '../../src/diagnostics/analyze/index'
 
 const EMPTY: Pick<ClassifyContext, 'imports' | 'configComponents'> = {
   imports: new Set<string>(),
   configComponents: new Set<string>(),
-};
+}
 
-describe('cross-repo diagnostics parity', () => {
-  it('pins the unknown-component code to MDXF001', () => {
-    expect(DIAGNOSTIC_CODES.UNKNOWN_COMPONENT).toBe('MDXF001');
-  });
+describe('cross-repo diagnostics parity', () =>
+{
+  it('pins the unknown-component code to MDXF001', () =>
+  {
+    expect(DIAGNOSTIC_CODES.UNKNOWN_COMPONENT).toBe('MDXF001')
+  })
 
-  it('classifies the same inputs to the same component source', () => {
+  it('classifies the same inputs to the same component source', () =>
+  {
     expect(
       classifyComponentSource('Foo', {
         ...EMPTY,
         imports: new Set(['Foo']),
         framework: 'generic',
       })
-    ).toBe('import');
+    ).toBe('import')
     expect(
       classifyComponentSource('Widget', {
         ...EMPTY,
         configComponents: new Set(['Widget']),
         framework: 'generic',
       })
-    ).toBe('config');
+    ).toBe('config')
     expect(
       classifyComponentSource('Callout', { ...EMPTY, framework: 'generic' })
-    ).toBe('builtin');
+    ).toBe('builtin')
     expect(
       classifyComponentSource('Alert', { ...EMPTY, framework: 'generic' })
-    ).toBe('builtin');
+    ).toBe('builtin')
     expect(
       classifyComponentSource('CodeBlock', {
         ...EMPTY,
         framework: 'docusaurus',
       })
-    ).toBe('framework');
+    ).toBe('framework')
     expect(
       classifyComponentSource('CodeBlock', { ...EMPTY, framework: 'generic' })
-    ).toBe('unknown');
+    ).toBe('unknown')
     expect(
       classifyComponentSource('Frobnicate', { ...EMPTY, framework: 'generic' })
-    ).toBe('unknown');
-  });
-});
+    ).toBe('unknown')
+  })
+})
