@@ -25,8 +25,6 @@ const ALL_GENERIC_NAMES: readonly string[] = Object.freeze(
 );
 const GENERIC_NAME_SET: ReadonlySet<string> = new Set(ALL_GENERIC_NAMES);
 const REGISTRY_ENTRIES: readonly ComponentRegistryEntry[] = COMPONENT_REGISTRY;
-const FRAMEWORK_COMPONENTS_BY_ID: Readonly<Record<string, readonly string[]>> =
-  FRAMEWORK_COMPONENTS;
 
 function isComponentEntry(
   entry: ComponentRegistryEntry
@@ -131,7 +129,7 @@ export function isFrameworkComponent(
   framework?: Framework
 ): boolean {
   if (framework) {
-    return FRAMEWORK_COMPONENTS_BY_ID[framework]?.includes(name) ?? false;
+    return FRAMEWORK_COMPONENTS[framework]?.includes(name) ?? false;
   }
 
   for (const components of Object.values(FRAMEWORK_COMPONENTS)) {

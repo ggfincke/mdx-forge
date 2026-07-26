@@ -372,7 +372,6 @@ function resolveLanguageAlias(lang: string): string {
 export default function rehypeShiki() {
   return async (tree: Root) => {
     const nodesToProcess: Array<{
-      node: Element;
       parent: Element;
       index: number;
       lang: string;
@@ -425,7 +424,6 @@ export default function rehypeShiki() {
           : undefined;
 
       nodesToProcess.push({
-        node,
         parent: parent as Element,
         index,
         lang: lang || 'plaintext',

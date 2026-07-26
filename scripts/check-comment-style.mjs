@@ -13,6 +13,7 @@ const SCAN_ENTRIES = [
   'tests',
   'scripts',
   'dev',
+  'skills',
   'plugins/render/src',
   'plugins/render/harness',
   'plugins/render/scripts',

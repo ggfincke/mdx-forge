@@ -1,9 +1,9 @@
 // skills/mdx-forge/examples/framework-shim.tsx
 // using framework component shims in a host React tree
-//
-// every framework subpath has a matching CSS bundle (except nextjs)
-// import the CSS once at app entry — bundlers respect mdx-forge's `sideEffects`
-// declaration so this is the only side-effecting import you need
+
+// every framework subpath has a matching CSS bundle except nextjs
+// import CSS once at app entry; bundlers respect mdx-forge's `sideEffects`
+// declaration, so no other side-effecting import is needed
 
 // generic CSS is required if you use ANY shim — it provides shared tokens
 import 'mdx-forge/components/styles/tokens.css';
@@ -15,7 +15,7 @@ import 'mdx-forge/components/styles/docusaurus.css';
 // import shims from the matching subpath
 import { Tabs, TabItem, CodeBlock } from 'mdx-forge/components/docusaurus';
 
-// generic primitives are also available — useful for Callout / CodeGroup / etc.
+// generic primitives also provide Callout, CodeGroup & others
 import { Callout } from 'mdx-forge/components/generic';
 
 export function Demo() {
@@ -37,14 +37,15 @@ export function Demo() {
   );
 }
 
-// per-framework component inventory:
-// - mdx-forge/components/docusaurus  -> Tabs, TabItem, CodeBlock, Details
-// - mdx-forge/components/starlight   -> Card, CardGrid, LinkCard, Steps,
-//                                       Badge, Aside, Tabs, TabItem,
-//                                       FileTree, Code
-// - mdx-forge/components/nextra      -> Callout, Tabs, Cards, FileTree,
-//                                       Steps, Bleed
-// - mdx-forge/components/nextjs      -> Image, Link
-// - mdx-forge/components/generic     -> Callout, Alert, Admonition,
-//                                       Collapsible, Accordion, Tabs,
-//                                       TabItem, Tab, CodeGroup
+// per-framework component inventory
+// subpaths use `mdx-forge/components/<framework>`
+// docusaurus -> Tabs, TabItem, CodeBlock, Details
+
+// starlight -> Card, CardGrid, LinkCard, Steps, Badge, Aside, Tabs, TabItem,
+// FileTree, Code
+
+// nextra -> Callout, Tabs, Cards, FileTree, Steps, Bleed
+// nextjs -> Image, Link
+
+// generic -> Callout, Alert, Admonition, Collapsible, Accordion, Tabs,
+// TabItem, Tab, CodeGroup

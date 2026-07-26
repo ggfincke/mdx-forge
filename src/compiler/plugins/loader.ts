@@ -150,21 +150,21 @@ export async function loadPluginsFromConfig(
   const logger = getLogger(compilerConfig.logger);
   const loader = compilerConfig.pluginLoader ?? DEFAULT_PLUGIN_LOADER;
 
-  const result: LoadedPlugins = {
+  const emptyResult: LoadedPlugins = {
     remarkPlugins: [],
     rehypePlugins: [],
     errorCount: 0,
   };
 
   if (!config) {
-    return result;
+    return emptyResult;
   }
 
   const { remarkPlugins, rehypePlugins } = config.config;
   const hasPlugins =
     (remarkPlugins?.length ?? 0) + (rehypePlugins?.length ?? 0) > 0;
   if (!hasPlugins) {
-    return result;
+    return emptyResult;
   }
 
   const trusted = requireTrustedMode(
@@ -187,7 +187,7 @@ export async function loadPluginsFromConfig(
   );
 
   if (!trusted) {
-    return result;
+    return emptyResult;
   }
 
   const configDir = config.configDir;
@@ -203,8 +203,6 @@ export async function loadPluginsFromConfig(
     loader,
     logger
   );
-  result.remarkPlugins.push(...loadedRemarkPlugins.plugins);
-  result.errorCount += loadedRemarkPlugins.errorCount;
 
   const loadedRehypePlugins = await loadPluginList(
     rehypePlugins,
@@ -214,8 +212,13 @@ export async function loadPluginsFromConfig(
     loader,
     logger
   );
-  result.rehypePlugins.push(...loadedRehypePlugins.plugins);
-  result.errorCount += loadedRehypePlugins.errorCount;
+
+  const result: LoadedPlugins = {
+    remarkPlugins: loadedRemarkPlugins.plugins,
+    rehypePlugins: loadedRehypePlugins.plugins,
+    errorCount:
+      loadedRemarkPlugins.errorCount + loadedRehypePlugins.errorCount,
+  };
 
   const loadedCount = result.remarkPlugins.length + result.rehypePlugins.length;
   if (loadedCount > 0) {

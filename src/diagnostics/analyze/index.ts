@@ -63,16 +63,12 @@ function analyzeComponent(
   if (source === 'unknown') {
     return analyzeUnknownComponents([component], ctx);
   }
-  if (component.members.length > 0) {
-    // members of imported/config roots are host-owned; skip validation
-    if (source === 'import' || source === 'config') {
-      return [];
-    }
-    const diag = analyzeCompoundMember(component);
-    return diag ? [diag] : [];
-  }
   if (source === 'import' || source === 'config') {
     return [];
+  }
+  if (component.members.length > 0) {
+    const diag = analyzeCompoundMember(component);
+    return diag ? [diag] : [];
   }
   const metadata =
     (ctx.framework !== 'generic'
