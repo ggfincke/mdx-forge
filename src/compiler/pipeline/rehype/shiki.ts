@@ -266,9 +266,9 @@ function parseMeta(meta: string | undefined, lineCount: number): CodeMeta {
   }
 
   // title="..." or title='...'
-  const titleMatch = meta.match(/title=["']([^"']+)["']/);
+  const titleMatch = meta.match(/\btitle=(["'])(.*?)\1/);
   if (titleMatch) {
-    result.title = titleMatch[1];
+    result.title = titleMatch[2];
   }
 
   return result;

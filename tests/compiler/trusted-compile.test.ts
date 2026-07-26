@@ -88,6 +88,36 @@ describe('compileTrusted()', () => {
     expect(result.code).toContain('data-source-line');
   });
 
+  it('maps source lines past frontmatter and injected builtin imports', async () => {
+    const result = await compileTrusted(
+      '---\ntitle: x\n---\n# H',
+      true,
+      createConfig({
+        componentsBuiltins: true,
+        useHostMarkdownStyles: false,
+      })
+    );
+
+    expect(result.code).toContain('import _builtin_');
+    // original-document line contract (BH-FC-2)
+    expect(result.code).toContain('"data-source-line": "4"');
+  });
+
+  it('maps source lines past injected layout wrapping', async () => {
+    const result = await compileTrusted(
+      '---\ntitle: x\n---\n# H',
+      true,
+      createConfig({
+        componentsBuiltins: false,
+        useHostMarkdownStyles: true,
+      })
+    );
+
+    expect(result.code).toContain('vscode-markdown-layout');
+    // original-document line contract (BH-FC-2)
+    expect(result.code).toContain('"data-source-line": "4"');
+  });
+
   it('compiles rich GitHub alert content to JSX', async () => {
     const result = await compileTrusted(
       `> [!NOTE]
@@ -105,6 +135,24 @@ describe('compileTrusted()', () => {
     expect(result.code).toContain('children: "code"');
     expect(result.code).toContain('children: "strong"');
     expect(result.code).not.toContain('[!NOTE]');
+  });
+
+  it('compiles prototype-colliding callout inputs without throwing', async () => {
+    const callout = await compileTrusted(
+      '<Callout type="constructor">body</Callout>',
+      true,
+      createConfig()
+    );
+    const admonition = await compileTrusted(
+      `:::constructor
+body
+:::`,
+      true,
+      createConfig()
+    );
+
+    expect(callout.code).toContain('constructor');
+    expect(admonition.code).toContain('mdx-preview-admonition-note');
   });
 
   // pins: github-alert output classes for all 5 types incl title + content

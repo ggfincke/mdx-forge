@@ -40,6 +40,12 @@ type LayoutResolution =
   | { kind: 'host'; options: string }
   | null;
 
+// derive offsets from the exact prefix so generated import counts can vary
+const prependMdxSource = (mdxText: string, prefix: string) => ({
+  mdxText: prefix + mdxText,
+  prependedLineCount: prefix.split('\n').length - 1,
+});
+
 // resolve which layout applies from config (custom file vs host styles)
 // centralizes the customLayoutFilePath try/catch/warn & useHostMarkdownStyles
 // branching; callers format their own output (source prepend vs js import/expr)
@@ -68,7 +74,7 @@ const resolveLayout = (
 };
 
 // inject MDX layout styles based on configuration
-const injectMDXStyles = (mdxText: string, config: CompilerConfig): string => {
+const injectMDXStyles = (mdxText: string, config: CompilerConfig) => {
   const log = getLogger(config.logger);
   const layout = resolveLayout(config, (err) =>
     log.warn(
@@ -77,21 +83,27 @@ const injectMDXStyles = (mdxText: string, config: CompilerConfig): string => {
   );
 
   if (!layout) {
-    return mdxText;
+    return { mdxText, prependedLineCount: 0 };
   }
 
   if (layout.kind === 'custom') {
-    return `import Layout from ${layout.specifier};
+    return prependMdxSource(
+      mdxText,
+      `import Layout from ${layout.specifier};
 
 export default Layout;
 
-${mdxText}`;
+`
+    );
   }
-  return `import { createLayout } from 'vscode-markdown-layout';
+  return prependMdxSource(
+    mdxText,
+    `import { createLayout } from 'vscode-markdown-layout';
 
 export default createLayout(${layout.options});
 
-${mdxText}`;
+`
+  );
 };
 
 // wrap compiled MDX output (webview owns React root & handles rendering, wrap w/ MDXProvider if components provided)
@@ -216,7 +228,7 @@ export async function compileTrusted(
   const log = getLogger(config.logger);
 
   // extract frontmatter before compilation
-  const { content, frontmatter } = extractFrontmatter(mdxText);
+  const { content, frontmatter, bodyStartLine } = extractFrontmatter(mdxText);
 
   // .md compiles as lenient CommonMark; .mdx parses JSX/ESM
   // markdown mode cannot use ESM, so layout & component injection are mdx-only
@@ -235,11 +247,12 @@ export async function compileTrusted(
     );
   }
 
-  let mdxTextToCompile: string;
+  let mdxTextToCompile = content;
+  let sourceLineOffset = bodyStartLine - 1;
   if (isMdx && !hasDefaultExport(content)) {
-    mdxTextToCompile = injectMDXStyles(content, config);
-  } else {
-    mdxTextToCompile = content;
+    const layoutInjection = injectMDXStyles(content, config);
+    mdxTextToCompile = layoutInjection.mdxText;
+    sourceLineOffset -= layoutInjection.prependedLineCount;
   }
 
   // load custom plugins from config
@@ -285,7 +298,12 @@ export async function compileTrusted(
   // prepend component imports to MDX source (before compilation)
   if (componentImports.hasComponents) {
     log.debug('Prepending component imports to MDX source');
-    mdxTextToCompile = componentImports.imports + '\n\n' + mdxTextToCompile;
+    const componentInjection = prependMdxSource(
+      mdxTextToCompile,
+      componentImports.imports + '\n\n'
+    );
+    mdxTextToCompile = componentInjection.mdxText;
+    sourceLineOffset -= componentInjection.prependedLineCount;
   }
 
   // build plugin pipeline (merges built-in & custom plugins)
@@ -294,21 +312,27 @@ export async function compileTrusted(
     config.diagramBehavior
   );
 
-  const compiled = await compile(mdxTextToCompile, {
-    // lenient CommonMark for .md, strict MDX for .mdx
-    format: documentFormat,
-    outputFormat: 'program',
-    development: false,
-    jsx: false,
-    jsxRuntime: 'automatic',
-    jsxImportSource: 'react',
-    // enable MDXProvider context reading (MDX will call useMDXComponents() to get components)
-    providerImportSource: '@mdx-js/react',
-    // remark plugins: GFM, GitHub alerts, math (shared w/ Safe Mode) & custom
-    remarkPlugins,
-    // rehype plugins: raw HTML, diagram placeholders, math, syntax, anchors, lazy images & custom
-    rehypePlugins,
-  });
+  const compiled = await compile(
+    {
+      value: mdxTextToCompile,
+      data: { sourceLineOffset },
+    },
+    {
+      // lenient CommonMark for .md, strict MDX for .mdx
+      format: documentFormat,
+      outputFormat: 'program',
+      development: false,
+      jsx: false,
+      jsxRuntime: 'automatic',
+      jsxImportSource: 'react',
+      // enable MDXProvider context reading (MDX will call useMDXComponents() to get components)
+      providerImportSource: '@mdx-js/react',
+      // remark plugins: GFM, GitHub alerts, math (shared w/ Safe Mode) & custom
+      remarkPlugins,
+      // rehype plugins: raw HTML, diagram placeholders, math, syntax, anchors, lazy images & custom
+      rehypePlugins,
+    }
+  );
 
   // markdown re-attaches the layout at the JS level; mdx wraps as before
   const code = isMdx

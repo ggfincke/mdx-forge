@@ -81,6 +81,10 @@ export function extractNextraFrontmatter(
     result.description = frontmatter.description;
   }
 
+  if (typeof frontmatter.toc === 'boolean') {
+    result.toc = frontmatter.toc;
+  }
+
   if (
     typeof frontmatter.layout === 'string' &&
     ['default', 'full', 'raw'].includes(frontmatter.layout)

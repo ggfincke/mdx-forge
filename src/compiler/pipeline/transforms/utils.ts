@@ -24,8 +24,7 @@ export function getStaticStringProp(
 }
 
 // extract a static boolean prop from an MDX JSX element
-// support boolean shorthand (e.g., `<Comp open />` = true) & the literal
-// expression forms {true}/{false}; other expressions are ignored
+// support shorthand, React-truthy strings & literal boolean expressions
 export function getStaticBooleanProp(
   node: MdxJsxElement,
   propName: string
@@ -41,13 +40,7 @@ export function getStaticBooleanProp(
     return true;
   }
   if (typeof attr.value === 'string') {
-    if (attr.value === 'true') {
-      return true;
-    }
-    if (attr.value === 'false') {
-      return false;
-    }
-    return undefined;
+    return attr.value.length > 0;
   }
   // literal boolean expressions match the React runtime contract
   if (attr.value && typeof attr.value === 'object') {
@@ -129,6 +122,7 @@ export interface CalloutCardConfig {
   iconClassName?: string;
   icon: string;
   title: string;
+  titleChildren?: RootContent[];
   contentType: string;
   contentClassName: string;
   contentChildren: RootContent[];
@@ -150,7 +144,9 @@ function buildCardHeaderChildren(config: CalloutCardConfig): RootContent[] {
       type: 'html',
       value: `<span class="${config.iconClassName}">${config.icon}</span>`,
     } as RootContent,
-    { type: 'text', value: config.title } as RootContent,
+    ...(config.titleChildren ?? [
+      { type: 'text', value: config.title } as RootContent,
+    ]),
   ];
 }
 

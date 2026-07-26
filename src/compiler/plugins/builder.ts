@@ -51,7 +51,7 @@ export function buildTrustedPluginPipeline(
 
 // get shared remark plugins for Safe Mode (does not support custom plugins)
 export function getSafeRemarkPlugins(): Pluggable[] {
-  return sharedRemarkPlugins;
+  return [...sharedRemarkPlugins];
 }
 
 // get rehype plugins for Safe Mode (fence meta, rehype-raw, diagram, math & post-math)
@@ -68,6 +68,6 @@ export function getSafeRehypePluginSets(diagramBehavior?: DiagramBehavior): {
     raw: [rehypeRawPkg, REHYPE_RAW_CONFIG] as Pluggable,
     preMath: getSharedRehypePluginsPreMath(diagramBehavior),
     math: rehypeKatex,
-    postMath: sharedRehypePluginsPostMath,
+    postMath: [...sharedRehypePluginsPostMath],
   };
 }

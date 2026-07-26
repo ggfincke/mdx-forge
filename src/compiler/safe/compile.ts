@@ -298,13 +298,32 @@ function createFlowPlaceholder(
 
 // create inline placeholder for unknown JSX text element
 function createInlinePlaceholder(
+  node: MdxJsxElement,
   escapedName: string,
   hint: string
-): RootContent {
-  return {
+): RootContent | RootContent[] {
+  const placeholder = {
     type: 'html',
     value: `<span class="${JSX_PLACEHOLDER}" title="JSX component ${hint}">&lt;${escapedName} /&gt;</span>`,
   } as RootContent;
+
+  if (!node.children || node.children.length === 0) {
+    return placeholder;
+  }
+
+  return [
+    placeholder,
+    {
+      type: 'unknownComponentContent' as RootContent['type'],
+      data: {
+        hName: 'span',
+        hProperties: {
+          className: [UNKNOWN_COMPONENT_CONTENT],
+        },
+      },
+      children: node.children,
+    } as RootContent,
+  ];
 }
 
 // create replacement for JSX element based on unknownBehavior
@@ -335,7 +354,7 @@ function createJsxReplacement(
 
       return isFlowElement
         ? createFlowPlaceholder(node, escapedName, hint)
-        : createInlinePlaceholder(escapedName, hint);
+        : createInlinePlaceholder(node, escapedName, hint);
     }
   }
 }
@@ -352,7 +371,7 @@ export async function compileSafe(
     warnIgnoredSafeModeConfig(config.configFile.config, log);
   }
   // extract frontmatter before compilation
-  const { content, frontmatter } = extractFrontmatter(mdxText);
+  const { content, frontmatter, bodyStartLine } = extractFrontmatter(mdxText);
 
   // get configuration for builtins & unknown behavior settings
   const builtinsEnabled = config.componentsBuiltins ?? true;
@@ -412,7 +431,10 @@ export async function compileSafe(
     allowDangerousHtml: true,
   });
 
-  const result = await processor.process(content);
+  const result = await processor.process({
+    value: content,
+    data: { sourceLineOffset: bodyStartLine - 1 },
+  });
 
   return {
     html: String(result),

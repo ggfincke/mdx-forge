@@ -4,6 +4,7 @@
 import { visit } from 'unist-util-visit';
 import type { Root, Element, Text } from 'hast';
 import type { DiagramBehavior } from '../../types';
+import { getSourceLineOffset } from './source-line';
 
 // container modifier & label classes for the visible code fallback
 export const DIAGRAM_CODE_CLASS = 'mdx-diagram-code';
@@ -64,7 +65,7 @@ function matchLanguage(
   return null;
 }
 
-function getSourceLine(node: Element): string | null {
+function getSourceLine(node: Element, sourceLineOffset: number): string | null {
   const fromProperty = node.properties?.['data-source-line'];
   if (typeof fromProperty === 'string' && fromProperty.length > 0) {
     return fromProperty;
@@ -76,7 +77,8 @@ function getSourceLine(node: Element): string | null {
     Number.isFinite(fromPosition) &&
     fromPosition > 0
   ) {
-    return String(fromPosition);
+    const originalLine = fromPosition + sourceLineOffset;
+    return originalLine > 0 ? String(originalLine) : null;
   }
 
   return null;
@@ -113,7 +115,9 @@ export function createDiagramPlaceholder(config: DiagramPlaceholderConfig) {
     options: DiagramPlaceholderOptions = {}
   ) {
     const behavior: DiagramBehavior = options.behavior ?? 'placeholder';
-    return (tree: Root) => {
+    return (tree: Root, file?: { data: object }) => {
+      const sourceLineOffset = getSourceLineOffset(file);
+
       visit(tree, 'element', (node: Element, index, parent) => {
         if (node.tagName !== 'pre') {
           return;
@@ -157,7 +161,7 @@ export function createDiagramPlaceholder(config: DiagramPlaceholderConfig) {
           [config.idAttr]: diagramId,
         };
 
-        const sourceLine = getSourceLine(node);
+        const sourceLine = getSourceLine(node, sourceLineOffset);
         if (sourceLine) {
           properties['data-source-line'] = sourceLine;
         }

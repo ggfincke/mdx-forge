@@ -32,6 +32,7 @@ import {
 
 const parser = unified().use(remarkParse).use(remarkGfm).use(remarkMdx);
 const FORBIDDEN_JSON_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+const UTF8_ENCODER = new TextEncoder();
 
 export async function compileSafeDocument(
   source: string,
@@ -208,7 +209,7 @@ function toSafeJson(
       if (FORBIDDEN_JSON_KEYS.has(key)) {
         return { ok: false, reason: `frontmatter key ${key} is forbidden` };
       }
-      state.bytes += key.length + 4;
+      state.bytes += UTF8_ENCODER.encode(key).byteLength + 4;
       if (state.bytes > MAX_FRONTMATTER_SERIALIZED_BYTES) {
         return frontmatterSizeError();
       }
@@ -226,7 +227,9 @@ function toSafeJson(
 
 function addJsonBytes(state: JsonConversionState, value: unknown): boolean {
   state.bytes +=
-    typeof value === 'string' ? value.length + 2 : String(value).length;
+    typeof value === 'string'
+      ? UTF8_ENCODER.encode(value).byteLength + 2
+      : UTF8_ENCODER.encode(String(value)).byteLength;
   return state.bytes <= MAX_FRONTMATTER_SERIALIZED_BYTES;
 }
 

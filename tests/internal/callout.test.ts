@@ -7,6 +7,8 @@ import {
   isValidCalloutType,
 } from '../../src/internal/callout';
 
+const OBJECT_PROTOTYPE_NAMES = Object.getOwnPropertyNames(Object.prototype);
+
 describe('normalizeCalloutType()', () => {
   it('passes through valid callout types unchanged', () => {
     expect(normalizeCalloutType('note')).toBe('note');
@@ -59,6 +61,12 @@ describe('normalizeCalloutType()', () => {
   it('falls back to note for undefined input', () => {
     expect(normalizeCalloutType(undefined)).toBe('note');
   });
+
+  it('falls back to note for every Object.prototype property name', () => {
+    for (const name of OBJECT_PROTOTYPE_NAMES) {
+      expect(normalizeCalloutType(name), name).toBe('note');
+    }
+  });
 });
 
 describe('isValidCalloutType()', () => {
@@ -84,5 +92,11 @@ describe('isValidCalloutType()', () => {
     expect(isValidCalloutType('unknown')).toBe(false);
     expect(isValidCalloutType('custom')).toBe(false);
     expect(isValidCalloutType('')).toBe(false);
+  });
+
+  it('rejects every Object.prototype property name', () => {
+    for (const name of OBJECT_PROTOTYPE_NAMES) {
+      expect(isValidCalloutType(name), name).toBe(false);
+    }
   });
 });

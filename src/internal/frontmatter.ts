@@ -14,6 +14,7 @@ const FORBIDDEN_FRONTMATTER_KEYS = new Set([
   'constructor',
   'prototype',
 ]);
+const UTF8_ENCODER = new TextEncoder();
 
 // ! thrown deterministically when frontmatter is cyclic or over the caps above
 export class FrontmatterBoundsError extends Error {
@@ -31,9 +32,9 @@ interface NormalizeState {
 // approximate serialized size of a scalar so we can bound projected JSON output
 function scalarBytes(value: unknown): number {
   if (typeof value === 'string') {
-    return value.length + 2;
+    return UTF8_ENCODER.encode(value).byteLength + 2;
   }
-  return String(value).length;
+  return UTF8_ENCODER.encode(String(value)).byteLength;
 }
 
 // deep-clone into plain acyclic data; throw once any bound is exceeded
@@ -97,7 +98,7 @@ function cloneBounded(
       if (FORBIDDEN_FRONTMATTER_KEYS.has(key)) {
         continue;
       }
-      state.bytes += key.length + 4;
+      state.bytes += UTF8_ENCODER.encode(key).byteLength + 4;
       out[key] = cloneBounded(entry, depth + 1, ancestors, state);
     }
     result = out;
@@ -109,10 +110,21 @@ function cloneBounded(
 
 // normalize gray-matter data into bounded acyclic plain data
 export function normalizeFrontmatterData(
-  data: Record<string, unknown>
+  data: unknown
 ): Record<string, unknown> {
   const state: NormalizeState = { nodes: 0, bytes: 0 };
-  return cloneBounded(data, 0, new Set(), state) as Record<string, unknown>;
+  const normalized = cloneBounded(data, 0, new Set(), state);
+  if (
+    normalized === null ||
+    typeof normalized !== 'object' ||
+    Array.isArray(normalized)
+  ) {
+    return {};
+  }
+  const prototype = Object.getPrototypeOf(normalized);
+  return prototype === Object.prototype || prototype === null
+    ? (normalized as Record<string, unknown>)
+    : {};
 }
 
 // parse frontmatter w/o eval before mode-specific normalization
@@ -129,8 +141,6 @@ export function parseRawFrontmatter(input: string) {
 export function safeMatter(input: string) {
   const parsed = parseRawFrontmatter(input);
   // bound the parsed graph so downstream JSON.stringify / consumers stay safe
-  parsed.data = normalizeFrontmatterData(
-    parsed.data as Record<string, unknown>
-  );
+  parsed.data = normalizeFrontmatterData(parsed.data);
   return parsed;
 }

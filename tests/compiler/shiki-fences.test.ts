@@ -75,6 +75,39 @@ describe('fence metadata (F9)', () => {
     expect(result.html).toContain('data-title="example.ts"');
   });
 
+  it('parses the title using its matching quote delimiter', async () => {
+    const apostrophe = await compileSafe(
+      '```ts title="Bob\'s file.ts"\nconst a=1\n```',
+      createConfig()
+    );
+    const doubleQuote = await compileSafe(
+      '```ts title=\'Bob "file".ts\'\nconst a=1\n```',
+      createConfig()
+    );
+
+    // attribute value is entity-encoded; the title div carries the raw text
+    expect(apostrophe.html).toContain('data-title="Bob&#x27;s file.ts"');
+    expect(apostrophe.html).toContain("<div class=\"mdx-preview-codeblock-title\">Bob's file.ts</div>");
+    expect(doubleQuote.html).toContain('data-title=');
+    expect(doubleQuote.html).toContain('Bob "file".ts');
+  });
+
+  it('ignores subtitle & malformed title metadata', async () => {
+    const subtitle = await compileSafe(
+      '```ts subtitle="wrong.ts"\nconst a=1\n```',
+      createConfig()
+    );
+    const malformed = await compileSafe(
+      '```ts title="unfinished.ts\nconst a=1\n```',
+      createConfig()
+    );
+
+    expect(subtitle.html).not.toContain('data-title');
+    expect(subtitle.html).not.toContain('mdx-preview-codeblock-title');
+    expect(malformed.html).not.toContain('data-title');
+    expect(malformed.html).not.toContain('mdx-preview-codeblock-title');
+  });
+
   it('clamps huge ranges to the real line count', async () => {
     const result = await compileSafe(
       '```ts {1-999999999}\nconst a=1\nconst b=2\n```',

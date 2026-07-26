@@ -17,6 +17,13 @@ import type {
 } from '../types';
 import { getPluginName, parsePluginSpec } from './utils';
 
+class InvalidPluginExportError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidPluginExportError';
+  }
+}
+
 function resolvePluginPath(
   pluginName: string,
   configDir: string,
@@ -48,12 +55,16 @@ async function loadPlugin(
 
   try {
     const pluginModule = await loader.load(pluginPath);
-    const pluginRecord = pluginModule as Record<string, unknown>;
+    const pluginRecord =
+      pluginModule !== null &&
+      (typeof pluginModule === 'object' || typeof pluginModule === 'function')
+        ? (pluginModule as Record<string, unknown>)
+        : {};
     const pluginFn =
       pluginRecord.default ?? pluginRecord[pluginName] ?? pluginModule;
 
     if (typeof pluginFn !== 'function') {
-      throw new Error(
+      throw new InvalidPluginExportError(
         `Plugin "${pluginName}" does not export a function. Got: ${typeof pluginFn}`
       );
     }
@@ -62,6 +73,9 @@ async function loadPlugin(
       ? ([pluginFn, pluginOptions] as Pluggable)
       : (pluginFn as Pluggable);
   } catch (error) {
+    if (error instanceof InvalidPluginExportError) {
+      throw error;
+    }
     const message = extractErrorMessage(error);
     throw new Error(`Failed to load plugin "${pluginName}": ${message}`, {
       cause: error,
@@ -113,7 +127,10 @@ async function loadPluginList(
       reportPluginError(
         compilerConfig,
         {
-          code: 'PLUGIN_LOAD_ERROR',
+          code:
+            error instanceof InvalidPluginExportError
+              ? 'PLUGIN_INVALID_EXPORT'
+              : 'PLUGIN_LOAD_ERROR',
           pluginName,
           message: extractErrorMessage(error),
           cause: isError(error) ? error : undefined,
@@ -212,11 +229,8 @@ export async function loadPluginsFromConfig(
 }
 
 export function mergePlugins(
-  builtIn: Pluggable[],
-  custom: Pluggable[]
+  builtIn: readonly Pluggable[],
+  custom: readonly Pluggable[]
 ): Pluggable[] {
-  if (custom.length === 0) {
-    return builtIn;
-  }
   return [...builtIn, ...custom];
 }
