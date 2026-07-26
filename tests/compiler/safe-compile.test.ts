@@ -76,6 +76,28 @@ describe('compileSafe()', () => {
     expect(result.html).not.toContain('mdx-unknown-component');
   });
 
+  it('compacts 1k alternating inline removals w/ byte-equivalent output', async () => {
+    const source = Array.from(
+      { length: 1000 },
+      (_, index) => `kept-${index} <Unknown /> `
+    ).join('');
+    const strippedSource = source.replaceAll('<Unknown />', '');
+    const stripConfig = createConfig({
+      componentsBuiltins: false,
+      componentsUnknownBehavior: 'strip',
+    });
+
+    const [actual, expected] = await Promise.all([
+      compileSafe(source, stripConfig),
+      compileSafe(strippedSource, stripConfig),
+    ]);
+
+    // whitespace text nodes around removed elements survive (same as splice-based removal)
+    expect(actual.html.replace(/\s+(?=<\/p>)/g, '')).toBe(expected.html);
+    expect(actual.html).toContain('kept-999');
+    expect(actual.html).not.toContain('Unknown');
+  });
+
   it('replaces JSX expressions with placeholder', async () => {
     const result = await compileSafe(
       FIXTURES.mdxWithExpression,

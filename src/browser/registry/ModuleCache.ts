@@ -154,10 +154,7 @@ export class ModuleCache {
     let estimatedSize = 0;
     let visitedValues = 0;
 
-    while (
-      pending.length > 0 &&
-      visitedValues < MAX_ESTIMATED_EXPORT_VALUES
-    ) {
+    while (pending.length > 0 && visitedValues < MAX_ESTIMATED_EXPORT_VALUES) {
       const value = pending.pop();
       visitedValues++;
 

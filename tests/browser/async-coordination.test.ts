@@ -211,8 +211,7 @@ describe('cache generations (T3)', () => {
     const freshGate = deferred<FetchResult | undefined>();
     const staleFetcher = vi.fn(() => staleGate.promise);
     const freshFetcher = vi.fn(() => freshGate.promise);
-    const entryCode =
-      'module.exports = { value: require("./dep").value };';
+    const entryCode = 'module.exports = { value: require("./dep").value };';
 
     const staleLoad = loadModule(
       '/entry.js',

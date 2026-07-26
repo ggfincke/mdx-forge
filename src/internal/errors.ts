@@ -23,10 +23,29 @@ export function extractErrorMessage(error: unknown): string {
   return 'Unknown error';
 }
 
-// convert any value to Error
+// extract stack trace from an unknown error value
+function extractErrorStack(error: unknown): string | undefined {
+  if (isError(error)) {
+    return error.stack;
+  }
+  if (error && typeof error === 'object' && 'stack' in error) {
+    const stack = (error as { stack?: unknown }).stack;
+    if (typeof stack === 'string') {
+      return stack;
+    }
+  }
+  return undefined;
+}
+
+// convert any value to Error, preserving Error-like messages & stacks
 export function normalizeError(error: unknown): Error {
   if (isError(error)) {
     return error;
   }
-  return new Error(String(error));
+  const normalized = new Error(extractErrorMessage(error));
+  const stack = extractErrorStack(error);
+  if (stack !== undefined) {
+    normalized.stack = stack;
+  }
+  return normalized;
 }

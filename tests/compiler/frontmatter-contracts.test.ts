@@ -49,11 +49,7 @@ function valueBoundarySource(
   );
 }
 
-function keyBoundarySource(
-  char: string,
-  bytes: number,
-  over: boolean
-): string {
+function keyBoundarySource(char: string, bytes: number, over: boolean): string {
   const entryCount = 512;
   const baseBytes = Array.from(
     { length: entryCount },

@@ -157,9 +157,7 @@ function createGenerationBoundRegistry(
         };
       }
       if (property === 'preloadMany') {
-        return (
-          entries: readonly { id: string; exports: unknown }[]
-        ): void => {
+        return (entries: readonly { id: string; exports: unknown }[]): void => {
           if (target.generation === generation) {
             target.preloadMany(entries);
           }

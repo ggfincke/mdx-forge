@@ -20,6 +20,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    execArgv: ['--no-experimental-webstorage'],
     include: ['tests/**/*.test.{ts,tsx}'],
   },
 });

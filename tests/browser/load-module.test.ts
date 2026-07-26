@@ -152,12 +152,7 @@ describe('loadModule', () => {
     try {
       await expect(
         Promise.race([
-          loadModule(
-            '/a.js',
-            'module.exports = {};',
-            ['./b', './c'],
-            fetcher
-          ),
+          loadModule('/a.js', 'module.exports = {};', ['./b', './c'], fetcher),
           timeoutGuard,
         ])
       ).rejects.toMatchObject({

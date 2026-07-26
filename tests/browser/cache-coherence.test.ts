@@ -115,12 +115,7 @@ describe('module dependency cache coherence (T2)', () => {
       'module.exports = { value: b.value + c.value };',
     ].join('\n');
 
-    const module = await loadModule(
-      '/entry.js',
-      code,
-      ['./b', './c'],
-      fetcher
-    );
+    const module = await loadModule('/entry.js', code, ['./b', './c'], fetcher);
 
     expect(module.exports).toEqual({ value: 'bc' });
     expect(registry.has('/b.js')).toBe(true);

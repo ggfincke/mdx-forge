@@ -325,20 +325,21 @@ async function fetchDependency(
 
   if (!inFlight) {
     const semaphore = getFetchSemaphore();
-    let promise!: Promise<FetchResult | undefined>;
-    promise = (async (): Promise<FetchResult | undefined> => {
+    // identity-compare the record so the finally only clears its own entry
+    const record = {} as InFlightFetch;
+    record.promise = (async (): Promise<FetchResult | undefined> => {
       await semaphore.acquire();
       try {
         return await fetcher(dep, isBare, parentId);
       } finally {
-        if (inFlightFetches.get(inFlightKey)?.promise === promise) {
+        if (inFlightFetches.get(inFlightKey) === record) {
           inFlightFetches.delete(inFlightKey);
         }
         semaphore.release();
       }
     })();
-    inFlight = { promise };
-    inFlightFetches.set(inFlightKey, inFlight);
+    inFlight = record;
+    inFlightFetches.set(inFlightKey, record);
   }
 
   return { dep, result: await inFlight.promise };

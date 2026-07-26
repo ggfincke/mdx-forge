@@ -89,25 +89,19 @@ describe('same-entry evaluation transactions', () => {
   });
 
   it('reuses a resolved direct dependency on same-entry evaluation', async () => {
-    const fetcher = vi.fn(
-      async (): Promise<FetchResult | undefined> => ({
-        fsPath: '/dep.js',
-        code: 'module.exports = { value: "v1" };',
-        dependencies: [],
-      })
-    );
+    const fetcher = vi.fn(async (): Promise<FetchResult | undefined> => ({
+      fsPath: '/dep.js',
+      code: 'module.exports = { value: "v1" };',
+      dependencies: [],
+    }));
     setModuleFetcher(fetcher);
 
-    const first = await evaluateModuleToComponent(
-      ENTRY_CODE,
-      '/entry.mdx',
-      ['./dep']
-    );
-    const second = await evaluateModuleToComponent(
-      ENTRY_CODE,
-      '/entry.mdx',
-      ['./dep']
-    );
+    const first = await evaluateModuleToComponent(ENTRY_CODE, '/entry.mdx', [
+      './dep',
+    ]);
+    const second = await evaluateModuleToComponent(ENTRY_CODE, '/entry.mdx', [
+      './dep',
+    ]);
 
     expect(first()).toBe('v1');
     expect(second()).toBe('v1');
@@ -116,20 +110,16 @@ describe('same-entry evaluation transactions', () => {
 
   it('cascades dependency invalidation and fetches the replacement once', async () => {
     let version = 'v1';
-    const fetcher = vi.fn(
-      async (): Promise<FetchResult | undefined> => ({
-        fsPath: '/dep.js',
-        code: `module.exports = { value: "${version}" };`,
-        dependencies: [],
-      })
-    );
+    const fetcher = vi.fn(async (): Promise<FetchResult | undefined> => ({
+      fsPath: '/dep.js',
+      code: `module.exports = { value: "${version}" };`,
+      dependencies: [],
+    }));
     setModuleFetcher(fetcher);
 
-    const first = await evaluateModuleToComponent(
-      ENTRY_CODE,
-      '/entry.mdx',
-      ['./dep']
-    );
+    const first = await evaluateModuleToComponent(ENTRY_CODE, '/entry.mdx', [
+      './dep',
+    ]);
     expect(first()).toBe('v1');
 
     version = 'v2';
@@ -137,11 +127,9 @@ describe('same-entry evaluation transactions', () => {
       new Set(['/dep.js', '/entry.mdx'])
     );
 
-    const second = await evaluateModuleToComponent(
-      ENTRY_CODE,
-      '/entry.mdx',
-      ['./dep']
-    );
+    const second = await evaluateModuleToComponent(ENTRY_CODE, '/entry.mdx', [
+      './dep',
+    ]);
     expect(second()).toBe('v2');
     expect(fetcher).toHaveBeenCalledTimes(2);
   });

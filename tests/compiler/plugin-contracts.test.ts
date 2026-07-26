@@ -1,5 +1,5 @@
 // tests/compiler/plugin-contracts.test.ts
-// regression coverage for plugin list isolation & load error classification
+// plugin list isolation, cached loading, & load error classification
 
 import { describe, expect, it } from 'vitest';
 import { compileSafe, compileTrusted } from '../../src/compiler';
@@ -9,6 +9,7 @@ import {
   getSafeRemarkPlugins,
 } from '../../src/compiler/plugins/builder';
 import {
+  clearPluginLoadCache,
   loadPluginsFromConfig,
   mergePlugins,
 } from '../../src/compiler/plugins/loader';
@@ -82,9 +83,7 @@ describe('plugin array isolation', () => {
 
     buildTrustedRemarkPlugins(emptyPlugins).splice(0);
 
-    expect(buildTrustedRemarkPlugins(emptyPlugins)).toHaveLength(
-      remarkCount
-    );
+    expect(buildTrustedRemarkPlugins(emptyPlugins)).toHaveLength(remarkCount);
     const result = await compileTrusted('# Heading', true, compilerConfig());
     expect(result.code).toContain('data-source-line');
   });
@@ -120,29 +119,119 @@ describe('plugin load errors', () => {
         load: () => ({ default: 42 }),
       },
     },
-  ] as const)('reports $failure failures as $expectedCode', async ({
-    expectedCode,
-    loader,
-  }) => {
-    const errors: PluginLoadError[] = [];
-    const config: ResolvedConfig = {
-      config: { remarkPlugins: ['test-plugin'] },
-      configPath: '/workspace/.mdx-previewrc.json',
-      configDir: '/workspace',
-    };
+  ] as const)(
+    'reports $failure failures as $expectedCode',
+    async ({ expectedCode, loader }) => {
+      const errors: PluginLoadError[] = [];
+      const config: ResolvedConfig = {
+        config: { remarkPlugins: ['test-plugin'] },
+        configPath: '/workspace/.mdx-previewrc.json',
+        configDir: '/workspace',
+      };
 
-    const result = await loadPluginsFromConfig(
-      config,
-      compilerConfig({
-        pluginLoader: loader as PluginLoader,
-        errorReporter: {
-          reportPluginError: (error) => errors.push(error),
+      const result = await loadPluginsFromConfig(
+        config,
+        compilerConfig({
+          pluginLoader: loader as PluginLoader,
+          errorReporter: {
+            reportPluginError: (error) => errors.push(error),
+          },
+        })
+      );
+
+      expect(result.errorCount).toBe(1);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe(expectedCode);
+    }
+  );
+});
+
+describe('plugin load cache', () => {
+  it('loads delayed specs concurrently once & replays ordered results', async () => {
+    clearPluginLoadCache();
+    try {
+      const plugins = {
+        first: (() => undefined) as Pluggable,
+        third: (() => undefined) as Pluggable,
+      };
+      const delays: Record<string, number> = {
+        first: 40,
+        second: 5,
+        third: 30,
+        fourth: 1,
+      };
+      const loadCalls: string[] = [];
+      const completions: string[] = [];
+      const loader: PluginLoader = {
+        resolve: (name) => `/workspace/${name}.js`,
+        load: async (resolvedPath) => {
+          const name = resolvedPath
+            .slice(resolvedPath.lastIndexOf('/') + 1)
+            .replace(/\.js$/, '');
+          loadCalls.push(name);
+          await new Promise((resolve) => setTimeout(resolve, delays[name]));
+          completions.push(name);
+          if (name === 'second') {
+            return { default: 42 };
+          }
+          if (name === 'fourth') {
+            throw new Error('delayed failure');
+          }
+          return {
+            default: plugins[name as keyof typeof plugins],
+          };
         },
-      })
-    );
+      };
+      const config: ResolvedConfig = {
+        config: {
+          remarkPlugins: ['first', 'second', 'third', 'fourth'],
+        },
+        configPath: '/workspace/.mdx-previewrc.json',
+        configDir: '/workspace',
+      };
+      const firstErrors: PluginLoadError[] = [];
+      const secondErrors: PluginLoadError[] = [];
 
-    expect(result.errorCount).toBe(1);
-    expect(errors).toHaveLength(1);
-    expect(errors[0].code).toBe(expectedCode);
+      const first = await loadPluginsFromConfig(
+        config,
+        compilerConfig({
+          pluginLoader: loader,
+          errorReporter: {
+            reportPluginError: (error) => firstErrors.push(error),
+          },
+        })
+      );
+      const second = await loadPluginsFromConfig(
+        config,
+        compilerConfig({
+          pluginLoader: loader,
+          errorReporter: {
+            reportPluginError: (error) => secondErrors.push(error),
+          },
+        })
+      );
+
+      expect(loadCalls).toEqual(['first', 'second', 'third', 'fourth']);
+      expect(completions).toEqual(['fourth', 'second', 'third', 'first']);
+      expect(first.remarkPlugins).toEqual([plugins.first, plugins.third]);
+      expect(second.remarkPlugins).toEqual([plugins.first, plugins.third]);
+      expect(second.remarkPlugins).not.toBe(first.remarkPlugins);
+      expect(first.errorCount).toBe(2);
+      expect(second.errorCount).toBe(2);
+      expect(
+        firstErrors.map(({ pluginName, code }) => [pluginName, code])
+      ).toEqual([
+        ['second', 'PLUGIN_INVALID_EXPORT'],
+        ['fourth', 'PLUGIN_LOAD_ERROR'],
+      ]);
+      expect(
+        secondErrors.map(({ pluginName, code }) => [pluginName, code])
+      ).toEqual([
+        ['second', 'PLUGIN_INVALID_EXPORT'],
+        ['fourth', 'PLUGIN_LOAD_ERROR'],
+      ]);
+    } finally {
+      clearPluginLoadCache();
+    }
   });
 });

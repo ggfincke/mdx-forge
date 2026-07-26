@@ -87,7 +87,9 @@ describe('fence metadata (F9)', () => {
 
     // attribute value is entity-encoded; the title div carries the raw text
     expect(apostrophe.html).toContain('data-title="Bob&#x27;s file.ts"');
-    expect(apostrophe.html).toContain("<div class=\"mdx-preview-codeblock-title\">Bob's file.ts</div>");
+    expect(apostrophe.html).toContain(
+      '<div class="mdx-preview-codeblock-title">Bob\'s file.ts</div>'
+    );
     expect(doubleQuote.html).toContain('data-title=');
     expect(doubleQuote.html).toContain('Bob "file".ts');
   });

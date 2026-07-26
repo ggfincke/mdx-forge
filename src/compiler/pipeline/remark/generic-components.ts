@@ -15,9 +15,7 @@ import {
   transformCodeGroup,
 } from '../transforms';
 
-import type {
-  GenericComponentName,
-} from '../../../components/registry/registry-data';
+import type { GenericComponentName } from '../../../components/registry/registry-data';
 import {
   getGenericComponentAliases,
   getGenericComponentSet,
