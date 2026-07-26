@@ -1,111 +1,130 @@
 // tests/components/copy-timer.test.ts
-// T5: copy feedback timers restart & never outlive the component (F19)
+// t5: copy feedback timers restart & never outlive the component (F19)
 
 // @vitest-environment jsdom
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import { useCopyToClipboard } from '../../src/components/base/useCopyToClipboard';
-import { CODE_COPY_FEEDBACK_DURATION_MS } from '../../src/components/internal/constants';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { renderHook, act } from '@testing-library/react'
+import { useCopyToClipboard } from '../../src/components/base/useCopyToClipboard'
+import { CODE_COPY_FEEDBACK_DURATION_MS } from '../../src/components/internal/constants'
 
-let writeText: ReturnType<typeof vi.fn>;
+let writeText: ReturnType<typeof vi.fn>
 
-beforeEach(() => {
-  vi.useFakeTimers();
-  writeText = vi.fn().mockResolvedValue(undefined);
+beforeEach(() =>
+{
+  vi.useFakeTimers()
+  writeText = vi.fn().mockResolvedValue(undefined)
   Object.defineProperty(navigator, 'clipboard', {
     value: { writeText },
     configurable: true,
-  });
-});
+  })
+})
 
-afterEach(() => {
-  vi.useRealTimers();
-});
+afterEach(() =>
+{
+  vi.useRealTimers()
+})
 
-describe('useCopyToClipboard timers (F19)', () => {
-  it('a rapid second copy restarts the feedback window', async () => {
-    const { result } = renderHook(() => useCopyToClipboard());
+describe('useCopyToClipboard timers (F19)', () =>
+{
+  it('a rapid second copy restarts the feedback window', async () =>
+  {
+    const { result } = renderHook(() => useCopyToClipboard())
 
-    await act(async () => {
-      await result.current.copy('one');
-    });
-    expect(result.current.copied).toBe(true);
+    await act(async () =>
+    {
+      await result.current.copy('one')
+    })
+    expect(result.current.copied).toBe(true)
 
     // second copy before the first window elapses
-    await act(async () => {
-      vi.advanceTimersByTime(CODE_COPY_FEEDBACK_DURATION_MS - 500);
-      await result.current.copy('two');
-    });
+    await act(async () =>
+    {
+      vi.advanceTimersByTime(CODE_COPY_FEEDBACK_DURATION_MS - 500)
+      await result.current.copy('two')
+    })
 
     // past the first timer's original deadline: feedback must survive
-    await act(async () => {
-      vi.advanceTimersByTime(600);
-    });
-    expect(result.current.copied).toBe(true);
+    await act(async () =>
+    {
+      vi.advanceTimersByTime(600)
+    })
+    expect(result.current.copied).toBe(true)
 
     // full window after the second copy: feedback clears
-    await act(async () => {
-      vi.advanceTimersByTime(CODE_COPY_FEEDBACK_DURATION_MS);
-    });
-    expect(result.current.copied).toBe(false);
-  });
+    await act(async () =>
+    {
+      vi.advanceTimersByTime(CODE_COPY_FEEDBACK_DURATION_MS)
+    })
+    expect(result.current.copied).toBe(false)
+  })
 
-  it('a failed copy sets no feedback & no timer', async () => {
-    writeText.mockRejectedValueOnce(new Error('denied'));
-    const { result } = renderHook(() => useCopyToClipboard());
+  it('a failed copy sets no feedback & no timer', async () =>
+  {
+    writeText.mockRejectedValueOnce(new Error('denied'))
+    const { result } = renderHook(() => useCopyToClipboard())
 
-    await act(async () => {
-      await result.current.copy('nope');
-    });
+    await act(async () =>
+    {
+      await result.current.copy('nope')
+    })
 
-    expect(result.current.copied).toBe(false);
-    expect(vi.getTimerCount()).toBe(0);
-  });
+    expect(result.current.copied).toBe(false)
+    expect(vi.getTimerCount()).toBe(0)
+  })
 
-  it('unmount clears the pending timer', async () => {
-    const { result, unmount } = renderHook(() => useCopyToClipboard());
+  it('unmount clears the pending timer', async () =>
+  {
+    const { result, unmount } = renderHook(() => useCopyToClipboard())
 
-    await act(async () => {
-      await result.current.copy('bye');
-    });
-    expect(vi.getTimerCount()).toBe(1);
+    await act(async () =>
+    {
+      await result.current.copy('bye')
+    })
+    expect(vi.getTimerCount()).toBe(1)
 
-    unmount();
-    expect(vi.getTimerCount()).toBe(0);
+    unmount()
+    expect(vi.getTimerCount()).toBe(0)
 
     // advancing past the window must not warn about unmounted state updates
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    await act(async () => {
-      vi.advanceTimersByTime(CODE_COPY_FEEDBACK_DURATION_MS + 100);
-    });
-    expect(errorSpy).not.toHaveBeenCalled();
-    errorSpy.mockRestore();
-  });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() =>
+    {})
+    await act(async () =>
+    {
+      vi.advanceTimersByTime(CODE_COPY_FEEDBACK_DURATION_MS + 100)
+    })
+    expect(errorSpy).not.toHaveBeenCalled()
+    errorSpy.mockRestore()
+  })
 
-  it('ignores a clipboard completion after unmount', async () => {
-    let resolveWrite: (() => void) | undefined;
+  it('ignores a clipboard completion after unmount', async () =>
+  {
+    let resolveWrite: (() => void) | undefined
     writeText.mockReturnValueOnce(
-      new Promise<void>((resolve) => {
-        resolveWrite = resolve;
+      new Promise<void>((resolve) =>
+      {
+        resolveWrite = resolve
       })
-    );
-    const { result, unmount } = renderHook(() => useCopyToClipboard());
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    )
+    const { result, unmount } = renderHook(() => useCopyToClipboard())
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() =>
+    {})
 
-    let pendingCopy: Promise<void> | undefined;
-    act(() => {
-      pendingCopy = result.current.copy('late');
-    });
-    unmount();
+    let pendingCopy: Promise<void> | undefined
+    act(() =>
+    {
+      pendingCopy = result.current.copy('late')
+    })
+    unmount()
 
-    await act(async () => {
-      resolveWrite?.();
-      await pendingCopy;
-    });
+    await act(async () =>
+    {
+      resolveWrite?.()
+      await pendingCopy
+    })
 
-    expect(vi.getTimerCount()).toBe(0);
-    expect(errorSpy).not.toHaveBeenCalled();
-    errorSpy.mockRestore();
-  });
-});
+    expect(vi.getTimerCount()).toBe(0)
+    expect(errorSpy).not.toHaveBeenCalled()
+    errorSpy.mockRestore()
+  })
+})

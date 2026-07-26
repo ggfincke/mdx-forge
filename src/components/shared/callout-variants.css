@@ -7,14 +7,16 @@
 
 /* Note / Info - Blue */
 [data-callout-type='note'],
-[data-callout-type='info'] {
+[data-callout-type='info']
+{
   --callout-color: var(--mdx-color-note);
   --callout-bg: rgba(var(--mdx-color-note-rgb), var(--mdx-alpha-subtle));
 }
 
 /* Tip / Success - Green */
 [data-callout-type='tip'],
-[data-callout-type='success'] {
+[data-callout-type='success']
+{
   --callout-color: var(--mdx-color-tip);
   --callout-bg: rgba(var(--mdx-color-tip-rgb), var(--mdx-alpha-subtle));
 }
@@ -22,20 +24,23 @@
 /* Warning / Caution / Warn - Amber */
 [data-callout-type='warning'],
 [data-callout-type='caution'],
-[data-callout-type='warn'] {
+[data-callout-type='warn']
+{
   --callout-color: var(--mdx-color-warning);
   --callout-bg: rgba(var(--mdx-color-warning-rgb), var(--mdx-alpha-subtle));
 }
 
 /* Danger / Error - Red */
 [data-callout-type='danger'],
-[data-callout-type='error'] {
+[data-callout-type='error']
+{
   --callout-color: var(--mdx-color-danger);
   --callout-bg: rgba(var(--mdx-color-danger-rgb), var(--mdx-alpha-subtle));
 }
 
 /* Important - Purple */
-[data-callout-type='important'] {
+[data-callout-type='important']
+{
   --callout-color: var(--mdx-color-important);
   --callout-bg: rgba(var(--mdx-color-important-rgb), var(--mdx-alpha-subtle));
 }
@@ -43,7 +48,8 @@
 /* Summary / Abstract / TL;DR - Cyan */
 [data-callout-type='summary'],
 [data-callout-type='abstract'],
-[data-callout-type='tldr'] {
+[data-callout-type='tldr']
+{
   --callout-color: var(--mdx-color-summary);
   --callout-bg: rgba(var(--mdx-color-summary-rgb), var(--mdx-alpha-subtle));
 }
@@ -51,7 +57,8 @@
 /* Question / Help / FAQ - Lime */
 [data-callout-type='question'],
 [data-callout-type='help'],
-[data-callout-type='faq'] {
+[data-callout-type='faq']
+{
   --callout-color: var(--mdx-color-question);
   --callout-bg: rgba(var(--mdx-color-question-rgb), var(--mdx-alpha-subtle));
 }
@@ -59,51 +66,59 @@
 /* Failure / Fail / Missing - Red */
 [data-callout-type='failure'],
 [data-callout-type='fail'],
-[data-callout-type='missing'] {
+[data-callout-type='missing']
+{
   --callout-color: var(--mdx-color-failure);
   --callout-bg: rgba(var(--mdx-color-failure-rgb), var(--mdx-alpha-subtle));
 }
 
 /* Example / Snippet - Cyan */
 [data-callout-type='example'],
-[data-callout-type='snippet'] {
+[data-callout-type='snippet']
+{
   --callout-color: var(--mdx-color-example);
   --callout-bg: rgba(var(--mdx-color-example-rgb), var(--mdx-alpha-subtle));
 }
 
 /* Quote / Cite - Gray */
 [data-callout-type='quote'],
-[data-callout-type='cite'] {
+[data-callout-type='cite']
+{
   --callout-color: var(--mdx-color-quote);
   --callout-bg: rgba(var(--mdx-color-quote-rgb), var(--mdx-alpha-subtle));
 }
 
 /* Bug - Dark Red */
-[data-callout-type='bug'] {
+[data-callout-type='bug']
+{
   --callout-color: var(--mdx-color-bug);
   --callout-bg: rgba(var(--mdx-color-bug-rgb), var(--mdx-alpha-subtle));
 }
 
 /* Todo - Light Blue */
-[data-callout-type='todo'] {
+[data-callout-type='todo']
+{
   --callout-color: var(--mdx-color-todo);
   --callout-bg: rgba(var(--mdx-color-todo-rgb), var(--mdx-alpha-subtle));
 }
 
 /* Hint - Teal (alias for tip) */
-[data-callout-type='hint'] {
+[data-callout-type='hint']
+{
   --callout-color: var(--mdx-color-tip);
   --callout-bg: rgba(var(--mdx-color-tip-rgb), var(--mdx-alpha-subtle));
 }
 
 /* Attention - Amber (alias for warning) */
-[data-callout-type='attention'] {
+[data-callout-type='attention']
+{
   --callout-color: var(--mdx-color-warning);
   --callout-bg: rgba(var(--mdx-color-warning-rgb), var(--mdx-alpha-subtle));
 }
 
 /* ==================== Keyboard Accessibility ==================== */
-[data-callout-type]:focus-within {
+[data-callout-type]:focus-within
+{
   outline: 2px solid
     var(--vscode-focusBorder, var(--callout-color, var(--mdx-link-color)));
   outline-offset: 1px;
@@ -112,67 +127,83 @@
 /* ==================== Utility Classes ==================== */
 /* For frameworks that need class-based color application */
 
-.mdx-callout-note {
+.mdx-callout-note
+{
   --callout-color: var(--mdx-color-note);
   --callout-bg: rgba(var(--mdx-color-note-rgb), var(--mdx-alpha-subtle));
 }
-.mdx-callout-info {
+.mdx-callout-info
+{
   --callout-color: var(--mdx-color-info);
   --callout-bg: rgba(var(--mdx-color-info-rgb), var(--mdx-alpha-subtle));
 }
-.mdx-callout-tip {
+.mdx-callout-tip
+{
   --callout-color: var(--mdx-color-tip);
   --callout-bg: rgba(var(--mdx-color-tip-rgb), var(--mdx-alpha-subtle));
 }
-.mdx-callout-success {
+.mdx-callout-success
+{
   --callout-color: var(--mdx-color-success);
   --callout-bg: rgba(var(--mdx-color-success-rgb), var(--mdx-alpha-subtle));
 }
-.mdx-callout-warning {
+.mdx-callout-warning
+{
   --callout-color: var(--mdx-color-warning);
   --callout-bg: rgba(var(--mdx-color-warning-rgb), var(--mdx-alpha-subtle));
 }
-.mdx-callout-caution {
+.mdx-callout-caution
+{
   --callout-color: var(--mdx-color-caution);
   --callout-bg: rgba(var(--mdx-color-caution-rgb), var(--mdx-alpha-subtle));
 }
-.mdx-callout-danger {
+.mdx-callout-danger
+{
   --callout-color: var(--mdx-color-danger);
   --callout-bg: rgba(var(--mdx-color-danger-rgb), var(--mdx-alpha-subtle));
 }
-.mdx-callout-error {
+.mdx-callout-error
+{
   --callout-color: var(--mdx-color-error);
   --callout-bg: rgba(var(--mdx-color-error-rgb), var(--mdx-alpha-subtle));
 }
-.mdx-callout-important {
+.mdx-callout-important
+{
   --callout-color: var(--mdx-color-important);
   --callout-bg: rgba(var(--mdx-color-important-rgb), var(--mdx-alpha-subtle));
 }
-.mdx-callout-summary {
+.mdx-callout-summary
+{
   --callout-color: var(--mdx-color-summary);
   --callout-bg: rgba(var(--mdx-color-summary-rgb), var(--mdx-alpha-subtle));
 }
-.mdx-callout-question {
+.mdx-callout-question
+{
   --callout-color: var(--mdx-color-question);
   --callout-bg: rgba(var(--mdx-color-question-rgb), var(--mdx-alpha-subtle));
 }
-.mdx-callout-failure {
+.mdx-callout-failure
+{
   --callout-color: var(--mdx-color-failure);
   --callout-bg: rgba(var(--mdx-color-failure-rgb), var(--mdx-alpha-subtle));
 }
-.mdx-callout-example {
+.mdx-callout-example
+{
   --callout-color: var(--mdx-color-example);
   --callout-bg: rgba(var(--mdx-color-example-rgb), var(--mdx-alpha-subtle));
 }
-.mdx-callout-quote {
+.mdx-callout-quote
+{
   --callout-color: var(--mdx-color-quote);
   --callout-bg: rgba(var(--mdx-color-quote-rgb), var(--mdx-alpha-subtle));
 }
-.mdx-callout-bug {
+.mdx-callout-bug
+{
   --callout-color: var(--mdx-color-bug);
   --callout-bg: rgba(var(--mdx-color-bug-rgb), var(--mdx-alpha-subtle));
 }
-.mdx-callout-todo {
+.mdx-callout-todo
+{
   --callout-color: var(--mdx-color-todo);
   --callout-bg: rgba(var(--mdx-color-todo-rgb), var(--mdx-alpha-subtle));
 }

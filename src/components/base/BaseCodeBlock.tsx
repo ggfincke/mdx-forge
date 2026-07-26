@@ -5,60 +5,63 @@ import React, {
   type HTMLAttributes,
   type ReactNode,
   type ReactElement,
-} from 'react';
-import { extractTextContent } from './extractTextContent';
-import { CopyButton } from './CopyButton';
-import { cn } from '../internal/cn';
+} from 'react'
+import { extractTextContent } from './extractTextContent'
+import { CopyButton } from './CopyButton'
+import { cn } from '../internal/cn'
 
 // frame types for code blocks
-type FrameType = 'code' | 'terminal' | 'none' | 'auto';
+type FrameType = 'code' | 'terminal' | 'none' | 'auto'
 
 // configuration for the code block factory
-interface CodeBlockConfig {
-  classPrefix: string;
+interface CodeBlockConfig
+{
+  classPrefix: string
   // use `code` prop vs extracting from children
-  codeAsString?: boolean;
+  codeAsString?: boolean
   // terminal/code/none frame support
-  supportsFrames?: boolean;
+  supportsFrames?: boolean
   // auto-terminal detection languages
-  terminalLanguages?: Set<string>;
+  terminalLanguages?: Set<string>
   // show lang badge w/ title bar
-  showLangBadgeWithTitle?: boolean;
+  showLangBadgeWithTitle?: boolean
 }
 
 // props for the generated code block component
 interface BaseCodeBlockProps extends Omit<
   HTMLAttributes<HTMLPreElement>,
   'children' | 'title'
-> {
-  code?: string;
-  children?: ReactNode;
-  language?: string;
+>
+{
+  code?: string
+  children?: ReactNode
+  language?: string
   // alias for language
-  lang?: string;
-  title?: string;
-  frame?: FrameType;
-  className?: string;
-  showLineNumbers?: boolean;
+  lang?: string
+  title?: string
+  frame?: FrameType
+  className?: string
+  showLineNumbers?: boolean
   // compatibility props
-  metastring?: string;
-  meta?: string;
+  metastring?: string
+  meta?: string
 }
 
 // export props type for consumers
-export type { BaseCodeBlockProps };
+export type { BaseCodeBlockProps }
 
 // create code block component w/ given configuration
 export function createCodeBlock(
   config: CodeBlockConfig
-): React.FC<BaseCodeBlockProps> {
+): React.FC<BaseCodeBlockProps>
+{
   const {
     classPrefix,
     codeAsString = false,
     supportsFrames = false,
     terminalLanguages,
     showLangBadgeWithTitle = false,
-  } = config;
+  } = config
 
   return function CodeBlock({
     code,
@@ -72,42 +75,47 @@ export function createCodeBlock(
     metastring: _metastring,
     meta: _meta,
     ...preProps
-  }: BaseCodeBlockProps): ReactElement {
+  }: BaseCodeBlockProps): ReactElement
+  {
     // resolve language (support both `language` & `lang` props)
-    const effectiveLanguage = language ?? lang;
+    const effectiveLanguage = language ?? lang
 
     // extract code text: from `code` prop if codeAsString, otherwise from children
-    const codeText = codeAsString ? (code ?? '') : extractTextContent(children);
+    const codeText = codeAsString ? (code ?? '') : extractTextContent(children)
 
     // determine effective frame type
-    let effectiveFrame: 'code' | 'terminal' | 'none' = 'code';
-    if (supportsFrames) {
-      if (frame === 'auto') {
+    let effectiveFrame: 'code' | 'terminal' | 'none' = 'code'
+    if (supportsFrames)
+    {
+      if (frame === 'auto')
+      {
         effectiveFrame =
           effectiveLanguage &&
           terminalLanguages?.has(effectiveLanguage.toLowerCase())
             ? 'terminal'
-            : 'code';
-      } else {
-        effectiveFrame = frame;
+            : 'code'
+      }
+      else
+      {
+        effectiveFrame = frame
       }
     }
 
     // build class names
-    const langClass = effectiveLanguage ? `language-${effectiveLanguage}` : '';
-    const combinedPreClass = cn(langClass, className);
+    const langClass = effectiveLanguage ? `language-${effectiveLanguage}` : ''
+    const combinedPreClass = cn(langClass, className)
     const frameClass =
       supportsFrames && effectiveFrame !== 'none'
         ? `${classPrefix}-${effectiveFrame}`
-        : '';
-    const wrapperClass = cn(classPrefix, frameClass);
+        : ''
+    const wrapperClass = cn(classPrefix, frameClass)
 
     // determine if language badge should be shown
     const showLanguageBadge =
       effectiveLanguage &&
       (showLangBadgeWithTitle ||
         !supportsFrames ||
-        (effectiveFrame === 'code' && !title));
+        (effectiveFrame === 'code' && !title))
 
     return (
       <div className={wrapperClass}>
@@ -151,6 +159,6 @@ export function createCodeBlock(
           </pre>
         </div>
       </div>
-    );
-  };
+    )
+  }
 }

@@ -1,42 +1,48 @@
 // src/internal/frontmatter.ts
 // parse & extract no-eval frontmatter into bounded plain data
 
-import matter from 'gray-matter';
-import { isReservedObjectKey } from './object-key';
-import { bodyOriginForContent, type SourceOrigin } from './source-position';
+import matter from 'gray-matter'
+import { isReservedObjectKey } from './object-key'
+import { bodyOriginForContent, type SourceOrigin } from './source-position'
 
 // bounds for normalized frontmatter; reject graphs that exceed any of them
 // depth guards deep alias nesting; nodes/bytes guard exponential alias fan-out
-export const MAX_FRONTMATTER_DEPTH = 8;
-export const MAX_FRONTMATTER_NODES = 5000;
-export const MAX_FRONTMATTER_SERIALIZED_BYTES = 256 * 1024;
-const UTF8_ENCODER = new TextEncoder();
+export const MAX_FRONTMATTER_DEPTH = 8
+export const MAX_FRONTMATTER_NODES = 5000
+export const MAX_FRONTMATTER_SERIALIZED_BYTES = 256 * 1024
+const UTF8_ENCODER = new TextEncoder()
 
 // ! thrown deterministically when frontmatter is cyclic or over the caps above
-export class FrontmatterBoundsError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'FrontmatterBoundsError';
+export class FrontmatterBoundsError extends Error
+{
+  constructor(message: string)
+  {
+    super(message)
+    this.name = 'FrontmatterBoundsError'
   }
 }
 
-interface NormalizeState {
-  nodes: number;
-  bytes: number;
+interface NormalizeState
+{
+  nodes: number
+  bytes: number
 }
 
-export interface ExtractedFrontmatter {
-  content: string;
-  frontmatter: Record<string, unknown>;
-  bodyOrigin: SourceOrigin;
+export interface ExtractedFrontmatter
+{
+  content: string
+  frontmatter: Record<string, unknown>
+  bodyOrigin: SourceOrigin
 }
 
 // approximate serialized size of a scalar so we can bound projected JSON output
-function scalarBytes(value: unknown): number {
-  if (typeof value === 'string') {
-    return UTF8_ENCODER.encode(value).byteLength + 2;
+function scalarBytes(value: unknown): number
+{
+  if (typeof value === 'string')
+  {
+    return UTF8_ENCODER.encode(value).byteLength + 2
   }
-  return UTF8_ENCODER.encode(String(value)).byteLength;
+  return UTF8_ENCODER.encode(String(value)).byteLength
 }
 
 // deep-clone into plain acyclic data; throw once any bound is exceeded
@@ -46,126 +52,146 @@ function cloneBounded(
   depth: number,
   ancestors: Set<object>,
   state: NormalizeState
-): unknown {
-  if (value === null || typeof value !== 'object') {
-    state.nodes++;
-    state.bytes += scalarBytes(value);
-    if (state.nodes > MAX_FRONTMATTER_NODES) {
+): unknown
+{
+  if (value === null || typeof value !== 'object')
+  {
+    state.nodes++
+    state.bytes += scalarBytes(value)
+    if (state.nodes > MAX_FRONTMATTER_NODES)
+    {
       throw new FrontmatterBoundsError(
         `frontmatter exceeds ${MAX_FRONTMATTER_NODES} nodes; refusing to expand YAML aliases`
-      );
+      )
     }
-    if (state.bytes > MAX_FRONTMATTER_SERIALIZED_BYTES) {
+    if (state.bytes > MAX_FRONTMATTER_SERIALIZED_BYTES)
+    {
       throw new FrontmatterBoundsError(
         `frontmatter projected size exceeds ${MAX_FRONTMATTER_SERIALIZED_BYTES} bytes; refusing to expand YAML aliases`
-      );
+      )
     }
-    return value;
+    return value
   }
 
-  if (value instanceof Date) {
-    state.nodes++;
-    state.bytes += 24;
-    return value;
+  if (value instanceof Date)
+  {
+    state.nodes++
+    state.bytes += 24
+    return value
   }
 
-  if (depth > MAX_FRONTMATTER_DEPTH) {
+  if (depth > MAX_FRONTMATTER_DEPTH)
+  {
     throw new FrontmatterBoundsError(
       `frontmatter nesting exceeds depth ${MAX_FRONTMATTER_DEPTH}`
-    );
+    )
   }
 
-  const container = value as object;
-  if (ancestors.has(container)) {
+  const container = value as object
+  if (ancestors.has(container))
+  {
     throw new FrontmatterBoundsError(
       'frontmatter contains a cyclic reference (YAML alias loop)'
-    );
+    )
   }
-  ancestors.add(container);
-  state.nodes++;
-  if (state.nodes > MAX_FRONTMATTER_NODES) {
+  ancestors.add(container)
+  state.nodes++
+  if (state.nodes > MAX_FRONTMATTER_NODES)
+  {
     throw new FrontmatterBoundsError(
       `frontmatter exceeds ${MAX_FRONTMATTER_NODES} nodes; refusing to expand YAML aliases`
-    );
+    )
   }
 
-  let result: unknown;
-  if (Array.isArray(value)) {
+  let result: unknown
+  if (Array.isArray(value))
+  {
     result = value.map((entry) =>
       cloneBounded(entry, depth + 1, ancestors, state)
-    );
-  } else {
-    const out: Record<string, unknown> = {};
-    for (const [key, entry] of Object.entries(value)) {
-      if (isReservedObjectKey(key)) {
-        continue;
+    )
+  }
+  else
+  {
+    const out: Record<string, unknown> = {}
+    for (const [key, entry] of Object.entries(value))
+    {
+      if (isReservedObjectKey(key))
+      {
+        continue
       }
-      state.bytes += UTF8_ENCODER.encode(key).byteLength + 4;
-      out[key] = cloneBounded(entry, depth + 1, ancestors, state);
+      state.bytes += UTF8_ENCODER.encode(key).byteLength + 4
+      out[key] = cloneBounded(entry, depth + 1, ancestors, state)
     }
-    result = out;
+    result = out
   }
 
-  ancestors.delete(container);
-  return result;
+  ancestors.delete(container)
+  return result
 }
 
 // normalize gray-matter data into bounded acyclic plain data
 export function normalizeFrontmatterData(
   data: unknown
-): Record<string, unknown> {
-  const state: NormalizeState = { nodes: 0, bytes: 0 };
-  const normalized = cloneBounded(data, 0, new Set(), state);
+): Record<string, unknown>
+{
+  const state: NormalizeState = { nodes: 0, bytes: 0 }
+  const normalized = cloneBounded(data, 0, new Set(), state)
   if (
     normalized === null ||
     typeof normalized !== 'object' ||
     Array.isArray(normalized)
-  ) {
-    return {};
+  )
+  {
+    return {}
   }
-  const prototype = Object.getPrototypeOf(normalized);
+  const prototype = Object.getPrototypeOf(normalized)
   return prototype === Object.prototype || prototype === null
     ? (normalized as Record<string, unknown>)
-    : {};
+    : {}
 }
 
 // parse frontmatter w/o eval before mode-specific normalization
-export function parseRawFrontmatter(input: string) {
+export function parseRawFrontmatter(input: string)
+{
   return matter(input, {
     engines: {
       javascript: () => ({}),
     },
-  });
+  })
 }
 
 // neutralize gray-matter's default `javascript` engine (runs eval) w/ a no-op
 // covers `---js` & `---javascript` fences (engine aliases js -> javascript)
-export function safeMatter(input: string) {
-  const parsed = parseRawFrontmatter(input);
+export function safeMatter(input: string)
+{
+  const parsed = parseRawFrontmatter(input)
   // bound the parsed graph so downstream JSON.stringify / consumers stay safe
-  parsed.data = normalizeFrontmatterData(parsed.data);
-  return parsed;
+  parsed.data = normalizeFrontmatterData(parsed.data)
+  return parsed
 }
 
 // extract normalized frontmatter & retain the original body origin
-export function extractFrontmatter(input: string): ExtractedFrontmatter {
-  const source = typeof input === 'string' ? input : String(input);
-  return toExtractedFrontmatter(source, safeMatter(source));
+export function extractFrontmatter(input: string): ExtractedFrontmatter
+{
+  const source = typeof input === 'string' ? input : String(input)
+  return toExtractedFrontmatter(source, safeMatter(source))
 }
 
 // preserve raw YAML keys for structured JSON validation
-export function extractRawFrontmatter(input: string): ExtractedFrontmatter {
-  const source = typeof input === 'string' ? input : String(input);
-  return toExtractedFrontmatter(source, parseRawFrontmatter(source));
+export function extractRawFrontmatter(input: string): ExtractedFrontmatter
+{
+  const source = typeof input === 'string' ? input : String(input)
+  return toExtractedFrontmatter(source, parseRawFrontmatter(source))
 }
 
 function toExtractedFrontmatter(
   source: string,
   parsed: ReturnType<typeof safeMatter>
-): ExtractedFrontmatter {
+): ExtractedFrontmatter
+{
   return {
     content: parsed.content,
     frontmatter: parsed.data as Record<string, unknown>,
     bodyOrigin: bodyOriginForContent(source, parsed.content),
-  };
+  }
 }

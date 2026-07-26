@@ -1,25 +1,26 @@
 // src/components/nextjs/Image.tsx
 // shim for next/image - provide basic image rendering w/o Next.js optimization
 
-import { ImgHTMLAttributes } from 'react';
+import { ImgHTMLAttributes } from 'react'
 
 // Next.js Image component props subset (relevant props for preview)
 export interface ImageProps extends Omit<
   ImgHTMLAttributes<HTMLImageElement>,
   'src' | 'srcSet' | 'ref' | 'width' | 'height' | 'loading'
-> {
-  src: string | { src: string; height?: number; width?: number };
-  alt: string;
-  width?: number | string;
-  height?: number | string;
-  fill?: boolean;
-  quality?: number;
-  priority?: boolean;
-  placeholder?: 'blur' | 'empty';
-  blurDataURL?: string;
-  loader?: (props: { src: string; width: number; quality?: number }) => string;
-  unoptimized?: boolean;
-  sizes?: string;
+>
+{
+  src: string | { src: string; height?: number; width?: number }
+  alt: string
+  width?: number | string
+  height?: number | string
+  fill?: boolean
+  quality?: number
+  priority?: boolean
+  placeholder?: 'blur' | 'empty'
+  blurDataURL?: string
+  loader?: (props: { src: string; width: number; quality?: number }) => string
+  unoptimized?: boolean
+  sizes?: string
 }
 
 // render image w/o Next.js optimization
@@ -39,28 +40,28 @@ export function Image({
   className,
   style,
   ...rest
-}: ImageProps) {
+}: ImageProps)
+{
   // extract actual src string
-  const srcString = typeof src === 'string' ? src : src.src;
+  const srcString = typeof src === 'string' ? src : src.src
 
   // extract dimensions from src object if not provided
-  const actualWidth =
-    width ?? (typeof src === 'object' ? src.width : undefined);
+  const actualWidth = width ?? (typeof src === 'object' ? src.width : undefined)
   const actualHeight =
-    height ?? (typeof src === 'object' ? src.height : undefined);
+    height ?? (typeof src === 'object' ? src.height : undefined)
   const numericWidth =
     typeof actualWidth === 'number'
       ? actualWidth
       : actualWidth !== undefined
         ? Number(actualWidth)
-        : undefined;
+        : undefined
   const loadedSrc =
     loader &&
     !unoptimized &&
     numericWidth !== undefined &&
     Number.isFinite(numericWidth)
       ? loader({ src: srcString, width: numericWidth, quality })
-      : srcString;
+      : srcString
 
   // fill mode: image fills parent container
   const fillStyles: React.CSSProperties = fill
@@ -73,7 +74,7 @@ export function Image({
         right: 0,
         bottom: 0,
       }
-    : {};
+    : {}
 
   // blur placeholder
   const placeholderStyles: React.CSSProperties =
@@ -83,7 +84,7 @@ export function Image({
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }
-      : {};
+      : {}
 
   return (
     <img
@@ -102,7 +103,7 @@ export function Image({
       }}
       {...rest}
     />
-  );
+  )
 }
 
-export default Image;
+export default Image

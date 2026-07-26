@@ -1,5 +1,6 @@
 // src/components/starlight/Tabs.tsx
-// Starlight Tabs/TabItem component shim for MDX Preview
+// starlight Tabs/TabItem component shim for MDX Preview
+
 // syncKey-synced tab groups w/ optional TabItem icons
 
 import {
@@ -7,14 +8,14 @@ import {
   type BaseTabsProps,
   type TabDefinition,
   type TabItemProps as BaseTabItemProps,
-} from '../base';
-import { resolveStarlightIcon } from './icon-map';
+} from '../base'
+import { resolveStarlightIcon } from './icon-map'
 
 // starlight surface: syncKey sync/persistence; no groupId/queryString/lazy
-export type TabsProps = Omit<BaseTabsProps, 'groupId' | 'queryString' | 'lazy'>;
+export type TabsProps = Omit<BaseTabsProps, 'groupId' | 'queryString' | 'lazy'>
 // starlight TabItem supports label, value, default & icon
-export type TabItemProps = BaseTabItemProps;
-export type { TabDefinition };
+export type TabItemProps = BaseTabItemProps
+export type { TabDefinition }
 
 // create Starlight-compatible tabs using the factory
 // syncKey selections sync across groups & persist via localStorage
@@ -26,7 +27,7 @@ const { Tabs, TabItem, useTabsContext, TabsContext } = createTabs({
   groupStoragePrefix: 'starlight-synced-tabs__',
   renderTabIcon: resolveStarlightIcon,
   contextName: 'StarlightTabs',
-});
+})
 
-export { Tabs, TabItem, useTabsContext, TabsContext };
-export default Tabs;
+export { Tabs, TabItem, useTabsContext, TabsContext }
+export default Tabs

@@ -1,7 +1,7 @@
 // skills/mdx-forge/examples/safe-compile.ts
 // minimal compileSafe end-to-end: MDX text -> static HTML
 
-import { compileSafe } from 'mdx-forge/compiler';
+import { compileSafe } from 'mdx-forge/compiler'
 
 const source = `---
 title: Hello
@@ -13,7 +13,7 @@ This is **MDX**, rendered via \`compileSafe()\`.
 
 > [!NOTE]
 > Unknown JSX components & expressions become inert placeholders in Safe Mode.
-`;
+`
 
 const { html, frontmatter } = await compileSafe(source, {
   // documentPath anchors any relative-import resolution
@@ -24,8 +24,8 @@ const { html, frontmatter } = await compileSafe(source, {
 
   // optional: enable transformation of known generic components (default true)
   componentsBuiltins: true,
-});
+})
 
-console.log('frontmatter:', frontmatter);
-console.log('html length:', html.length);
-console.log(html);
+console.log('frontmatter:', frontmatter)
+console.log('html length:', html.length)
+console.log(html)

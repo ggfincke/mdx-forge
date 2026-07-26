@@ -10,23 +10,23 @@ codegen tooling.
 
 ## Exports
 
-| Symbol                          | Kind     | Brief                                          |
-| ------------------------------- | -------- | ---------------------------------------------- |
-| `loadPluginsFromConfig`         | function | Resolve & load plugins from a `ResolvedConfig` |
-| `mergePlugins`                  | function | Concat built-in + custom plugin arrays         |
-| `parsePluginSpec`               | function | Split `PluginSpec` → `{ name, options }`       |
-| `getPluginName`                 | function | Extract just the plugin name from a spec       |
-| `buildTrustedPluginPipeline`    | function | Assemble Trusted Mode remark + rehype phases   |
-| `buildTrustedRemarkPlugins`     | function | Just the Trusted Mode remark phase             |
-| `buildTrustedRehypePlugins`     | function | Just the Trusted Mode rehype phase             |
-| `getSafeRemarkPlugins`          | function | Safe Mode remark plugins (shared subset)       |
-| `getSafeRehypePluginSets`       | function | Safe Mode rehype plugin sets (split for raw/math) |
-| `REHYPE_RAW_CONFIG`             | const    | Default `rehype-raw` config                    |
+| Symbol                       | Kind     | Brief                                             |
+| ---------------------------- | -------- | ------------------------------------------------- |
+| `loadPluginsFromConfig`      | function | Resolve & load plugins from a `ResolvedConfig`    |
+| `mergePlugins`               | function | Concat built-in + custom plugin arrays            |
+| `parsePluginSpec`            | function | Split `PluginSpec` → `{ name, options }`          |
+| `getPluginName`              | function | Extract just the plugin name from a spec          |
+| `buildTrustedPluginPipeline` | function | Assemble Trusted Mode remark + rehype phases      |
+| `buildTrustedRemarkPlugins`  | function | Just the Trusted Mode remark phase                |
+| `buildTrustedRehypePlugins`  | function | Just the Trusted Mode rehype phase                |
+| `getSafeRemarkPlugins`       | function | Safe Mode remark plugins (shared subset)          |
+| `getSafeRehypePluginSets`    | function | Safe Mode rehype plugin sets (split for raw/math) |
+| `REHYPE_RAW_CONFIG`          | const    | Default `rehype-raw` config                       |
 
 ## `PluginSpec` — what users author
 
 ```ts
-type PluginSpec = string | [string, Record<string, unknown>];
+type PluginSpec = string | [string, Record<string, unknown>]
 ```
 
 Two valid shapes:
@@ -47,25 +47,20 @@ work.
 
 ```ts
 interface MdxPreviewConfig {
-  remarkPlugins?: PluginSpec[];
-  rehypePlugins?: PluginSpec[];
-  components?: ComponentMapping;          // name → import path
+  remarkPlugins?: PluginSpec[]
+  rehypePlugins?: PluginSpec[]
+  components?: ComponentMapping // name → import path
 }
 
-type ComponentMapping = Record<string, string>;
+type ComponentMapping = Record<string, string>
 ```
 
 Example:
 
 ```json
 {
-  "remarkPlugins": [
-    "remark-toc",
-    ["remark-frontmatter", { "type": "yaml" }]
-  ],
-  "rehypePlugins": [
-    "rehype-prism-plus"
-  ],
+  "remarkPlugins": ["remark-toc", ["remark-frontmatter", { "type": "yaml" }]],
+  "rehypePlugins": ["rehype-prism-plus"],
   "components": {
     "MyChart": "./src/components/MyChart.tsx",
     "Callout": "@mdx-preview/shims/docusaurus/Callout"
@@ -75,26 +70,26 @@ Example:
 
 The full `.mdx-previewrc.json` schema may have additional fields layered
 on by consumers (e.g., vsc-mdx-preview adds settings like `safeMode`,
-`framework`, etc.) — `MdxPreviewConfig` is the *compiler-relevant subset*.
+`framework`, etc.) — `MdxPreviewConfig` is the _compiler-relevant subset_.
 
 ## `loadPluginsFromConfig(config, compilerConfig)`
 
 ```ts
 function loadPluginsFromConfig(
   config: ResolvedConfig | undefined,
-  compilerConfig: CompilerConfig,
-): Promise<LoadedPlugins>;
+  compilerConfig: CompilerConfig
+): Promise<LoadedPlugins>
 
 interface ResolvedConfig {
-  config: MdxPreviewConfig;
-  configPath: string;       // absolute path to the config file
-  configDir: string;        // dirname of the config file
+  config: MdxPreviewConfig
+  configPath: string // absolute path to the config file
+  configDir: string // dirname of the config file
 }
 
 interface LoadedPlugins {
-  remarkPlugins: Pluggable[];
-  rehypePlugins: Pluggable[];
-  errorCount: number;
+  remarkPlugins: Pluggable[]
+  rehypePlugins: Pluggable[]
+  errorCount: number
 }
 ```
 
@@ -118,21 +113,21 @@ vs `compileTrusted` that decide.)
 ## `mergePlugins(builtIn, custom)`
 
 ```ts
-function mergePlugins(builtIn: Pluggable[], custom: Pluggable[]): Pluggable[];
+function mergePlugins(builtIn: Pluggable[], custom: Pluggable[]): Pluggable[]
 ```
 
 Returns `builtIn` unchanged if `custom.length === 0`, else concatenates
-`[...builtIn, ...custom]`. Custom plugins always run *after* built-ins.
+`[...builtIn, ...custom]`. Custom plugins always run _after_ built-ins.
 
 ## `parsePluginSpec(spec)` / `getPluginName(spec)`
 
 ```ts
 function parsePluginSpec(spec: PluginSpec): {
-  name: string;
-  options: Record<string, unknown> | undefined;
-};
+  name: string
+  options: Record<string, unknown> | undefined
+}
 
-function getPluginName(spec: PluginSpec): string;
+function getPluginName(spec: PluginSpec): string
 ```
 
 Utility splitters. `parsePluginSpec(['remark-toc', { tight: true }])` →
@@ -144,17 +139,17 @@ returns the name.
 ```ts
 function buildTrustedPluginPipeline(
   custom: LoadedPlugins,
-  diagramBehavior?: DiagramBehavior,
+  diagramBehavior?: DiagramBehavior
 ): {
-  remarkPlugins: Pluggable[];
-  rehypePlugins: Pluggable[];
-};
+  remarkPlugins: Pluggable[]
+  rehypePlugins: Pluggable[]
+}
 
-function buildTrustedRemarkPlugins(custom: LoadedPlugins): Pluggable[];
+function buildTrustedRemarkPlugins(custom: LoadedPlugins): Pluggable[]
 function buildTrustedRehypePlugins(
   custom: LoadedPlugins,
-  diagramBehavior?: DiagramBehavior,
-): Pluggable[];
+  diagramBehavior?: DiagramBehavior
+): Pluggable[]
 ```
 
 These assemble the full Trusted Mode pipeline (built-ins + custom) from a
@@ -166,14 +161,14 @@ outside the compile functions (e.g., for testing or codegen).
 ## Safe Mode pipeline builders
 
 ```ts
-function getSafeRemarkPlugins(): Pluggable[];
+function getSafeRemarkPlugins(): Pluggable[]
 
 function getSafeRehypePluginSets(diagramBehavior?: DiagramBehavior): {
-  raw: Pluggable;            // rehype-raw config
-  preMath: Pluggable[];      // diagram fences (placeholder or code fallback)
-  math: Pluggable;           // KaTeX
-  postMath: Pluggable[];     // plugins after KaTeX (slug, autolink, shiki, etc.)
-};
+  raw: Pluggable // rehype-raw config
+  preMath: Pluggable[] // diagram fences (placeholder or code fallback)
+  math: Pluggable // KaTeX
+  postMath: Pluggable[] // plugins after KaTeX (slug, autolink, shiki, etc.)
+}
 ```
 
 Safe Mode splits the rehype phase into sets so the host can interleave its
@@ -183,8 +178,8 @@ own plugins around `rehype-raw` & math without re-implementing the order.
 
 ```ts
 interface PluginLoader {
-  resolve(specifier: string, fromDir: string): string;
-  load(resolvedPath: string): Promise<unknown> | unknown;
+  resolve(specifier: string, fromDir: string): string
+  load(resolvedPath: string): Promise<unknown> | unknown
 }
 ```
 

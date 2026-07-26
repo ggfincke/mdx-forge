@@ -1,102 +1,107 @@
 // plugins/render/src/render.ts
 // render MDX to HTML documents, live preview output & optional screenshots
 
-import { randomBytes } from 'node:crypto';
-import { readdir, stat, unlink, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { randomBytes } from 'node:crypto'
+import { readdir, stat, unlink, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
-import { compileSafe } from 'mdx-forge/compiler';
-import type { BrowserContext } from 'playwright';
-import { resolveFrameworkCss, tokensCss, type FrameworkId } from './css.js';
+import { compileSafe } from 'mdx-forge/compiler'
+import type { BrowserContext } from 'playwright'
+import { resolveFrameworkCss, tokensCss, type FrameworkId } from './css.js'
 import {
   normalizeCompileError,
   RenderDiagnosticError,
   type Diagnostic,
-} from './diagnostics.js';
-import { sanitizeScreenshotHtml } from './html.js';
-import { lintMdxSource } from './lint.js';
+} from './diagnostics.js'
+import { sanitizeScreenshotHtml } from './html.js'
+import { lintMdxSource } from './lint.js'
 import {
   resolveViewport,
   viewportLabelFragment,
   type ResolvedViewport,
   type ViewportPreset,
-} from './viewports.js';
+} from './viewports.js'
 import {
   autoOpenOnce,
   getPreviewUrl,
   startPreviewServer,
   updatePreview,
-} from './preview-server.js';
+} from './preview-server.js'
 import {
   applyDenyRoute,
   getPluginBrowser,
   shutdownHarnessPages,
-} from './harness-page.js';
+} from './harness-page.js'
 import {
   compileTrustedModule,
   readHarnessBundle,
   snapshotTrustedModule,
   type TrustedCompiledModule,
-} from './trusted.js';
+} from './trusted.js'
 
-export type RenderMode = 'safe' | 'trusted';
-export type Theme = 'light' | 'dark';
+export type RenderMode = 'safe' | 'trusted'
+export type Theme = 'light' | 'dark'
 
-export interface ScreenshotsMatrix {
-  themes?: Theme[];
-  viewports?: ViewportPreset[];
-  fullPage?: boolean;
+export interface ScreenshotsMatrix
+{
+  themes?: Theme[]
+  viewports?: ViewportPreset[]
+  fullPage?: boolean
 }
 
-export interface RenderArgs {
-  source: string;
-  framework?: FrameworkId;
-  mode?: RenderMode;
-  screenshot?: boolean;
-  screenshots?: ScreenshotsMatrix;
-  theme?: Theme;
-  viewport?: { width?: number; height?: number };
-  autoOpen?: boolean;
+export interface RenderArgs
+{
+  source: string
+  framework?: FrameworkId
+  mode?: RenderMode
+  screenshot?: boolean
+  screenshots?: ScreenshotsMatrix
+  theme?: Theme
+  viewport?: { width?: number; height?: number }
+  autoOpen?: boolean
 }
 
-export interface CaptureVariant {
-  label: string;
-  theme: Theme;
-  viewport: ResolvedViewport;
-  png: Buffer;
+export interface CaptureVariant
+{
+  label: string
+  theme: Theme
+  viewport: ResolvedViewport
+  png: Buffer
 }
 
-export interface RenderResult {
-  html: string;
-  fullHtml: string;
-  frontmatter: Record<string, unknown>;
-  previewPath: string;
-  previewUrl: string;
-  screenshots?: CaptureVariant[];
-  diagnostics: Diagnostic[];
+export interface RenderResult
+{
+  html: string
+  fullHtml: string
+  frontmatter: Record<string, unknown>
+  previewPath: string
+  previewUrl: string
+  screenshots?: CaptureVariant[]
+  diagnostics: Diagnostic[]
 }
 
-export const MAX_SCREENSHOT_VARIANTS = 8;
+export const MAX_SCREENSHOT_VARIANTS = 8
 
 // render budgets (F29) - reject oversized input/output before allocation
-export const MAX_SOURCE_BYTES = 1024 * 1024;
-export const MAX_VIEWPORT_DIMENSION = 4000;
-export const MAX_VARIANT_PIXELS = 10_000_000;
-export const MAX_AGGREGATE_PIXELS = 48_000_000;
-export const MAX_FULLPAGE_SCROLL_HEIGHT = 20_000;
-export const MAX_PNG_BYTES = 8 * 1024 * 1024;
-export const MAX_RESPONSE_BYTES = 24 * 1024 * 1024;
+export const MAX_SOURCE_BYTES = 1024 * 1024
+export const MAX_VIEWPORT_DIMENSION = 4000
+export const MAX_VARIANT_PIXELS = 10_000_000
+export const MAX_AGGREGATE_PIXELS = 48_000_000
+export const MAX_FULLPAGE_SCROLL_HEIGHT = 20_000
+export const MAX_PNG_BYTES = 8 * 1024 * 1024
+export const MAX_RESPONSE_BYTES = 24 * 1024 * 1024
 
 // preview-artifact retention (F28) - bound temp file count & age
-export const MAX_PREVIEW_ARTIFACTS = 50;
-export const PREVIEW_ARTIFACT_TTL_MS = 24 * 60 * 60 * 1000;
-const PREVIEW_ARTIFACT_PREFIX = 'mdx-forge-render-';
+export const MAX_PREVIEW_ARTIFACTS = 50
+export const PREVIEW_ARTIFACT_TTL_MS = 24 * 60 * 60 * 1000
+const PREVIEW_ARTIFACT_PREFIX = 'mdx-forge-render-'
 
 // browser lifecycle is owned by harness-page's single plugin Browser (F27)
 // capture uses isolated contexts off that same Browser
-export async function shutdownBrowser(): Promise<void> {
-  await shutdownHarnessPages();
+export async function shutdownBrowser(): Promise<void>
+{
+  await shutdownHarnessPages()
 }
 
 // this plugin has no diagram runtime, so ask the core for visible code
@@ -105,7 +110,7 @@ export async function shutdownBrowser(): Promise<void> {
 const SAFE_COMPILE_CONFIG = {
   documentPath: '/virtual/render.mdx',
   diagramBehavior: 'code',
-} as const;
+} as const
 
 // fallback CSS-variable values for code blocks when consumers omit a theme
 const SHIKI_DEFAULTS = `
@@ -152,9 +157,10 @@ const SHIKI_DEFAULTS = `
   font-size: 0.9rem;
   line-height: 1.5;
 }
-`;
+`
 
-function baseStyles(): string {
+function baseStyles(): string
+{
   return `
     [data-theme="light"] { color-scheme: light; }
     [data-theme="dark"] { color-scheme: dark; }
@@ -187,23 +193,24 @@ function baseStyles(): string {
       padding: 0.75rem 1rem;
       overflow-x: auto;
     }
-  `;
+  `
 }
 
 // independent containment for Safe artifacts: no scripts, img limited to data:,
 // inline styles allowed (Shiki/KaTeX); trusted docs keep their executable contract
 const SAFE_CSP =
   "default-src 'none'; img-src data:; style-src 'unsafe-inline'; " +
-  "font-src data:; base-uri 'none'; form-action 'none'";
+  "font-src data:; base-uri 'none'; form-action 'none'"
 
 function documentHead(
   tokens: string,
   frameworkCss: string,
   includeCsp: boolean
-): string {
+): string
+{
   const csp = includeCsp
     ? `\n  <meta http-equiv="Content-Security-Policy" content="${SAFE_CSP}">`
-    : '';
+    : ''
   return `<head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">${csp}
@@ -211,7 +218,7 @@ function documentHead(
   <style>${frameworkCss}</style>
   <style>${SHIKI_DEFAULTS}</style>
   <style>${baseStyles()}</style>
-</head>`;
+</head>`
 }
 
 // includeCsp: portable artifacts & screenshots get the Safe CSP; the live-reload
@@ -222,50 +229,55 @@ function buildSafeDocument(
   frameworkCss: string,
   theme: 'light' | 'dark',
   includeCsp: boolean
-): string {
+): string
+{
   return `<!doctype html>
 <html lang="en" data-theme="${theme}">
 ${documentHead(tokens, frameworkCss, includeCsp)}
 <body>${bodyHtml}</body>
-</html>`;
+</html>`
 }
 
 // encode string for safe embedding inside script-source JSON
 // escape closing tags & line separators before HTML insertion
-function jsStringLiteral(value: string): string {
+function jsStringLiteral(value: string): string
+{
   return JSON.stringify(value)
     .replace(/<\//g, '<\\/')
     .replace(/\u2028/g, '\\u2028')
-    .replace(/\u2029/g, '\\u2029');
+    .replace(/\u2029/g, '\\u2029')
 }
 
 // escape raw JS source for embedding inside <script>
 // neutralize closing script tags; leave other source untouched
-function escapeInlineScript(source: string): string {
-  return source.replace(/<\/script/gi, '<\\/script');
+function escapeInlineScript(source: string): string
+{
+  return source.replace(/<\/script/gi, '<\\/script')
 }
 
-interface TrustedDocumentOptions {
-  compiled: TrustedCompiledModule;
-  tokens: string;
-  frameworkCss: string;
-  theme: 'light' | 'dark';
-  bundle: { kind: 'external'; src: string } | { kind: 'inline'; code: string };
+interface TrustedDocumentOptions
+{
+  compiled: TrustedCompiledModule
+  tokens: string
+  frameworkCss: string
+  theme: 'light' | 'dark'
+  bundle: { kind: 'external'; src: string } | { kind: 'inline'; code: string }
 }
 
-function buildTrustedDocument(opts: TrustedDocumentOptions): string {
-  const { compiled, tokens, frameworkCss, theme, bundle } = opts;
+function buildTrustedDocument(opts: TrustedDocumentOptions): string
+{
+  const { compiled, tokens, frameworkCss, theme, bundle } = opts
 
   const globals = `
     window.__MDX_FORGE_CODE__ = ${jsStringLiteral(compiled.cjsCode)};
     window.__MDX_FORGE_DEPS__ = ${JSON.stringify(compiled.dependencies)};
     window.__MDX_FORGE_ENTRY__ = ${jsStringLiteral(compiled.entryId)};
-  `;
+  `
 
   const bundleTag =
     bundle.kind === 'external'
       ? `<script src="${bundle.src}"></script>`
-      : `<script>${escapeInlineScript(bundle.code)}</script>`;
+      : `<script>${escapeInlineScript(bundle.code)}</script>`
 
   // trusted documents keep their executable contract; no Safe CSP here
   return `<!doctype html>
@@ -276,60 +288,73 @@ ${documentHead(tokens, frameworkCss, false)}
   <script>${globals}</script>
   ${bundleTag}
 </body>
-</html>`;
+</html>`
 }
 
-async function writePreviewFile(fullHtml: string): Promise<string> {
-  const filename = `${PREVIEW_ARTIFACT_PREFIX}${randomBytes(6).toString('hex')}.html`;
-  const filePath = join(tmpdir(), filename);
-  await writeFile(filePath, fullHtml, 'utf8');
-  return filePath;
+async function writePreviewFile(fullHtml: string): Promise<string>
+{
+  const filename = `${PREVIEW_ARTIFACT_PREFIX}${randomBytes(6).toString('hex')}.html`
+  const filePath = join(tmpdir(), filename)
+  await writeFile(filePath, fullHtml, 'utf8')
+  return filePath
 }
 
 // prune temp preview artifacts beyond the age TTL & count cap (F28)
 // best-effort; called on server start & after each render
-export async function prunePreviewArtifacts(): Promise<void> {
-  const dir = tmpdir();
-  let names: string[];
-  try {
-    names = await readdir(dir);
-  } catch {
-    return;
+export async function prunePreviewArtifacts(): Promise<void>
+{
+  const dir = tmpdir()
+  let names: string[]
+  try
+  {
+    names = await readdir(dir)
+  }
+  catch
+  {
+    return
   }
   const candidates = names.filter(
     (n) => n.startsWith(PREVIEW_ARTIFACT_PREFIX) && n.endsWith('.html')
-  );
-  const now = Date.now();
-  const live: Array<{ path: string; mtimeMs: number }> = [];
-  for (const name of candidates) {
-    const filePath = join(dir, name);
-    let info;
-    try {
-      info = await stat(filePath);
-    } catch {
-      continue;
+  )
+  const now = Date.now()
+  const live: Array<{ path: string; mtimeMs: number }> = []
+  for (const name of candidates)
+  {
+    const filePath = join(dir, name)
+    let info
+    try
+    {
+      info = await stat(filePath)
     }
-    if (now - info.mtimeMs > PREVIEW_ARTIFACT_TTL_MS) {
-      await unlink(filePath).catch(() => undefined);
-      continue;
+    catch
+    {
+      continue
     }
-    live.push({ path: filePath, mtimeMs: info.mtimeMs });
+    if (now - info.mtimeMs > PREVIEW_ARTIFACT_TTL_MS)
+    {
+      await unlink(filePath).catch(() => undefined)
+      continue
+    }
+    live.push({ path: filePath, mtimeMs: info.mtimeMs })
   }
-  if (live.length <= MAX_PREVIEW_ARTIFACTS) {
-    return;
+  if (live.length <= MAX_PREVIEW_ARTIFACTS)
+  {
+    return
   }
   // drop oldest beyond the count cap
-  live.sort((a, b) => b.mtimeMs - a.mtimeMs);
-  for (const stale of live.slice(MAX_PREVIEW_ARTIFACTS)) {
-    await unlink(stale.path).catch(() => undefined);
+  live.sort((a, b) => b.mtimeMs - a.mtimeMs)
+  for (const stale of live.slice(MAX_PREVIEW_ARTIFACTS))
+  {
+    await unlink(stale.path).catch(() => undefined)
   }
 }
 
-interface ModeDocs {
-  bodyHtml: string;
-  frontmatter: Record<string, unknown>;
-  previewHtml: string;
-  fullHtml: string;
+interface ModeDocs
+{
+  bodyHtml: string
+  frontmatter: Record<string, unknown>
+  previewHtml: string
+  fullHtml: string
 }
 
 async function buildModeDocs(
@@ -340,29 +365,35 @@ async function buildModeDocs(
   frameworkCss: string,
   theme: 'light' | 'dark',
   warnings: readonly Diagnostic[]
-): Promise<ModeDocs> {
-  if (mode === 'trusted') {
-    let compiled: TrustedCompiledModule;
-    try {
-      compiled = await compileTrustedModule(source, framework);
-    } catch (err) {
+): Promise<ModeDocs>
+{
+  if (mode === 'trusted')
+  {
+    let compiled: TrustedCompiledModule
+    try
+    {
+      compiled = await compileTrustedModule(source, framework)
+    }
+    catch (err)
+    {
       throw new RenderDiagnosticError(
         normalizeCompileError(err, { source, framework }),
         warnings
-      );
+      )
     }
 
     // normalize user MDX snapshot failures; let harness infrastructure fail raw
-    const snapshotPromise = snapshotTrustedModule(compiled).catch((err) => {
+    const snapshotPromise = snapshotTrustedModule(compiled).catch((err) =>
+    {
       throw new RenderDiagnosticError(
         normalizeCompileError(err, { source, framework }),
         warnings
-      );
-    });
+      )
+    })
     const [bodyHtml, bundleSource] = await Promise.all([
       snapshotPromise,
       readHarnessBundle(framework),
-    ]);
+    ])
 
     const previewHtml = buildTrustedDocument({
       compiled,
@@ -370,7 +401,7 @@ async function buildModeDocs(
       frameworkCss,
       theme,
       bundle: { kind: 'external', src: `/harness/${framework}/bundle.js` },
-    });
+    })
 
     const fullHtml = buildTrustedDocument({
       compiled,
@@ -378,26 +409,29 @@ async function buildModeDocs(
       frameworkCss,
       theme,
       bundle: { kind: 'inline', code: bundleSource },
-    });
+    })
 
     return {
       bodyHtml,
       frontmatter: compiled.frontmatter,
       previewHtml,
       fullHtml,
-    };
+    }
   }
 
-  let compiled: Awaited<ReturnType<typeof compileSafe>>;
-  try {
-    compiled = await compileSafe(source, SAFE_COMPILE_CONFIG);
-  } catch (err) {
+  let compiled: Awaited<ReturnType<typeof compileSafe>>
+  try
+  {
+    compiled = await compileSafe(source, SAFE_COMPILE_CONFIG)
+  }
+  catch (err)
+  {
     throw new RenderDiagnosticError(
       normalizeCompileError(err, { source, framework }),
       warnings
-    );
+    )
   }
-  const bodyHtml = sanitizeScreenshotHtml(compiled.html);
+  const bodyHtml = sanitizeScreenshotHtml(compiled.html)
   // preview page omits CSP so live-reload infra runs; artifact carries the CSP
   const previewHtml = buildSafeDocument(
     bodyHtml,
@@ -405,26 +439,28 @@ async function buildModeDocs(
     frameworkCss,
     theme,
     false
-  );
+  )
   const fullHtml = buildSafeDocument(
     bodyHtml,
     tokens,
     frameworkCss,
     theme,
     true
-  );
+  )
   return {
     bodyHtml,
     frontmatter: compiled.frontmatter,
     previewHtml,
     fullHtml,
-  };
+  }
 }
 
 // enforce input budgets before compile/render; direct API & server share this
-export function validateRenderBudgets(args: RenderArgs): void {
-  const sourceBytes = Buffer.byteLength(args.source, 'utf8');
-  if (sourceBytes > MAX_SOURCE_BYTES) {
+export function validateRenderBudgets(args: RenderArgs): void
+{
+  const sourceBytes = Buffer.byteLength(args.source, 'utf8')
+  if (sourceBytes > MAX_SOURCE_BYTES)
+  {
     throw new RenderDiagnosticError(
       {
         kind: 'invalid-prop-value',
@@ -433,14 +469,16 @@ export function validateRenderBudgets(args: RenderArgs): void {
         prop: 'source',
       },
       []
-    );
+    )
   }
   const dims: Array<number | undefined> = [
     args.viewport?.width,
     args.viewport?.height,
-  ];
-  for (const dim of dims) {
-    if (dim !== undefined && dim > MAX_VIEWPORT_DIMENSION) {
+  ]
+  for (const dim of dims)
+  {
+    if (dim !== undefined && dim > MAX_VIEWPORT_DIMENSION)
+    {
       throw new RenderDiagnosticError(
         {
           kind: 'invalid-prop-value',
@@ -449,17 +487,20 @@ export function validateRenderBudgets(args: RenderArgs): void {
           prop: 'viewport',
         },
         []
-      );
+      )
     }
   }
 }
 
 // reject per-variant & aggregate pixel budgets before launching a browser
-export function validatePixelBudgets(plan: CapturePlan): void {
-  let aggregate = 0;
-  for (const variant of plan.variants) {
-    const pixels = variant.viewport.width * variant.viewport.height;
-    if (pixels > MAX_VARIANT_PIXELS) {
+export function validatePixelBudgets(plan: CapturePlan): void
+{
+  let aggregate = 0
+  for (const variant of plan.variants)
+  {
+    const pixels = variant.viewport.width * variant.viewport.height
+    if (pixels > MAX_VARIANT_PIXELS)
+    {
       throw new RenderDiagnosticError(
         {
           kind: 'invalid-prop-value',
@@ -468,11 +509,12 @@ export function validatePixelBudgets(plan: CapturePlan): void {
           prop: 'viewport',
         },
         []
-      );
+      )
     }
-    aggregate += pixels;
+    aggregate += pixels
   }
-  if (aggregate > MAX_AGGREGATE_PIXELS) {
+  if (aggregate > MAX_AGGREGATE_PIXELS)
+  {
     throw new RenderDiagnosticError(
       {
         kind: 'invalid-prop-value',
@@ -481,29 +523,31 @@ export function validatePixelBudgets(plan: CapturePlan): void {
         prop: 'screenshots',
       },
       []
-    );
+    )
   }
 }
 
-export async function renderMdx(args: RenderArgs): Promise<RenderResult> {
-  const framework: FrameworkId = args.framework ?? 'generic';
-  const theme = args.theme ?? 'light';
-  const mode: RenderMode = args.mode ?? 'safe';
+export async function renderMdx(args: RenderArgs): Promise<RenderResult>
+{
+  const framework: FrameworkId = args.framework ?? 'generic'
+  const theme = args.theme ?? 'light'
+  const mode: RenderMode = args.mode ?? 'safe'
 
-  validateRenderBudgets(args);
+  validateRenderBudgets(args)
 
   // lint before compile/render to surface structured diagnostics early
-  const lint = await lintMdxSource(args.source, framework);
-  if (lint.fatal) {
-    throw new RenderDiagnosticError(lint.fatal, lint.diagnostics);
+  const lint = await lintMdxSource(args.source, framework)
+  if (lint.fatal)
+  {
+    throw new RenderDiagnosticError(lint.fatal, lint.diagnostics)
   }
-  const warnings = lint.diagnostics;
+  const warnings = lint.diagnostics
 
   const [tokens, frameworkCss, previewUrl] = await Promise.all([
     tokensCss(),
     resolveFrameworkCss(framework),
     startPreviewServer(),
-  ]);
+  ])
 
   const docs = await buildModeDocs(
     mode,
@@ -513,19 +557,20 @@ export async function renderMdx(args: RenderArgs): Promise<RenderResult> {
     frameworkCss,
     theme,
     warnings
-  );
+  )
 
-  const previewPath = await writePreviewFile(docs.fullHtml);
-  updatePreview(docs.previewHtml);
+  const previewPath = await writePreviewFile(docs.fullHtml)
+  updatePreview(docs.previewHtml)
   // best-effort retention prune; never block the render on cleanup
-  void prunePreviewArtifacts();
+  void prunePreviewArtifacts()
 
-  if (args.autoOpen) {
-    autoOpenOnce(getPreviewUrl() ?? previewUrl);
+  if (args.autoOpen)
+  {
+    autoOpenOnce(getPreviewUrl() ?? previewUrl)
   }
 
-  const diagnostics = [...warnings];
-  const plan = buildCapturePlan(args, theme, diagnostics);
+  const diagnostics = [...warnings]
+  const plan = buildCapturePlan(args, theme, diagnostics)
   const base: RenderResult = {
     html: docs.bodyHtml,
     fullHtml: docs.fullHtml,
@@ -533,65 +578,74 @@ export async function renderMdx(args: RenderArgs): Promise<RenderResult> {
     previewPath,
     previewUrl,
     diagnostics,
-  };
-
-  if (plan.variants.length === 0) {
-    return base;
   }
 
-  validatePixelBudgets(plan);
+  if (plan.variants.length === 0)
+  {
+    return base
+  }
+
+  validatePixelBudgets(plan)
 
   // trusted snapshots capture through a static CSP'd Safe document
   const screenshotDoc =
     mode === 'trusted'
       ? buildSafeDocument(docs.bodyHtml, tokens, frameworkCss, theme, true)
-      : docs.fullHtml;
-  const screenshots = await captureVariants(screenshotDoc, plan);
-  return { ...base, screenshots };
+      : docs.fullHtml
+  const screenshots = await captureVariants(screenshotDoc, plan)
+  return { ...base, screenshots }
 }
 
-interface CapturePlanVariant {
-  theme: Theme;
-  viewport: ResolvedViewport;
+interface CapturePlanVariant
+{
+  theme: Theme
+  viewport: ResolvedViewport
 }
 
-interface CapturePlan {
-  variants: CapturePlanVariant[];
-  fullPage: boolean;
+interface CapturePlan
+{
+  variants: CapturePlanVariant[]
+  fullPage: boolean
 }
 
 function buildCapturePlan(
   args: RenderArgs,
   defaultTheme: Theme,
   diagnostics: Diagnostic[]
-): CapturePlan {
-  const hasMatrix = args.screenshots !== undefined;
-  const hasLegacy = args.screenshot === true;
+): CapturePlan
+{
+  const hasMatrix = args.screenshots !== undefined
+  const hasLegacy = args.screenshot === true
 
-  if (hasMatrix && hasLegacy) {
+  if (hasMatrix && hasLegacy)
+  {
     diagnostics.push({
       kind: 'deprecated-alias',
       severity: 'warning',
       message:
         '`screenshot: true` ignored because `screenshots` matrix was supplied.',
-    });
+    })
   }
 
-  if (hasMatrix) {
-    const matrix = args.screenshots as ScreenshotsMatrix;
-    const themeInput = matrix.themes?.length ? matrix.themes : [defaultTheme];
-    const themes = dedupeThemes(themeInput);
+  if (hasMatrix)
+  {
+    const matrix = args.screenshots as ScreenshotsMatrix
+    const themeInput = matrix.themes?.length ? matrix.themes : [defaultTheme]
+    const themes = dedupeThemes(themeInput)
     const viewportInput: ResolvedViewport[] = matrix.viewports?.length
       ? matrix.viewports.map((p) => resolveViewport(p))
-      : [resolveViewport(args.viewport)];
-    const viewports = dedupeViewports(viewportInput);
-    const variants: CapturePlanVariant[] = [];
-    for (const viewport of viewports) {
-      for (const t of themes) {
-        variants.push({ theme: t, viewport });
+      : [resolveViewport(args.viewport)]
+    const viewports = dedupeViewports(viewportInput)
+    const variants: CapturePlanVariant[] = []
+    for (const viewport of viewports)
+    {
+      for (const t of themes)
+      {
+        variants.push({ theme: t, viewport })
       }
     }
-    if (variants.length > MAX_SCREENSHOT_VARIANTS) {
+    if (variants.length > MAX_SCREENSHOT_VARIANTS)
+    {
       throw new RenderDiagnosticError(
         {
           kind: 'invalid-prop-value',
@@ -600,99 +654,118 @@ function buildCapturePlan(
           prop: 'screenshots',
         },
         diagnostics
-      );
+      )
     }
-    return { variants, fullPage: matrix.fullPage ?? true };
+    return { variants, fullPage: matrix.fullPage ?? true }
   }
 
-  if (hasLegacy) {
+  if (hasLegacy)
+  {
     return {
       variants: [
         { theme: defaultTheme, viewport: resolveViewport(args.viewport) },
       ],
       fullPage: true,
-    };
+    }
   }
 
-  return { variants: [], fullPage: true };
+  return { variants: [], fullPage: true }
 }
 
-function dedupeThemes(themes: readonly Theme[]): Theme[] {
-  return Array.from(new Set(themes));
+function dedupeThemes(themes: readonly Theme[]): Theme[]
+{
+  return Array.from(new Set(themes))
 }
 
 // shared by dedupe & capture grouping so the formats can't drift
-function viewportKey(v: ResolvedViewport): string {
-  return `${v.preset ?? ''}:${v.width}x${v.height}`;
+function viewportKey(v: ResolvedViewport): string
+{
+  return `${v.preset ?? ''}:${v.width}x${v.height}`
 }
 
 function dedupeViewports(
   viewports: readonly ResolvedViewport[]
-): ResolvedViewport[] {
-  const seen = new Set<string>();
-  const out: ResolvedViewport[] = [];
-  for (const v of viewports) {
-    const key = viewportKey(v);
-    if (!seen.has(key)) {
-      seen.add(key);
-      out.push(v);
+): ResolvedViewport[]
+{
+  const seen = new Set<string>()
+  const out: ResolvedViewport[] = []
+  for (const v of viewports)
+  {
+    const key = viewportKey(v)
+    if (!seen.has(key))
+    {
+      seen.add(key)
+      out.push(v)
     }
   }
-  return out;
+  return out
 }
 
 // explicit readiness in place of networkidle (F27): load + fonts + paint settle
 async function waitForCaptureReadiness(page: {
-  evaluate: <R>(fn: () => R) => Promise<R>;
-}): Promise<void> {
-  await page.evaluate(async () => {
-    const doc = document as Document & { fonts?: FontFaceSet };
-    if (doc.fonts?.ready) {
-      await doc.fonts.ready;
+  evaluate: <R>(fn: () => R) => Promise<R>
+}): Promise<void>
+{
+  await page.evaluate(async () =>
+  {
+    const doc = document as Document & { fonts?: FontFaceSet }
+    if (doc.fonts?.ready)
+    {
+      await doc.fonts.ready
     }
     // two rAFs let layout & first paint settle without a fixed timer
-    await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-    });
-  });
+    await new Promise<void>((resolve) =>
+    {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+    })
+  })
 }
 
 async function captureVariants(
   screenshotDoc: string,
   plan: CapturePlan
-): Promise<CaptureVariant[]> {
-  const browser = await getPluginBrowser();
-  const byViewport = new Map<string, CapturePlanVariant[]>();
-  for (const variant of plan.variants) {
-    const key = viewportKey(variant.viewport);
-    const bucket = byViewport.get(key);
-    if (bucket) {
-      bucket.push(variant);
-    } else {
-      byViewport.set(key, [variant]);
+): Promise<CaptureVariant[]>
+{
+  const browser = await getPluginBrowser()
+  const byViewport = new Map<string, CapturePlanVariant[]>()
+  for (const variant of plan.variants)
+  {
+    const key = viewportKey(variant.viewport)
+    const bucket = byViewport.get(key)
+    if (bucket)
+    {
+      bucket.push(variant)
+    }
+    else
+    {
+      byViewport.set(key, [variant])
     }
   }
 
-  const results: CaptureVariant[] = [];
-  for (const bucket of byViewport.values()) {
-    const viewport = bucket[0].viewport;
+  const results: CaptureVariant[] = []
+  for (const bucket of byViewport.values())
+  {
+    const viewport = bucket[0].viewport
     // isolated capture context off the shared plugin Browser
     const context: BrowserContext = await browser.newContext({
       viewport: { width: viewport.width, height: viewport.height },
       colorScheme: bucket[0].theme,
-    });
+    })
     // default-deny network so Safe artifacts can't reach loopback / remote hosts
-    await applyDenyRoute(context);
-    try {
-      const page = await context.newPage();
-      await page.setContent(screenshotDoc, { waitUntil: 'load' });
-      await waitForCaptureReadiness(page);
-      if (plan.fullPage) {
+    await applyDenyRoute(context)
+    try
+    {
+      const page = await context.newPage()
+      await page.setContent(screenshotDoc, { waitUntil: 'load' })
+      await waitForCaptureReadiness(page)
+      if (plan.fullPage)
+      {
         // reject tall pages before allocating a full-page surface
         const scrollHeight = await page.evaluate(
           () => document.documentElement.scrollHeight
-        );
-        if (scrollHeight > MAX_FULLPAGE_SCROLL_HEIGHT) {
+        )
+        if (scrollHeight > MAX_FULLPAGE_SCROLL_HEIGHT)
+        {
           throw new RenderDiagnosticError(
             {
               kind: 'invalid-prop-value',
@@ -701,19 +774,22 @@ async function captureVariants(
               prop: 'screenshots',
             },
             []
-          );
+          )
         }
       }
-      for (const variant of bucket) {
-        await page.emulateMedia({ colorScheme: variant.theme });
-        await page.evaluate((t) => {
-          document.documentElement.dataset.theme = t;
-        }, variant.theme);
+      for (const variant of bucket)
+      {
+        await page.emulateMedia({ colorScheme: variant.theme })
+        await page.evaluate((t) =>
+        {
+          document.documentElement.dataset.theme = t
+        }, variant.theme)
         const png = await page.screenshot({
           type: 'png',
           fullPage: plan.fullPage,
-        });
-        if (png.length > MAX_PNG_BYTES) {
+        })
+        if (png.length > MAX_PNG_BYTES)
+        {
           throw new RenderDiagnosticError(
             {
               kind: 'invalid-prop-value',
@@ -722,18 +798,20 @@ async function captureVariants(
               prop: 'screenshots',
             },
             []
-          );
+          )
         }
         results.push({
           label: `${variant.theme}-${viewportLabelFragment(viewport)}`,
           theme: variant.theme,
           viewport,
           png,
-        });
+        })
       }
-    } finally {
-      await context.close();
+    }
+    finally
+    {
+      await context.close()
     }
   }
-  return results;
+  return results
 }

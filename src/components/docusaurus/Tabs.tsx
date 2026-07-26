@@ -1,5 +1,6 @@
 // src/components/docusaurus/Tabs.tsx
-// Docusaurus Tabs/TabItem component shim for MDX Preview
+// docusaurus Tabs/TabItem component shim for MDX Preview
+
 // provide preview-compatible versions of @theme/Tabs & @theme/TabItem
 
 import {
@@ -7,13 +8,13 @@ import {
   type BaseTabsProps,
   type TabDefinition,
   type TabItemProps as BaseTabItemProps,
-} from '../base';
+} from '../base'
 
 // docusaurus surface: groupId sync/persistence, queryString URL sync, lazy
-export type TabsProps = Omit<BaseTabsProps, 'syncKey'>;
+export type TabsProps = Omit<BaseTabsProps, 'syncKey'>
 // docusaurus TabItem has no icon prop
-export type TabItemProps = Omit<BaseTabItemProps, 'icon'>;
-export type { TabDefinition };
+export type TabItemProps = Omit<BaseTabItemProps, 'icon'>
+export type { TabDefinition }
 
 // create Docusaurus-compatible tabs using the factory
 // groupId selections sync across groups & persist via localStorage
@@ -25,7 +26,7 @@ const { Tabs, TabItem, useTabsContext, TabsContext } = createTabs({
   groupStoragePrefix: 'docusaurus.tab.',
   supportsQueryString: true,
   contextName: 'DocusaurusTabs',
-});
+})
 
-export { Tabs, TabItem, useTabsContext, TabsContext };
-export default Tabs;
+export { Tabs, TabItem, useTabsContext, TabsContext }
+export default Tabs

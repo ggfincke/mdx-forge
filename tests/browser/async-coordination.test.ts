@@ -1,9 +1,9 @@
 // tests/browser/async-coordination.test.ts
-// T3: generation-safe async coordination & runtime budget validation
+// t3: generation-safe async coordination & runtime budget validation
 
 // @vitest-environment jsdom
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clearAllCaches,
   configureRuntime,
@@ -16,35 +16,40 @@ import {
   setHostPreloadCallbacks,
   registerPreloadEntries,
   setPreloadEntries,
-} from '../../src/browser/index';
-import { getModuleLoaderConfig } from '../../src/browser/internal/runtime-config';
-import type { FetchResult } from '../../src/browser/types';
+} from '../../src/browser/index'
+import { getModuleLoaderConfig } from '../../src/browser/internal/runtime-config'
+import type { FetchResult } from '../../src/browser/types'
 
-interface Deferred<T> {
-  promise: Promise<T>;
-  resolve: (value: T) => void;
-  reject: (reason: unknown) => void;
+interface Deferred<T>
+{
+  promise: Promise<T>
+  resolve: (value: T) => void
+  reject: (reason: unknown) => void
 }
 
-function deferred<T = void>(): Deferred<T> {
-  let resolve!: (value: T) => void;
-  let reject!: (reason: unknown) => void;
-  const promise = new Promise<T>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-  return { promise, resolve, reject };
+function deferred<T = void>(): Deferred<T>
+{
+  let resolve!: (value: T) => void
+  let reject!: (reason: unknown) => void
+  const promise = new Promise<T>((res, rej) =>
+  {
+    resolve = res
+    reject = rej
+  })
+  return { promise, resolve, reject }
 }
 
-function flushMicrotasks(): Promise<void> {
-  return new Promise((resolve) => setImmediate(resolve));
+function flushMicrotasks(): Promise<void>
+{
+  return new Promise((resolve) => setImmediate(resolve))
 }
 
-const COMPONENT_CODE = 'module.exports = { default: () => null };';
+const COMPONENT_CODE = 'module.exports = { default: () => null };'
 
-beforeEach(() => {
-  setHostPreloadCallbacks({});
-  clearAllCaches();
+beforeEach(() =>
+{
+  setHostPreloadCallbacks({})
+  clearAllCaches()
   configureRuntime({
     maxConcurrentFetches: 8,
     maxModuleLoadDepth: 100,
@@ -54,110 +59,119 @@ beforeEach(() => {
       jsx: () => null,
       jsxs: () => null,
     },
-  });
-  setModuleFetcher(async () => undefined);
-});
+  })
+  setModuleFetcher(async () => undefined)
+})
 
-afterEach(() => {
-  setPreloadEntries([]);
-});
+afterEach(() =>
+{
+  setPreloadEntries([])
+})
 
-describe('shim load generations (T3)', () => {
-  it('waits for a newer shim load installed during an in-flight evaluation', async () => {
-    const first = deferred();
-    const second = deferred();
-    const loads = [first, second];
-    let call = 0;
+describe('shim load generations (T3)', () =>
+{
+  it('waits for a newer shim load installed during an in-flight evaluation', async () =>
+  {
+    const first = deferred()
+    const second = deferred()
+    const loads = [first, second]
+    let call = 0
     setHostPreloadCallbacks({
       ensureGenericShims: () => loads[call++].promise,
-    });
+    })
 
-    ensureGenericShimsLoaded(['One']);
-    let settled = false;
+    ensureGenericShimsLoaded(['One'])
+    let settled = false
     const evaluation = evaluateModuleToComponent(
       COMPONENT_CODE,
       '/entry.mdx',
       []
-    ).then((component) => {
-      settled = true;
-      return component;
-    });
-    await flushMicrotasks();
-    expect(settled).toBe(false);
+    ).then((component) =>
+    {
+      settled = true
+      return component
+    })
+    await flushMicrotasks()
+    expect(settled).toBe(false)
 
     // newer generation installed while the first load is still pending
-    ensureGenericShimsLoaded(['Two']);
-    first.resolve();
-    await flushMicrotasks();
+    ensureGenericShimsLoaded(['Two'])
+    first.resolve()
+    await flushMicrotasks()
     // erased-handle regression: evaluation must keep waiting for the newer load
-    expect(settled).toBe(false);
+    expect(settled).toBe(false)
 
-    second.resolve();
-    const component = await evaluation;
-    expect(typeof component).toBe('function');
-  });
+    second.resolve()
+    const component = await evaluation
+    expect(typeof component).toBe('function')
+  })
 
-  it('recovers after a rejected shim load', async () => {
-    const failing = deferred();
+  it('recovers after a rejected shim load', async () =>
+  {
+    const failing = deferred()
     setHostPreloadCallbacks({
       ensureGenericShims: () => failing.promise,
-    });
+    })
 
-    ensureGenericShimsLoaded(['One']);
+    ensureGenericShimsLoaded(['One'])
     const evaluation = evaluateModuleToComponent(
       COMPONENT_CODE,
       '/entry.mdx',
       []
-    );
-    failing.reject(new Error('shim load failed'));
-    await expect(evaluation).rejects.toThrow('shim load failed');
+    )
+    failing.reject(new Error('shim load failed'))
+    await expect(evaluation).rejects.toThrow('shim load failed')
 
     // rejected handle is cleared; a sequential evaluation succeeds
     const component = await evaluateModuleToComponent(
       COMPONENT_CODE,
       '/entry.mdx',
       []
-    );
-    expect(typeof component).toBe('function');
-  });
+    )
+    expect(typeof component).toBe('function')
+  })
 
-  it('ignores superseded shim commits after a hard cache reset', async () => {
-    const gate = deferred();
+  it('ignores superseded shim commits after a hard cache reset', async () =>
+  {
+    const gate = deferred()
     setHostPreloadCallbacks({
-      ensureGenericShims: async (shimRegistry) => {
-        await gate.promise;
-        shimRegistry.preload('/stale-shim.js', { stale: true });
+      ensureGenericShims: async (shimRegistry) =>
+      {
+        await gate.promise
+        shimRegistry.preload('/stale-shim.js', { stale: true })
       },
-    });
+    })
 
-    ensureGenericShimsLoaded(['Stale']);
-    clearAllCaches();
+    ensureGenericShimsLoaded(['Stale'])
+    clearAllCaches()
 
     const component = await evaluateModuleToComponent(
       COMPONENT_CODE,
       '/entry.mdx',
       []
-    );
-    expect(typeof component).toBe('function');
+    )
+    expect(typeof component).toBe('function')
 
-    gate.resolve();
-    await flushMicrotasks();
-    expect(registry.has('/stale-shim.js')).toBe(false);
-  });
-});
+    gate.resolve()
+    await flushMicrotasks()
+    expect(registry.has('/stale-shim.js')).toBe(false)
+  })
+})
 
-describe('cache generations (T3)', () => {
-  it('starts a fresh fetch after plain invalidation', async () => {
-    const staleGate = deferred<FetchResult | undefined>();
-    const freshGate = deferred<FetchResult | undefined>();
+describe('cache generations (T3)', () =>
+{
+  it('starts a fresh fetch after plain invalidation', async () =>
+  {
+    const staleGate = deferred<FetchResult | undefined>()
+    const freshGate = deferred<FetchResult | undefined>()
     const fetcher = vi
       .fn()
       .mockImplementationOnce(() => staleGate.promise)
-      .mockImplementationOnce(() => freshGate.promise);
-    const code = 'module.exports = { value: require("./dep").value };';
+      .mockImplementationOnce(() => freshGate.promise)
+    const code = 'module.exports = { value: require("./dep").value };'
 
-    const staleLoad = loadModule('/entry.js', code, ['./dep'], fetcher);
-    await flushMicrotasks();
+    const staleLoad = loadModule('/entry.js', code, ['./dep'], fetcher)
+    await flushMicrotasks()
     registry.set(
       '/unrelated.js',
       {
@@ -166,68 +180,69 @@ describe('cache generations (T3)', () => {
         loaded: true,
       },
       1
-    );
+    )
 
-    invalidateModule('/dep.js');
-    const freshLoad = loadModule('/entry.js', code, ['./dep'], fetcher);
-    await flushMicrotasks();
+    invalidateModule('/dep.js')
+    const freshLoad = loadModule('/entry.js', code, ['./dep'], fetcher)
+    await flushMicrotasks()
 
-    expect(fetcher).toHaveBeenCalledTimes(2);
-    expect(registry.has('/unrelated.js')).toBe(true);
-    const freshPending = registry.getPending('/entry.js');
-    expect(freshPending).toBeDefined();
+    expect(fetcher).toHaveBeenCalledTimes(2)
+    expect(registry.has('/unrelated.js')).toBe(true)
+    const freshPending = registry.getPending('/entry.js')
+    expect(freshPending).toBeDefined()
 
     staleGate.resolve({
       fsPath: '/dep.js',
       code: 'module.exports = { value: "stale" };',
       dependencies: [],
-    });
+    })
     await expect(staleLoad).rejects.toMatchObject({
       data: { code: 'STALE_GENERATION' },
-    });
-    expect(registry.getPending('/entry.js')).toBe(freshPending);
+    })
+    expect(registry.getPending('/entry.js')).toBe(freshPending)
 
     freshGate.resolve({
       fsPath: '/dep.js',
       code: 'module.exports = { value: "fresh" };',
       dependencies: [],
-    });
+    })
     await expect(freshLoad).resolves.toMatchObject({
       exports: { value: 'fresh' },
-    });
-    expect(registry.get('/dep.js')?.exports).toEqual({ value: 'fresh' });
-    expect(registry.has('/unrelated.js')).toBe(true);
-  });
+    })
+    expect(registry.get('/dep.js')?.exports).toEqual({ value: 'fresh' })
+    expect(registry.has('/unrelated.js')).toBe(true)
+  })
 
-  it('prevents a pre-clear in-flight load from repopulating cleared caches', async () => {
-    const gate = deferred<FetchResult | undefined>();
-    const fetcher = vi.fn(() => gate.promise);
+  it('prevents a pre-clear in-flight load from repopulating cleared caches', async () =>
+  {
+    const gate = deferred<FetchResult | undefined>()
+    const fetcher = vi.fn(() => gate.promise)
 
     const load = loadModule(
       '/entry.js',
       'const d = require("./dep"); module.exports = { d };',
       ['./dep'],
       fetcher
-    );
-    await flushMicrotasks();
+    )
+    await flushMicrotasks()
 
-    clearAllCaches();
-    expect(registry.getStats().modules).toBe(0);
+    clearAllCaches()
+    expect(registry.getStats().modules).toBe(0)
 
     gate.resolve({
       fsPath: '/dep.js',
       code: 'module.exports = { value: 1 };',
       dependencies: [],
-    });
+    })
     await expect(load).rejects.toMatchObject({
       data: { code: 'STALE_GENERATION' },
-    });
+    })
 
-    const stats = registry.getStats();
-    expect(stats.modules).toBe(0);
-    expect(stats.resolutions).toBe(0);
-    expect(stats.dependents).toBe(0);
-    expect(stats.pending).toBe(0);
+    const stats = registry.getStats()
+    expect(stats.modules).toBe(0)
+    expect(stats.resolutions).toBe(0)
+    expect(stats.dependents).toBe(0)
+    expect(stats.pending).toBe(0)
 
     // post-stale generation still accepts a fresh load
     const fresh = await loadModule(
@@ -235,87 +250,91 @@ describe('cache generations (T3)', () => {
       'module.exports = { ok: true };',
       [],
       async () => undefined
-    );
-    expect((fresh.exports as { ok: boolean }).ok).toBe(true);
-    expect(registry.getStats().modules).toBe(1);
-  });
+    )
+    expect((fresh.exports as { ok: boolean }).ok).toBe(true)
+    expect(registry.getStats().modules).toBe(1)
+  })
 
-  it('does not reuse a pre-clear fetch in a fresh generation', async () => {
-    const staleGate = deferred<FetchResult | undefined>();
-    const freshGate = deferred<FetchResult | undefined>();
-    const staleFetcher = vi.fn(() => staleGate.promise);
-    const freshFetcher = vi.fn(() => freshGate.promise);
-    const entryCode = 'module.exports = { value: require("./dep").value };';
+  it('does not reuse a pre-clear fetch in a fresh generation', async () =>
+  {
+    const staleGate = deferred<FetchResult | undefined>()
+    const freshGate = deferred<FetchResult | undefined>()
+    const staleFetcher = vi.fn(() => staleGate.promise)
+    const freshFetcher = vi.fn(() => freshGate.promise)
+    const entryCode = 'module.exports = { value: require("./dep").value };'
 
     const staleLoad = loadModule(
       '/entry.js',
       entryCode,
       ['./dep'],
       staleFetcher
-    );
-    await flushMicrotasks();
-    clearAllCaches();
+    )
+    await flushMicrotasks()
+    clearAllCaches()
 
     const freshLoad = loadModule(
       '/entry.js',
       entryCode,
       ['./dep'],
       freshFetcher
-    );
+    )
     freshGate.resolve({
       fsPath: '/dep.js',
       code: 'module.exports = { value: "fresh" };',
       dependencies: [],
-    });
+    })
 
     await expect(freshLoad).resolves.toMatchObject({
       exports: { value: 'fresh' },
-    });
-    expect(staleFetcher).toHaveBeenCalledTimes(1);
-    expect(freshFetcher).toHaveBeenCalledTimes(1);
+    })
+    expect(staleFetcher).toHaveBeenCalledTimes(1)
+    expect(freshFetcher).toHaveBeenCalledTimes(1)
 
     staleGate.resolve({
       fsPath: '/dep.js',
       code: 'module.exports = { value: "stale" };',
       dependencies: [],
-    });
+    })
     await expect(staleLoad).rejects.toMatchObject({
       data: { code: 'STALE_GENERATION' },
-    });
-    expect(registry.get('/dep.js')?.exports).toEqual({ value: 'fresh' });
-  });
-});
+    })
+    expect(registry.get('/dep.js')?.exports).toEqual({ value: 'fresh' })
+  })
+})
 
-describe('preload registration transactions (T3)', () => {
-  it('resolves one-argument preload aliases without host fetching', async () => {
-    const fetcher = vi.fn(async () => undefined);
-    setModuleFetcher(fetcher);
+describe('preload registration transactions (T3)', () =>
+{
+  it('resolves one-argument preload aliases without host fetching', async () =>
+  {
+    const fetcher = vi.fn(async () => undefined)
+    setModuleFetcher(fetcher)
     registerPreloadEntries([
       {
         id: '/preloaded/shared.js',
         exports: { value: 'preloaded' },
         aliases: ['shared'],
       },
-    ]);
+    ])
 
     const component = await evaluateModuleToComponent(
       'const shared = require("shared"); module.exports = { default: () => shared.value };',
       '/entry.mdx',
       ['shared']
-    );
+    )
 
-    expect(component()).toBe('preloaded');
-    expect(fetcher).not.toHaveBeenCalled();
-  });
+    expect(component()).toBe('preloaded')
+    expect(fetcher).not.toHaveBeenCalled()
+  })
 
-  it('leaves the prior batch intact when a new alias collides', () => {
+  it('leaves the prior batch intact when a new alias collides', () =>
+  {
     registerPreloadEntries([
       {
         id: '/stable.js',
         exports: { stable: true },
         aliases: ['stable'],
       },
-    ]);
+    ])
 
     expect(() =>
       registerPreloadEntries([
@@ -330,26 +349,27 @@ describe('preload registration transactions (T3)', () => {
           aliases: ['stable'],
         },
       ])
-    ).toThrow('Alias collision');
+    ).toThrow('Alias collision')
 
     expect(getModuleLoaderConfig().preloadAliases).toEqual({
       stable: '/stable.js',
-    });
-    expect(registry.has('/stable.js')).toBe(true);
-    expect(registry.has('/partial.js')).toBe(false);
-    expect(registry.has('/collision.js')).toBe(false);
-  });
+    })
+    expect(registry.has('/stable.js')).toBe(true)
+    expect(registry.has('/partial.js')).toBe(false)
+    expect(registry.has('/collision.js')).toBe(false)
+  })
 
-  it('registers prototype-named aliases atomically', async () => {
-    const fetcher = vi.fn(async () => undefined);
-    setModuleFetcher(fetcher);
+  it('registers prototype-named aliases atomically', async () =>
+  {
+    const fetcher = vi.fn(async () => undefined)
+    setModuleFetcher(fetcher)
     registerPreloadEntries([
       {
         id: '/preloaded/prototype-names.js',
         exports: { value: 'preloaded' },
         aliases: ['constructor', '__proto__'],
       },
-    ]);
+    ])
 
     const component = await evaluateModuleToComponent(
       [
@@ -359,10 +379,10 @@ describe('preload registration transactions (T3)', () => {
       ].join('\n'),
       '/entry.mdx',
       ['constructor', '__proto__']
-    );
+    )
 
-    expect(component()).toBe('preloadedpreloaded');
-    expect(fetcher).not.toHaveBeenCalled();
+    expect(component()).toBe('preloadedpreloaded')
+    expect(fetcher).not.toHaveBeenCalled()
     expect(() =>
       registerPreloadEntries([
         {
@@ -376,30 +396,32 @@ describe('preload registration transactions (T3)', () => {
           aliases: ['constructor'],
         },
       ])
-    ).toThrow('Alias collision');
+    ).toThrow('Alias collision')
     expect(getModuleLoaderConfig().preloadAliases.constructor).toBe(
       '/preloaded/prototype-names.js'
-    );
+    )
     expect(getModuleLoaderConfig().preloadAliases.__proto__).toBe(
       '/preloaded/prototype-names.js'
-    );
-    expect(registry.has('/partial.js')).toBe(false);
-    expect(registry.has('/collision.js')).toBe(false);
-  });
-});
+    )
+    expect(registry.has('/partial.js')).toBe(false)
+    expect(registry.has('/collision.js')).toBe(false)
+  })
+})
 
-describe('runtime budget validation (T3)', () => {
-  it('rejects zero, negative, and non-finite budgets immediately', () => {
+describe('runtime budget validation (T3)', () =>
+{
+  it('rejects zero, negative, and non-finite budgets immediately', () =>
+  {
     expect(() => configureRuntime({ maxConcurrentFetches: 0 })).toThrow(
       RangeError
-    );
+    )
     expect(() => configureRuntime({ maxModuleLoadDepth: Number.NaN })).toThrow(
       RangeError
-    );
+    )
 
     // failed configuration leaves prior budgets intact
-    const config = getModuleLoaderConfig();
-    expect(config.maxConcurrentFetches).toBe(8);
-    expect(config.maxModuleLoadDepth).toBe(100);
-  });
-});
+    const config = getModuleLoaderConfig()
+    expect(config.maxConcurrentFetches).toBe(8)
+    expect(config.maxModuleLoadDepth).toBe(100)
+  })
+})

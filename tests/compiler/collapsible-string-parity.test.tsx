@@ -3,43 +3,46 @@
 
 // @vitest-environment jsdom
 
-import { describe, it, expect } from 'vitest';
-import React from 'react';
-import { render } from '@testing-library/react';
-import { Collapsible } from '../../src/components/generic/Collapsible';
-import { compileSafe } from '../../src/compiler/index';
-import type { CompilerConfig } from '../../src/compiler/index';
+import { describe, it, expect } from 'vitest'
+import React from 'react'
+import { render } from '@testing-library/react'
+import { Collapsible } from '../../src/components/generic/Collapsible'
+import { compileSafe } from '../../src/compiler/index'
+import type { CompilerConfig } from '../../src/compiler/index'
 
-function createConfig(): CompilerConfig {
+function createConfig(): CompilerConfig
+{
   return {
     documentPath: '/workspace/test.mdx',
     useHostMarkdownStyles: true,
     componentsBuiltins: true,
     componentsUnknownBehavior: 'placeholder',
-  };
+  }
 }
 
-function reactOpen(props: Record<string, unknown>): boolean {
+function reactOpen(props: Record<string, unknown>): boolean
+{
   const { container } = render(
     React.createElement(Collapsible, props as never, 'body')
-  );
-  return container.querySelector('details')!.hasAttribute('open');
+  )
+  return container.querySelector('details')!.hasAttribute('open')
 }
 
-async function safeOpen(attrs: string): Promise<boolean> {
+async function safeOpen(attrs: string): Promise<boolean>
+{
   const result = await compileSafe(
     `<Collapsible ${attrs}>body</Collapsible>`,
     createConfig()
-  );
-  const doc = new DOMParser().parseFromString(result.html, 'text/html');
-  return doc.querySelector('details')!.hasAttribute('open');
+  )
+  const doc = new DOMParser().parseFromString(result.html, 'text/html')
+  return doc.querySelector('details')!.hasAttribute('open')
 }
 
 const CASES: Array<{
-  name: string;
-  attrs: string;
-  props: Record<string, unknown>;
-  open: boolean;
+  name: string
+  attrs: string
+  props: Record<string, unknown>
+  open: boolean
 }> = [
   {
     name: 'open="true"',
@@ -83,13 +86,16 @@ const CASES: Array<{
     props: { open: '', defaultOpen: 'true' },
     open: false,
   },
-];
+]
 
-describe('Collapsible static string Safe/React parity', () => {
-  for (const testCase of CASES) {
-    it(testCase.name, async () => {
-      expect(reactOpen(testCase.props)).toBe(testCase.open);
-      expect(await safeOpen(testCase.attrs)).toBe(testCase.open);
-    });
+describe('Collapsible static string Safe/React parity', () =>
+{
+  for (const testCase of CASES)
+  {
+    it(testCase.name, async () =>
+    {
+      expect(reactOpen(testCase.props)).toBe(testCase.open)
+      expect(await safeOpen(testCase.attrs)).toBe(testCase.open)
+    })
   }
-});
+})

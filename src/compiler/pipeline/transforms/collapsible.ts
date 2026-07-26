@@ -1,27 +1,28 @@
 // src/compiler/pipeline/transforms/collapsible.ts
 // transform Collapsible/Accordion/Details components to semantic HTML
 
-import type { RootContent } from 'mdast';
-import type { MdxJsxElement } from '../../types';
-import { getStaticStringProp, getStaticBooleanProp, createNode } from './utils';
+import type { RootContent } from 'mdast'
+import type { MdxJsxElement } from '../../types'
+import { getStaticStringProp, getStaticBooleanProp, createNode } from './utils'
 import {
   SAFE_COLLAPSIBLE,
   SAFE_COLLAPSIBLE_SUMMARY,
   SAFE_COLLAPSIBLE_CONTENT,
-} from '../../internal/css-classes';
+} from '../../internal/css-classes'
 
 // transform Collapsible/Accordion/Details component to semantic HTML
 // canonical contract (matches the React shim): summary takes precedence
 // over title & `open ?? defaultOpen` resolves the initial open state
-export function transformCollapsible(node: MdxJsxElement): RootContent {
+export function transformCollapsible(node: MdxJsxElement): RootContent
+{
   const title =
     getStaticStringProp(node, 'summary') ??
     getStaticStringProp(node, 'title') ??
-    'Details';
+    'Details'
   const open =
     getStaticBooleanProp(node, 'open') ??
     getStaticBooleanProp(node, 'defaultOpen') ??
-    false;
+    false
 
   return createNode({
     type: 'collapsible',
@@ -43,5 +44,5 @@ export function transformCollapsible(node: MdxJsxElement): RootContent {
         children: node.children,
       }),
     ],
-  });
+  })
 }

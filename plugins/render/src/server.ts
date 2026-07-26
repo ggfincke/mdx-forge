@@ -2,15 +2,15 @@
 // plugins/render/src/server.ts
 // mdx-forge-render MCP tools for rendering & component registry queries
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { FRAMEWORK_IDS } from 'mdx-forge/components/registry';
-import { z } from 'zod';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
+import { FRAMEWORK_IDS } from 'mdx-forge/components/registry'
+import { z } from 'zod'
 import {
   formatDiagnostic,
   RenderDiagnosticError,
   type Diagnostic,
-} from './diagnostics.js';
+} from './diagnostics.js'
 import {
   MAX_RESPONSE_BYTES,
   MAX_SCREENSHOT_VARIANTS,
@@ -20,8 +20,8 @@ import {
   renderMdx,
   shutdownBrowser,
   type CaptureVariant,
-} from './render.js';
-import { boundedStringify } from './frontmatter-bounds.js';
+} from './render.js'
+import { boundedStringify } from './frontmatter-bounds.js'
 import {
   findComponent,
   getFrontmatterSchema,
@@ -30,16 +30,16 @@ import {
   type ComponentSpec,
   type FrameworkId,
   type PropSpec,
-} from './registry.js';
-import { startPreviewServer, stopPreviewServer } from './preview-server.js';
-import { VIEWPORT_PRESET_NAMES } from './viewports.js';
+} from './registry.js'
+import { startPreviewServer, stopPreviewServer } from './preview-server.js'
+import { VIEWPORT_PRESET_NAMES } from './viewports.js'
 
-const THEMES = ['light', 'dark'] as const;
+const THEMES = ['light', 'dark'] as const
 
 const server = new McpServer({
   name: 'mdx-forge-render',
   version: '0.2.0',
-});
+})
 
 // --- render_mdx --------------------------------------------------------------
 
@@ -144,29 +144,32 @@ server.tool(
         'Auto-open the preview URL in the default browser on the first render this session. Subsequent renders rely on live reload (no focus-stealing). Default: false.'
       ),
   },
-  async (args) => {
-    try {
-      const result = await renderMdx(args);
-      const httpUrl = result.previewUrl;
-      const fileUrl = `file://${result.previewPath}`;
+  async (args) =>
+  {
+    try
+    {
+      const result = await renderMdx(args)
+      const httpUrl = result.previewUrl
+      const fileUrl = `file://${result.previewPath}`
 
       const leadIn = [
         `**[🖼 Open live preview in browser](${httpUrl})** — auto-reloads on every render.`,
         '',
         `Offline fallback: [${result.previewPath}](${fileUrl})`,
-      ].join('\n');
+      ].join('\n')
 
-      const inlineHtml = args.inlineHtml === true;
+      const inlineHtml = args.inlineHtml === true
       const trailingSections: string[] = [
         '### Preview URLs',
         '',
         `- Live (reloads on new renders): ${httpUrl}`,
         `- Static file: ${fileUrl}`,
         '',
-      ];
-      const warningsBlock = renderWarningsBlock(result.diagnostics);
-      if (warningsBlock) {
-        trailingSections.push(warningsBlock);
+      ]
+      const warningsBlock = renderWarningsBlock(result.diagnostics)
+      if (warningsBlock)
+      {
+        trailingSections.push(warningsBlock)
       }
       trailingSections.push(
         '### Frontmatter',
@@ -182,11 +185,12 @@ server.tool(
         `- Screenshots: ${result.screenshots?.length ?? 0}`,
         `- Inline HTML in this response: ${inlineHtml ? 'yes' : 'no (pass inlineHtml: true to embed it)'}`,
         ''
-      );
+      )
 
       // default to URL + diagnostics + frontmatter + summary; inlining the full
       // document is opt-in (F28) & already contains the body, so never ship both
-      if (inlineHtml) {
+      if (inlineHtml)
+      {
         trailingSections.push(
           '### Full self-contained HTML (for claude.ai artifact)',
           '',
@@ -194,7 +198,7 @@ server.tool(
           result.fullHtml,
           '```',
           ''
-        );
+        )
       }
 
       trailingSections.push(
@@ -209,24 +213,27 @@ server.tool(
         '3. If a "### Warnings" section is present above, surface the issues to the user (or fix them yourself before showing the render) — they include unknown components, invalid props, and frontmatter gaps with line numbers and did-you-mean suggestions.',
         '',
         '4. Keep the rest of your reply concise. Do not dump the HTML body verbatim unless the user asked.'
-      );
-      const trailing = trailingSections.join('\n');
+      )
+      const trailing = trailingSections.join('\n')
 
-      const content: ContentBlock[] = [{ type: 'text', text: leadIn }];
+      const content: ContentBlock[] = [{ type: 'text', text: leadIn }]
 
-      if (result.screenshots && result.screenshots.length > 0) {
-        content.push(...buildScreenshotBlocks(result.screenshots));
+      if (result.screenshots && result.screenshots.length > 0)
+      {
+        content.push(...buildScreenshotBlocks(result.screenshots))
       }
 
-      content.push({ type: 'text', text: trailing });
+      content.push({ type: 'text', text: trailing })
 
-      enforceResponseBudget(content);
-      return { content };
-    } catch (err) {
-      return buildErrorResponse(err);
+      enforceResponseBudget(content)
+      return { content }
+    }
+    catch (err)
+    {
+      return buildErrorResponse(err)
     }
   }
-);
+)
 
 // --- list_components ---------------------------------------------------------
 
@@ -247,12 +254,15 @@ server.tool(
         'Look up a single component by name (or alias). If omitted, returns all components for the framework.'
       ),
   },
-  async (args) => {
-    const framework: FrameworkId = args.framework ?? 'generic';
+  async (args) =>
+  {
+    const framework: FrameworkId = args.framework ?? 'generic'
 
-    if (args.name) {
-      const spec = findComponent(framework, args.name);
-      if (!spec) {
+    if (args.name)
+    {
+      const spec = findComponent(framework, args.name)
+      if (!spec)
+      {
         return {
           isError: true,
           content: [
@@ -272,7 +282,7 @@ server.tool(
               ),
             },
           ],
-        };
+        }
       }
       return {
         content: [
@@ -281,12 +291,12 @@ server.tool(
             text: JSON.stringify(describeComponent(spec), null, 2),
           },
         ],
-      };
+      }
     }
 
     const frameworkComponents =
-      listComponentsForFramework(framework).map(describeComponent);
-    const frontmatterSchema = getFrontmatterSchema(framework);
+      listComponentsForFramework(framework).map(describeComponent)
+    const frontmatterSchema = getFrontmatterSchema(framework)
 
     return {
       content: [
@@ -307,39 +317,47 @@ server.tool(
           ),
         },
       ],
-    };
+    }
   }
-);
+)
 
 // --- helpers ----------------------------------------------------------------
 
-function describeProp(prop: PropSpec): Record<string, unknown> {
+function describeProp(prop: PropSpec): Record<string, unknown>
+{
   const out: Record<string, unknown> = {
     name: prop.name,
     type: prop.type,
-  };
-  if (prop.required) {
-    out.required = true;
   }
-  if (prop.values) {
-    out.values = prop.values;
+  if (prop.required)
+  {
+    out.required = true
   }
-  if (prop.valueAliases) {
-    out.valueAliases = prop.valueAliases;
+  if (prop.values)
+  {
+    out.values = prop.values
   }
-  if (prop.description) {
-    out.description = prop.description;
+  if (prop.valueAliases)
+  {
+    out.valueAliases = prop.valueAliases
   }
-  if (prop.deprecated) {
-    out.deprecated = true;
-    if (prop.deprecatedIn) {
-      out.deprecatedIn = prop.deprecatedIn;
+  if (prop.description)
+  {
+    out.description = prop.description
+  }
+  if (prop.deprecated)
+  {
+    out.deprecated = true
+    if (prop.deprecatedIn)
+    {
+      out.deprecatedIn = prop.deprecatedIn
     }
   }
-  return out;
+  return out
 }
 
-function describeComponent(spec: ComponentSpec): Record<string, unknown> {
+function describeComponent(spec: ComponentSpec): Record<string, unknown>
+{
   return {
     framework: spec.framework,
     name: spec.name,
@@ -350,47 +368,53 @@ function describeComponent(spec: ComponentSpec): Record<string, unknown> {
     example: spec.example,
     childrenKind: spec.childrenKind ?? 'block',
     props: spec.props.map(describeProp),
-  };
+  }
 }
 
 type ContentBlock =
   | { type: 'text'; text: string }
-  | { type: 'image'; data: string; mimeType: string };
+  | { type: 'image'; data: string; mimeType: string }
 
 function buildScreenshotBlocks(
   variants: readonly CaptureVariant[]
-): ContentBlock[] {
-  if (variants.length === 1) {
+): ContentBlock[]
+{
+  if (variants.length === 1)
+  {
     return [
       {
         type: 'image',
         data: variants[0].png.toString('base64'),
         mimeType: 'image/png',
       },
-    ];
+    ]
   }
-  const blocks: ContentBlock[] = [];
-  for (const v of variants) {
-    blocks.push({ type: 'text', text: `### ${v.label}` });
+  const blocks: ContentBlock[] = []
+  for (const v of variants)
+  {
+    blocks.push({ type: 'text', text: `### ${v.label}` })
     blocks.push({
       type: 'image',
       data: v.png.toString('base64'),
       mimeType: 'image/png',
-    });
+    })
   }
-  return blocks;
+  return blocks
 }
 
 // bound the aggregate (base64-expanded) response size (F29)
-function enforceResponseBudget(content: readonly ContentBlock[]): void {
-  let bytes = 0;
-  for (const block of content) {
+function enforceResponseBudget(content: readonly ContentBlock[]): void
+{
+  let bytes = 0
+  for (const block of content)
+  {
     bytes +=
       block.type === 'text'
         ? Buffer.byteLength(block.text, 'utf8')
-        : block.data.length;
+        : block.data.length
   }
-  if (bytes > MAX_RESPONSE_BYTES) {
+  if (bytes > MAX_RESPONSE_BYTES)
+  {
     throw new RenderDiagnosticError(
       {
         kind: 'invalid-prop-value',
@@ -399,27 +423,31 @@ function enforceResponseBudget(content: readonly ContentBlock[]): void {
         prop: 'screenshots',
       },
       []
-    );
+    )
   }
 }
 
-function renderWarningsBlock(diagnostics: readonly Diagnostic[]): string {
-  if (diagnostics.length === 0) {
-    return '';
+function renderWarningsBlock(diagnostics: readonly Diagnostic[]): string
+{
+  if (diagnostics.length === 0)
+  {
+    return ''
   }
-  const lines = diagnostics.map((d) => `- ${formatDiagnostic(d)}`);
-  return ['### Warnings', '', ...lines, ''].join('\n');
+  const lines = diagnostics.map((d) => `- ${formatDiagnostic(d)}`)
+  return ['### Warnings', '', ...lines, ''].join('\n')
 }
 
 function buildErrorResponse(err: unknown): {
-  isError: true;
-  content: Array<{ type: 'text'; text: string }>;
-} {
-  if (err instanceof RenderDiagnosticError) {
+  isError: true
+  content: Array<{ type: 'text'; text: string }>
+}
+{
+  if (err instanceof RenderDiagnosticError)
+  {
     const payload = {
       error: err.diagnostic,
       warnings: err.warnings,
-    };
+    }
     const human = [
       `render_mdx failed: ${formatDiagnostic(err.diagnostic)}`,
       '',
@@ -435,13 +463,13 @@ function buildErrorResponse(err: unknown): {
       '```',
     ]
       .filter(Boolean)
-      .join('\n');
+      .join('\n')
     return {
       isError: true,
       content: [{ type: 'text', text: human }],
-    };
+    }
   }
-  const message = err instanceof Error ? err.message : String(err);
+  const message = err instanceof Error ? err.message : String(err)
   return {
     isError: true,
     content: [
@@ -450,29 +478,33 @@ function buildErrorResponse(err: unknown): {
         text: `render_mdx failed: ${message}`,
       },
     ],
-  };
+  }
 }
 
-async function main(): Promise<void> {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
+async function main(): Promise<void>
+{
+  const transport = new StdioServerTransport()
+  await server.connect(transport)
   // start preview server early; renderMdx awaits the shared promise
-  void startPreviewServer().catch((err) => {
-    console.error('mdx-forge-render: preview server failed to start:', err);
-  });
+  void startPreviewServer().catch((err) =>
+  {
+    console.error('mdx-forge-render: preview server failed to start:', err)
+  })
   // prune stale temp preview artifacts on startup (F28)
-  void prunePreviewArtifacts();
+  void prunePreviewArtifacts()
 }
 
-const cleanup = async (): Promise<void> => {
-  await Promise.allSettled([shutdownBrowser(), stopPreviewServer()]);
-  process.exit(0);
-};
+const cleanup = async (): Promise<void> =>
+{
+  await Promise.allSettled([shutdownBrowser(), stopPreviewServer()])
+  process.exit(0)
+}
 
-process.on('SIGINT', cleanup);
-process.on('SIGTERM', cleanup);
+process.on('SIGINT', cleanup)
+process.on('SIGTERM', cleanup)
 
-main().catch((err) => {
-  console.error('mdx-forge-render failed to start:', err);
-  process.exit(1);
-});
+main().catch((err) =>
+{
+  console.error('mdx-forge-render failed to start:', err)
+  process.exit(1)
+})

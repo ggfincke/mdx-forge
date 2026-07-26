@@ -1,7 +1,7 @@
 // skills/mdx-forge/examples/safe-document.ts
 // compile untrusted MDX into closed host-rendered data
 
-import { compileSafeDocument } from 'mdx-forge/compiler';
+import { compileSafeDocument } from 'mdx-forge/compiler'
 
 const source = `---
 title: Architecture
@@ -10,7 +10,7 @@ title: Architecture
 # System map
 
 <Hotspots metric="fanIn" limit={10} />
-`;
+`
 
 const document = await compileSafeDocument(source, {
   components: {
@@ -23,10 +23,11 @@ const document = await compileSafeDocument(source, {
       children: 'none',
     },
   },
-});
+})
 
-if (document.diagnostics.some((item) => item.severity === 'error')) {
-  throw new Error(JSON.stringify(document.diagnostics));
+if (document.diagnostics.some((item) => item.severity === 'error'))
+{
+  throw new Error(JSON.stringify(document.diagnostics))
 }
 
-console.log(document.version, document.frontmatter, document.root);
+console.log(document.version, document.frontmatter, document.root)

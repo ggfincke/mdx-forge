@@ -1,23 +1,26 @@
 // src/components/base/extractTextContent.ts
 // shared utility for extracting plain text from React children
 
-import { ReactNode, isValidElement } from 'react';
+import { ReactNode, isValidElement } from 'react'
 
 // extract plain text content from React children
-export function extractTextContent(node: ReactNode): string {
-  if (typeof node === 'string') {
-    return node;
+export function extractTextContent(node: ReactNode): string
+{
+  if (typeof node === 'string')
+  {
+    return node
   }
-  if (typeof node === 'number') {
-    return String(node);
+  if (typeof node === 'number')
+  {
+    return String(node)
   }
-  if (Array.isArray(node)) {
-    return node.map(extractTextContent).join('');
+  if (Array.isArray(node))
+  {
+    return node.map(extractTextContent).join('')
   }
-  if (isValidElement(node)) {
-    return extractTextContent(
-      (node.props as { children?: ReactNode }).children
-    );
+  if (isValidElement(node))
+  {
+    return extractTextContent((node.props as { children?: ReactNode }).children)
   }
-  return '';
+  return ''
 }

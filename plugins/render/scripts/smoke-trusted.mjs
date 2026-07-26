@@ -1,10 +1,10 @@
 // plugins/render/scripts/smoke-trusted.mjs
 // smoke test Trusted Mode compile, render & browser interactivity
 
-import { renderMdx, shutdownBrowser } from '../dist/render.js';
-import { stopPreviewServer } from '../dist/preview-server.js';
-import { writeFile } from 'node:fs/promises';
-import { chromium } from 'playwright';
+import { renderMdx, shutdownBrowser } from '../dist/render.js'
+import { stopPreviewServer } from '../dist/preview-server.js'
+import { writeFile } from 'node:fs/promises'
+import { chromium } from 'playwright'
 
 const genericSource = `---
 title: Trusted Smoke
@@ -31,7 +31,7 @@ Paragraph with **bold** and *italic*.
 \`\`\`js
 console.log('hello from trusted smoke');
 \`\`\`
-`;
+`
 
 const docusaurusSource = `---
 title: Docusaurus Trusted Smoke
@@ -47,56 +47,59 @@ title: Docusaurus Trusted Smoke
 <Details summary="click me">
   Hidden by default.
 </Details>
-`;
+`
 
-let failed = 0;
-function check(name, ok) {
-  console.log(`  ${ok ? 'OK' : 'FAIL'}  ${name}`);
-  if (!ok) {
-    failed += 1;
+let failed = 0
+function check(name, ok)
+{
+  console.log(`  ${ok ? 'OK' : 'FAIL'}  ${name}`)
+  if (!ok)
+  {
+    failed += 1
   }
 }
 
-console.log('Rendering (trusted, generic)...');
+console.log('Rendering (trusted, generic)...')
 const out = await renderMdx({
   source: genericSource,
   mode: 'trusted',
   framework: 'generic',
-});
+})
 
-console.log('  frontmatter:', out.frontmatter);
-console.log('  html.length:', out.html.length);
-console.log('  fullHtml.length:', out.fullHtml.length);
-console.log('  previewUrl:', out.previewUrl);
+console.log('  frontmatter:', out.frontmatter)
+console.log('  html.length:', out.html.length)
+console.log('  fullHtml.length:', out.fullHtml.length)
+console.log('  previewUrl:', out.previewUrl)
 
 check(
   'snapshot callout class',
   out.html.includes('mdx-preview-generic-callout')
-);
-check('snapshot callout title rendered', out.html.includes('Hello'));
-check('snapshot tabs class', out.html.includes('mdx-preview-generic-tabs'));
+)
+check('snapshot callout title rendered', out.html.includes('Hello'))
+check('snapshot tabs class', out.html.includes('mdx-preview-generic-tabs'))
 check(
   'snapshot code block shiki',
   out.html.includes('shiki') && out.html.includes('console.log')
-);
+)
 check(
   'fullHtml inlines harness bundle',
   out.fullHtml.includes('__mdxForgeMount') && out.fullHtml.length > 150_000
-);
+)
 check(
   'fullHtml inlines compiled MDX',
   out.fullHtml.includes('__MDX_FORGE_CODE__')
-);
+)
 
-console.log('\nDriving the live preview to verify interactivity...');
-const browser = await chromium.launch({ headless: true });
-const context = await browser.newContext();
-const page = await context.newPage();
-page.on('pageerror', (err) => {
-  console.error('  [preview pageerror]', err.message);
-});
-await page.goto(out.previewUrl);
-await page.waitForSelector('.mdx-preview-generic-tabs');
+console.log('\nDriving the live preview to verify interactivity...')
+const browser = await chromium.launch({ headless: true })
+const context = await browser.newContext()
+const page = await context.newPage()
+page.on('pageerror', (err) =>
+{
+  console.error('  [preview pageerror]', err.message)
+})
+await page.goto(out.previewUrl)
+await page.waitForSelector('.mdx-preview-generic-tabs')
 
 // verify first tab starts active & second tab hidden
 const firstActiveInitial = await page.evaluate(
@@ -105,20 +108,20 @@ const firstActiveInitial = await page.evaluate(
       .querySelector('.mdx-preview-generic-tabs-button.active')
       ?.textContent?.trim()
       ?.includes('first')
-);
-check('initial: first tab active', firstActiveInitial);
+)
+check('initial: first tab active', firstActiveInitial)
 
 // click second tab & confirm React updates DOM
-await page.getByRole('tab', { name: 'second' }).click();
-await page.waitForTimeout(150);
+await page.getByRole('tab', { name: 'second' }).click()
+await page.waitForTimeout(150)
 const secondActiveAfterClick = await page.evaluate(
   () =>
     !!document
       .querySelector('.mdx-preview-generic-tabs-button.active')
       ?.textContent?.trim()
       ?.includes('second')
-);
-check('after click: second tab active', secondActiveAfterClick);
+)
+check('after click: second tab active', secondActiveAfterClick)
 
 // verify active panel content changed
 const panelText = await page.evaluate(
@@ -126,35 +129,37 @@ const panelText = await page.evaluate(
     document
       .querySelector('.mdx-preview-generic-tabs-panel.active')
       ?.textContent?.trim() ?? ''
-);
-check('after click: second panel shown', panelText.includes('Second'));
+)
+check('after click: second panel shown', panelText.includes('Second'))
 
-await browser.close();
+await browser.close()
 
-console.log('\nRendering (trusted, docusaurus, w/ screenshot)...');
+console.log('\nRendering (trusted, docusaurus, w/ screenshot)...')
 const out2 = await renderMdx({
   source: docusaurusSource,
   mode: 'trusted',
   framework: 'docusaurus',
   screenshot: true,
-});
-check('docusaurus tabs class', out2.html.includes('docusaurus-tabs'));
-check('details element', out2.html.includes('<details'));
-const trustedShot = out2.screenshots?.[0]?.png;
+})
+check('docusaurus tabs class', out2.html.includes('docusaurus-tabs'))
+check('details element', out2.html.includes('<details'))
+const trustedShot = out2.screenshots?.[0]?.png
 check(
   'screenshot has bytes',
   typeof trustedShot?.length === 'number' && trustedShot.length > 1000
-);
-if (trustedShot) {
-  await writeFile('scripts/smoke-trusted-output.png', trustedShot);
-  console.log('  wrote scripts/smoke-trusted-output.png');
+)
+if (trustedShot)
+{
+  await writeFile('scripts/smoke-trusted-output.png', trustedShot)
+  console.log('  wrote scripts/smoke-trusted-output.png')
 }
 
-await shutdownBrowser();
-await stopPreviewServer();
+await shutdownBrowser()
+await stopPreviewServer()
 
-if (failed > 0) {
-  console.error(`\n${failed} assertion(s) failed`);
-  process.exit(1);
+if (failed > 0)
+{
+  console.error(`\n${failed} assertion(s) failed`)
+  process.exit(1)
 }
-console.log('\nOK');
+console.log('\nOK')

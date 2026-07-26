@@ -5,26 +5,28 @@ import React, {
   type HTMLAttributes,
   type ReactElement,
   type ReactNode,
-} from 'react';
-import { BaseFileTree, renderBaseFileTreeChildren } from '../base/BaseFileTree';
+} from 'react'
+import { BaseFileTree, renderBaseFileTreeChildren } from '../base/BaseFileTree'
 
 export interface FileTreeProps extends Omit<
   HTMLAttributes<HTMLUListElement>,
   'children'
-> {
-  children: ReactNode;
+>
+{
+  children: ReactNode
 }
 
 export function FileTree({
   children,
   className,
   ...props
-}: FileTreeProps): ReactElement {
+}: FileTreeProps): ReactElement
+{
   return (
     <BaseFileTree {...props} className={className}>
       {renderBaseFileTreeChildren(children)}
     </BaseFileTree>
-  );
+  )
 }
 
-export default FileTree;
+export default FileTree

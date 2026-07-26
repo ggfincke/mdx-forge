@@ -1,9 +1,9 @@
 // src/compiler/pipeline/remark/generic-components.ts
 // remark plugin to transform known generic JSX components to semantic HTML in Safe Mode
 
-import { visit } from 'unist-util-visit';
-import type { Root, Parent, RootContent } from 'mdast';
-import type { MdxJsxElement } from '../../types';
+import { visit } from 'unist-util-visit'
+import type { Root, Parent, RootContent } from 'mdast'
+import type { MdxJsxElement } from '../../types'
 
 // import transforms from modular transform files
 import {
@@ -13,74 +13,93 @@ import {
   transformTabs,
   transformTabItem,
   transformCodeGroup,
-} from '../transforms';
+} from '../transforms'
 
-import type { GenericComponentName } from '../../../components/internal/component-identity';
+import type { GenericComponentName } from '../../../components/internal/component-identity'
 import {
   getGenericComponentAliases,
   getGenericComponentSet,
-} from '../../../components/internal/component-identity-queries';
+} from '../../../components/internal/component-identity-queries'
 
-function getComponentNames(canonical: GenericComponentName): Set<string> {
-  return new Set([canonical, ...getGenericComponentAliases(canonical)]);
+function getComponentNames(canonical: GenericComponentName): Set<string>
+{
+  return new Set([canonical, ...getGenericComponentAliases(canonical)])
 }
 
-const CALLOUT_COMPONENTS = getComponentNames('Callout');
-const COLLAPSIBLE_COMPONENTS = getComponentNames('Collapsible');
-const TABS_COMPONENTS = getComponentNames('Tabs');
-const TABITEM_COMPONENTS = getComponentNames('TabItem');
-const CODEGROUP_COMPONENTS = getComponentNames('CodeGroup');
+const CALLOUT_COMPONENTS = getComponentNames('Callout')
+const COLLAPSIBLE_COMPONENTS = getComponentNames('Collapsible')
+const TABS_COMPONENTS = getComponentNames('Tabs')
+const TABITEM_COMPONENTS = getComponentNames('TabItem')
+const CODEGROUP_COMPONENTS = getComponentNames('CodeGroup')
 
 // export the full set of known generic components
 // snapshot decoupled from registry internals; compiler paths use isGenericComponent()
 export const KNOWN_GENERIC_COMPONENTS: ReadonlySet<string> =
-  getGenericComponentSet();
+  getGenericComponentSet()
 
-export interface RemarkGenericComponentsOptions {
-  enabled?: boolean;
+export interface RemarkGenericComponentsOptions
+{
+  enabled?: boolean
 }
 
 export default function remarkGenericComponents(
   options: RemarkGenericComponentsOptions = {}
-) {
-  const { enabled = true } = options;
+)
+{
+  const { enabled = true } = options
 
-  return (tree: Root) => {
-    if (!enabled) {
-      return;
+  return (tree: Root) =>
+  {
+    if (!enabled)
+    {
+      return
     }
 
-    visit(tree, (node, index, parent) => {
-      if (index === undefined || !parent) {
-        return;
+    visit(tree, (node, index, parent) =>
+    {
+      if (index === undefined || !parent)
+      {
+        return
       }
-      if (!isMdxJsxElement(node)) {
-        return;
-      }
-
-      const mdxNode: MdxJsxElement = node;
-      const name = mdxNode.name;
-      if (!name) {
-        return;
+      if (!isMdxJsxElement(node))
+      {
+        return
       }
 
-      let transformed: RootContent | null = null;
-
-      if (CALLOUT_COMPONENTS.has(name)) {
-        transformed = transformCallout(mdxNode);
-      } else if (COLLAPSIBLE_COMPONENTS.has(name)) {
-        transformed = transformCollapsible(mdxNode);
-      } else if (TABS_COMPONENTS.has(name)) {
-        transformed = transformTabs(mdxNode);
-      } else if (TABITEM_COMPONENTS.has(name)) {
-        transformed = transformTabItem(mdxNode);
-      } else if (CODEGROUP_COMPONENTS.has(name)) {
-        transformed = transformCodeGroup(mdxNode);
+      const mdxNode: MdxJsxElement = node
+      const name = mdxNode.name
+      if (!name)
+      {
+        return
       }
 
-      if (transformed) {
-        (parent as Parent).children[index] = transformed;
+      let transformed: RootContent | null = null
+
+      if (CALLOUT_COMPONENTS.has(name))
+      {
+        transformed = transformCallout(mdxNode)
       }
-    });
-  };
+      else if (COLLAPSIBLE_COMPONENTS.has(name))
+      {
+        transformed = transformCollapsible(mdxNode)
+      }
+      else if (TABS_COMPONENTS.has(name))
+      {
+        transformed = transformTabs(mdxNode)
+      }
+      else if (TABITEM_COMPONENTS.has(name))
+      {
+        transformed = transformTabItem(mdxNode)
+      }
+      else if (CODEGROUP_COMPONENTS.has(name))
+      {
+        transformed = transformCodeGroup(mdxNode)
+      }
+
+      if (transformed)
+      {
+        ;(parent as Parent).children[index] = transformed
+      }
+    })
+  }
 }

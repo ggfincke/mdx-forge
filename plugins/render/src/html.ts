@@ -1,9 +1,9 @@
 // plugins/render/src/html.ts
 // sanitize compiled Safe Mode HTML into inert markup for preview & screenshots
 
-import { fromHtmlIsomorphic } from 'hast-util-from-html-isomorphic';
-import { toHtml } from 'hast-util-to-html';
-import { sanitize, defaultSchema, type Schema } from 'hast-util-sanitize';
+import { fromHtmlIsomorphic } from 'hast-util-from-html-isomorphic'
+import { toHtml } from 'hast-util-to-html'
+import { sanitize, defaultSchema, type Schema } from 'hast-util-sanitize'
 
 // MathML elements emitted by rehype-katex (mathml branch)
 const MATHML_TAGS = [
@@ -42,7 +42,7 @@ const MATHML_TAGS = [
   'none',
   'maction',
   'mglyph',
-];
+]
 
 // SVG elements emitted by KaTeX stretchy delimiters & the shim icon set
 const SVG_TAGS = [
@@ -69,12 +69,13 @@ const SVG_TAGS = [
   'pattern',
   'title',
   'desc',
-];
+]
 
 // build the Safe Mode allowlist from GitHub's defaults plus the extra element
 // families the compiler legitimately emits (Shiki, KaTeX, diagram placeholders)
-function buildSafeSchema(): Schema {
-  const base = defaultSchema;
+function buildSafeSchema(): Schema
+{
+  const base = defaultSchema
   return {
     ...base,
     // drop these entirely rather than unwrapping their children (mXSS vectors)
@@ -128,15 +129,16 @@ function buildSafeSchema(): Schema {
     // keep KaTeX / shim ids stable; the default clobber-prefix would rewrite them
     clobber: [],
     clobberPrefix: '',
-  };
+  }
 }
 
-const SAFE_SCHEMA = buildSafeSchema();
+const SAFE_SCHEMA = buildSafeSchema()
 
 // parse w/ a spec-compliant parser, sanitize the tree, re-serialize
 // parse+sanitize+serialize closes raw-text parser-differential (mXSS) gaps
-export function sanitizeScreenshotHtml(bodyHtml: string): string {
-  const tree = fromHtmlIsomorphic(bodyHtml, { fragment: true });
-  const clean = sanitize(tree, SAFE_SCHEMA);
-  return toHtml(clean);
+export function sanitizeScreenshotHtml(bodyHtml: string): string
+{
+  const tree = fromHtmlIsomorphic(bodyHtml, { fragment: true })
+  const clean = sanitize(tree, SAFE_SCHEMA)
+  return toHtml(clean)
 }

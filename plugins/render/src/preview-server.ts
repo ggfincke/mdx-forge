@@ -6,33 +6,35 @@ import {
   type IncomingMessage,
   type Server,
   type ServerResponse,
-} from 'node:http';
-import { spawn } from 'node:child_process';
-import { FRAMEWORK_IDS } from 'mdx-forge/components/registry';
-import type { FrameworkId } from './css.js';
-import { readHarnessBundle } from './trusted.js';
+} from 'node:http'
+import { spawn } from 'node:child_process'
+import { FRAMEWORK_IDS } from 'mdx-forge/components/registry'
+import type { FrameworkId } from './css.js'
+import { readHarnessBundle } from './trusted.js'
 
 // validate framework path segment for /harness/:framework/bundle.js routing
-const HARNESS_FRAMEWORKS = new Set<string>(FRAMEWORK_IDS);
+const HARNESS_FRAMEWORKS = new Set<string>(FRAMEWORK_IDS)
 
-function isHarnessFramework(framework: string): framework is FrameworkId {
-  return HARNESS_FRAMEWORKS.has(framework);
+function isHarnessFramework(framework: string): framework is FrameworkId
+{
+  return HARNESS_FRAMEWORKS.has(framework)
 }
 
-interface PreviewState {
-  html: string | undefined;
-  listeners: Set<ServerResponse>;
+interface PreviewState
+{
+  html: string | undefined
+  listeners: Set<ServerResponse>
 }
 
 const state: PreviewState = {
   html: undefined,
   listeners: new Set(),
-};
+}
 
-let server: Server | undefined;
-let serverPort: number | undefined;
-let startPromise: Promise<string> | undefined;
-let hasAutoOpened = false;
+let server: Server | undefined
+let serverPort: number | undefined
+let startPromise: Promise<string> | undefined
+let hasAutoOpened = false
 
 const LIVE_RELOAD_SCRIPT = `
 <script>
@@ -46,7 +48,7 @@ const LIVE_RELOAD_SCRIPT = `
     };
   })();
 </script>
-`;
+`
 
 const EMPTY_DOCUMENT = `<!doctype html>
 <html lang="en">
@@ -54,162 +56,197 @@ const EMPTY_DOCUMENT = `<!doctype html>
 <body style="font-family: system-ui, sans-serif; padding: 2rem; color: #666;">
   <p>No preview yet. Call <code>render_mdx</code> to populate this page.</p>
 </body>
-</html>`;
+</html>`
 
-function injectLiveReload(html: string): string {
-  if (html.includes('</body>')) {
-    return html.replace('</body>', `${LIVE_RELOAD_SCRIPT}</body>`);
+function injectLiveReload(html: string): string
+{
+  if (html.includes('</body>'))
+  {
+    return html.replace('</body>', `${LIVE_RELOAD_SCRIPT}</body>`)
   }
-  return `${html}${LIVE_RELOAD_SCRIPT}`;
+  return `${html}${LIVE_RELOAD_SCRIPT}`
 }
 
-const HARNESS_PATH = /^\/harness\/([A-Za-z0-9_-]+)\/bundle\.js$/;
+const HARNESS_PATH = /^\/harness\/([A-Za-z0-9_-]+)\/bundle\.js$/
 
-function handleRequest(req: IncomingMessage, res: ServerResponse): void {
-  const url = req.url ?? '/';
+function handleRequest(req: IncomingMessage, res: ServerResponse): void
+{
+  const url = req.url ?? '/'
 
-  if (url === '/' || url === '/preview' || url === '/preview/') {
+  if (url === '/' || url === '/preview' || url === '/preview/')
+  {
     res.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store',
-    });
-    res.end(injectLiveReload(state.html ?? EMPTY_DOCUMENT));
-    return;
+    })
+    res.end(injectLiveReload(state.html ?? EMPTY_DOCUMENT))
+    return
   }
 
-  const harnessMatch = HARNESS_PATH.exec(url);
-  if (harnessMatch) {
-    const framework = harnessMatch[1];
-    if (!isHarnessFramework(framework)) {
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('unknown framework');
-      return;
+  const harnessMatch = HARNESS_PATH.exec(url)
+  if (harnessMatch)
+  {
+    const framework = harnessMatch[1]
+    if (!isHarnessFramework(framework))
+    {
+      res.writeHead(404, { 'Content-Type': 'text/plain' })
+      res.end('unknown framework')
+      return
     }
     readHarnessBundle(framework).then(
-      (contents) => {
+      (contents) =>
+      {
         res.writeHead(200, {
           'Content-Type': 'application/javascript; charset=utf-8',
           'Cache-Control': 'public, max-age=60',
-        });
-        res.end(Buffer.from(contents));
+        })
+        res.end(Buffer.from(contents))
       },
-      (err) => {
-        res.writeHead(500, { 'Content-Type': 'text/plain' });
-        res.end(`harness bundle missing: ${err.message}`);
+      (err) =>
+      {
+        res.writeHead(500, { 'Content-Type': 'text/plain' })
+        res.end(`harness bundle missing: ${err.message}`)
       }
-    );
-    return;
+    )
+    return
   }
 
-  if (url === '/events') {
+  if (url === '/events')
+  {
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
       Connection: 'keep-alive',
       'X-Accel-Buffering': 'no',
-    });
-    res.write('retry: 1000\n\n');
-    state.listeners.add(res);
-    req.on('close', () => {
-      state.listeners.delete(res);
-    });
-    return;
+    })
+    res.write('retry: 1000\n\n')
+    state.listeners.add(res)
+    req.on('close', () =>
+    {
+      state.listeners.delete(res)
+    })
+    return
   }
 
-  res.writeHead(404, { 'Content-Type': 'text/plain' });
-  res.end('not found');
+  res.writeHead(404, { 'Content-Type': 'text/plain' })
+  res.end('not found')
 }
 
-export async function startPreviewServer(): Promise<string> {
-  if (startPromise) {
-    return startPromise;
+export async function startPreviewServer(): Promise<string>
+{
+  if (startPromise)
+  {
+    return startPromise
   }
 
-  startPromise = new Promise<string>((resolve, reject) => {
-    const httpServer = createServer(handleRequest);
-    httpServer.on('error', reject);
-    httpServer.listen(0, '127.0.0.1', () => {
-      const address = httpServer.address();
-      if (address === null || typeof address === 'string') {
-        reject(new Error('failed to bind preview server'));
-        return;
+  startPromise = new Promise<string>((resolve, reject) =>
+  {
+    const httpServer = createServer(handleRequest)
+    httpServer.on('error', reject)
+    httpServer.listen(0, '127.0.0.1', () =>
+    {
+      const address = httpServer.address()
+      if (address === null || typeof address === 'string')
+      {
+        reject(new Error('failed to bind preview server'))
+        return
       }
-      server = httpServer;
-      serverPort = address.port;
-      resolve(`http://127.0.0.1:${address.port}/preview`);
-    });
-  }).catch((err: unknown) => {
-    startPromise = undefined;
-    throw err;
-  });
+      server = httpServer
+      serverPort = address.port
+      resolve(`http://127.0.0.1:${address.port}/preview`)
+    })
+  }).catch((err: unknown) =>
+  {
+    startPromise = undefined
+    throw err
+  })
 
-  return startPromise;
+  return startPromise
 }
 
-export function getPreviewUrl(): string | undefined {
-  if (!serverPort) {
-    return undefined;
+export function getPreviewUrl(): string | undefined
+{
+  if (!serverPort)
+  {
+    return undefined
   }
-  return `http://127.0.0.1:${serverPort}/preview`;
+  return `http://127.0.0.1:${serverPort}/preview`
 }
 
-export function updatePreview(html: string): void {
-  state.html = html;
-  const payload = 'event: reload\ndata: 1\n\n';
-  for (const listener of state.listeners) {
-    listener.write(payload);
+export function updatePreview(html: string): void
+{
+  state.html = html
+  const payload = 'event: reload\ndata: 1\n\n'
+  for (const listener of state.listeners)
+  {
+    listener.write(payload)
   }
 }
 
-export async function stopPreviewServer(): Promise<void> {
-  for (const listener of state.listeners) {
-    listener.end();
+export async function stopPreviewServer(): Promise<void>
+{
+  for (const listener of state.listeners)
+  {
+    listener.end()
   }
-  state.listeners.clear();
-  const currentServer = server;
-  server = undefined;
-  serverPort = undefined;
-  startPromise = undefined;
-  if (!currentServer) {
-    return;
+  state.listeners.clear()
+  const currentServer = server
+  server = undefined
+  serverPort = undefined
+  startPromise = undefined
+  if (!currentServer)
+  {
+    return
   }
-  await new Promise<void>((resolve) => {
-    currentServer.close(() => resolve());
-  });
+  await new Promise<void>((resolve) =>
+  {
+    currentServer.close(() => resolve())
+  })
 }
 
 // open URL in default browser as a detached child process
-export function openInBrowser(url: string): void {
-  let command: string;
-  let args: string[];
+export function openInBrowser(url: string): void
+{
+  let command: string
+  let args: string[]
 
-  if (process.platform === 'darwin') {
-    command = 'open';
-    args = [url];
-  } else if (process.platform === 'win32') {
-    command = 'cmd';
-    args = ['/c', 'start', '""', url];
-  } else {
-    command = 'xdg-open';
-    args = [url];
+  if (process.platform === 'darwin')
+  {
+    command = 'open'
+    args = [url]
+  }
+  else if (process.platform === 'win32')
+  {
+    command = 'cmd'
+    args = ['/c', 'start', '""', url]
+  }
+  else
+  {
+    command = 'xdg-open'
+    args = [url]
   }
 
-  try {
+  try
+  {
     const child = spawn(command, args, {
       detached: true,
       stdio: 'ignore',
-    });
-    child.unref();
-  } catch {
+    })
+    child.unref()
+  }
+  catch
+  {
     // ignore auto-open failures
   }
 }
 
 // open once per server lifetime; live reload handles later renders
-export function autoOpenOnce(url: string): void {
-  if (hasAutoOpened) {
-    return;
+export function autoOpenOnce(url: string): void
+{
+  if (hasAutoOpened)
+  {
+    return
   }
-  hasAutoOpened = true;
-  openInBrowser(url);
+  hasAutoOpened = true
+  openInBrowser(url)
 }

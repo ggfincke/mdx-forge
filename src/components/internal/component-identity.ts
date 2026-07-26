@@ -1,20 +1,20 @@
 // src/components/internal/component-identity.ts
 // define React-free component identity & registry-facing configuration
 
-import { VALID_CALLOUT_TYPES } from '../../internal/callout';
-import { deepFreeze } from '../registry/freeze';
+import { VALID_CALLOUT_TYPES } from '../../internal/callout'
+import { deepFreeze } from '../registry/freeze'
 import {
   SHIM_PREFIX,
   type ComponentBarrelDefinition,
   type ComponentDefinition,
   type Framework,
   type FrameworkId,
-} from '../registry/types';
+} from '../registry/types'
 
 export type ComponentIdentityDefinition =
-  Omit<ComponentDefinition, 'metadata'> | ComponentBarrelDefinition;
+  Omit<ComponentDefinition, 'metadata'> | ComponentBarrelDefinition
 
-const CALLOUT_SNIPPET_TYPE_CHOICE = `\${1|${VALID_CALLOUT_TYPES.join(',')}|}`;
+const CALLOUT_SNIPPET_TYPE_CHOICE = `\${1|${VALID_CALLOUT_TYPES.join(',')}|}`
 
 export const COMPONENT_IDENTITY_DEFINITIONS = deepFreeze([
   {
@@ -307,15 +307,15 @@ export const COMPONENT_IDENTITY_DEFINITIONS = deepFreeze([
     importSpecifiers: ['nextra/components/Bleed'],
     shimPath: `${SHIM_PREFIX}/nextra/Bleed`,
   },
-] as const satisfies readonly ComponentIdentityDefinition[]);
+] as const satisfies readonly ComponentIdentityDefinition[])
 
 export type ComponentIdentityDefinitionType =
-  (typeof COMPONENT_IDENTITY_DEFINITIONS)[number];
+  (typeof COMPONENT_IDENTITY_DEFINITIONS)[number]
 
 export type ComponentIdentityEntry = Extract<
   ComponentIdentityDefinitionType,
   { kind: 'component' }
->;
+>
 
 export type ComponentIdentityTuple<
   Definitions extends readonly ComponentIdentityDefinition[] =
@@ -327,48 +327,54 @@ export type ComponentIdentityTuple<
   ? Head extends { kind: 'component' }
     ? readonly [Head, ...ComponentIdentityTuple<Tail>]
     : ComponentIdentityTuple<Tail>
-  : readonly [];
+  : readonly []
 
 type EntryFor<F extends FrameworkId> = Extract<
   ComponentIdentityEntry,
   { framework: F }
->;
+>
 
-export type GenericComponentName = EntryFor<'generic'>['name'];
-export type GenericComponentAlias = EntryFor<'generic'>['aliases'][number];
-export type DocusaurusComponent = EntryFor<'docusaurus'>['name'];
-export type StarlightComponent = EntryFor<'starlight'>['name'];
-export type NextjsComponent = EntryFor<'nextjs'>['name'];
-export type NextraComponent = EntryFor<'nextra'>['name'];
+export type GenericComponentName = EntryFor<'generic'>['name']
+export type GenericComponentAlias = EntryFor<'generic'>['aliases'][number]
+export type DocusaurusComponent = EntryFor<'docusaurus'>['name']
+export type StarlightComponent = EntryFor<'starlight'>['name']
+export type NextjsComponent = EntryFor<'nextjs'>['name']
+export type NextraComponent = EntryFor<'nextra'>['name']
 
-export const GENERIC_COMPONENTS = deepFreeze(buildGenericComponents());
-export const FRAMEWORK_COMPONENTS = deepFreeze(buildFrameworkComponents());
+export const GENERIC_COMPONENTS = deepFreeze(buildGenericComponents())
+export const FRAMEWORK_COMPONENTS = deepFreeze(buildFrameworkComponents())
 
-function buildGenericComponents(): Record<string, { aliases: string[] }> {
-  const result: Record<string, { aliases: string[] }> = {};
-  for (const definition of COMPONENT_IDENTITY_DEFINITIONS) {
-    if (definition.kind !== 'component' || definition.framework !== 'generic') {
-      continue;
+function buildGenericComponents(): Record<string, { aliases: string[] }>
+{
+  const result: Record<string, { aliases: string[] }> = {}
+  for (const definition of COMPONENT_IDENTITY_DEFINITIONS)
+  {
+    if (definition.kind !== 'component' || definition.framework !== 'generic')
+    {
+      continue
     }
-    result[definition.name] = { aliases: [...definition.aliases] };
+    result[definition.name] = { aliases: [...definition.aliases] }
   }
-  return result;
+  return result
 }
 
-function buildFrameworkComponents(): Record<Framework, string[]> {
+function buildFrameworkComponents(): Record<Framework, string[]>
+{
   const result: Record<Framework, string[]> = {
     docusaurus: [],
     starlight: [],
     nextjs: [],
     nextra: [],
-  };
-
-  for (const definition of COMPONENT_IDENTITY_DEFINITIONS) {
-    if (definition.kind !== 'component' || definition.framework === 'generic') {
-      continue;
-    }
-    result[definition.framework].push(definition.name);
   }
 
-  return result;
+  for (const definition of COMPONENT_IDENTITY_DEFINITIONS)
+  {
+    if (definition.kind !== 'component' || definition.framework === 'generic')
+    {
+      continue
+    }
+    result[definition.framework].push(definition.name)
+  }
+
+  return result
 }

@@ -83,4 +83,4 @@ import TabItem from '@theme/TabItem'
     <td>Cell 2</td>
   </tr>
 </table>`,
-};
+}

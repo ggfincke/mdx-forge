@@ -1,22 +1,22 @@
 // src/compiler/pipeline/remark/admonitions.ts
 // transform directive syntax (:::note, :::warning, etc.) to admonition HTML
 
-import { visit } from 'unist-util-visit';
+import { visit } from 'unist-util-visit'
 import type {
   Root,
   Parent,
   PhrasingContent,
   BlockContent,
   RootContent,
-} from 'mdast';
-import type { ContainerDirective } from 'mdast-util-directive';
+} from 'mdast'
+import type { ContainerDirective } from 'mdast-util-directive'
 import {
   CALLOUT_TYPE_ALIASES,
   type CalloutType,
   type CalloutStyleConfig,
   buildCalloutStyleMap,
-} from '../../../internal/callout';
-import { createCalloutCard } from '../transforms/utils';
+} from '../../../internal/callout'
+import { createCalloutCard } from '../transforms/utils'
 import {
   PREVIEW_ADMONITION,
   PREVIEW_ADMONITION_NOTE,
@@ -39,7 +39,7 @@ import {
   PREVIEW_ADMONITION_HEADER,
   PREVIEW_ADMONITION_ICON,
   PREVIEW_ADMONITION_CONTENT,
-} from '../../internal/css-classes';
+} from '../../internal/css-classes'
 
 // CSS class lookup for preview admonition types
 const ADMONITION_CLASSES: Record<CalloutType, string> = {
@@ -60,70 +60,79 @@ const ADMONITION_CLASSES: Record<CalloutType, string> = {
   quote: PREVIEW_ADMONITION_QUOTE,
   todo: PREVIEW_ADMONITION_TODO,
   attention: PREVIEW_ADMONITION_ATTENTION,
-};
+}
 
 // admonition config derived from shared callout registry
 const ADMONITION_TYPES: Record<string, CalloutStyleConfig> =
-  buildCalloutStyleMap((type) => ADMONITION_CLASSES[type]);
+  buildCalloutStyleMap((type) => ADMONITION_CLASSES[type])
 
 const OBJECT_PROTOTYPE_NAMES = new Set(
   Object.getOwnPropertyNames(Object.prototype).map((name) => name.toLowerCase())
-);
+)
 
 // type guard for container directive
-function isContainerDirective(node: unknown): node is ContainerDirective {
+function isContainerDirective(node: unknown): node is ContainerDirective
+{
   return (
     typeof node === 'object' &&
     node !== null &&
     'type' in node &&
     node.type === 'containerDirective'
-  );
+  )
 }
 
 // extract custom title from directive children (e.g., :::note[Custom Title])
 function extractCustomTitle(
   node: ContainerDirective
-): string | PhrasingContent[] | null {
+): string | PhrasingContent[] | null
+{
   // check attributes first (some parsers put it there)
-  if (typeof node.attributes?.title === 'string') {
-    return node.attributes.title;
+  if (typeof node.attributes?.title === 'string')
+  {
+    return node.attributes.title
   }
 
-  const firstChild = node.children?.[0];
+  const firstChild = node.children?.[0]
   if (
     firstChild?.type === 'paragraph' &&
     (firstChild.data as { directiveLabel?: boolean } | undefined)
       ?.directiveLabel
-  ) {
-    return firstChild.children.length > 0 ? firstChild.children : null;
+  )
+  {
+    return firstChild.children.length > 0 ? firstChild.children : null
   }
 
-  return null;
+  return null
 }
 
 // get the lowercased directive name
-function getDirectiveName(node: ContainerDirective): string {
-  return node.name ? node.name.toLowerCase() : '';
+function getDirectiveName(node: ContainerDirective): string
+{
+  return node.name ? node.name.toLowerCase() : ''
 }
 
 // resolve directive name to admonition config (handles aliases)
-function resolveAdmonitionType(name: string): CalloutStyleConfig | undefined {
+function resolveAdmonitionType(name: string): CalloutStyleConfig | undefined
+{
   // direct match
-  if (Object.hasOwn(ADMONITION_TYPES, name)) {
-    return ADMONITION_TYPES[name];
+  if (Object.hasOwn(ADMONITION_TYPES, name))
+  {
+    return ADMONITION_TYPES[name]
   }
 
   // alias match
-  if (Object.hasOwn(CALLOUT_TYPE_ALIASES, name)) {
-    const canonical = CALLOUT_TYPE_ALIASES[name];
-    return ADMONITION_TYPES[canonical];
+  if (Object.hasOwn(CALLOUT_TYPE_ALIASES, name))
+  {
+    const canonical = CALLOUT_TYPE_ALIASES[name]
+    return ADMONITION_TYPES[canonical]
   }
 
-  if (OBJECT_PROTOTYPE_NAMES.has(name)) {
-    return ADMONITION_TYPES.note;
+  if (OBJECT_PROTOTYPE_NAMES.has(name))
+  {
+    return ADMONITION_TYPES.note
   }
 
-  return undefined;
+  return undefined
 }
 
 // create AST node for admonition via the shared createCalloutCard scaffold
@@ -131,15 +140,18 @@ function createAdmonitionNode(
   config: CalloutStyleConfig,
   title: string | PhrasingContent[],
   children: Array<BlockContent | PhrasingContent>
-): RootContent {
+): RootContent
+{
   // filter out directive label from children if present
-  const contentChildren = children.filter((child) => {
-    if ('data' in child) {
-      const data = child.data as { directiveLabel?: boolean } | undefined;
-      return !data?.directiveLabel;
+  const contentChildren = children.filter((child) =>
+  {
+    if ('data' in child)
+    {
+      const data = child.data as { directiveLabel?: boolean } | undefined
+      return !data?.directiveLabel
     }
-    return true;
-  });
+    return true
+  })
 
   return createCalloutCard({
     outerType: 'admonition',
@@ -157,12 +169,14 @@ function createAdmonitionNode(
     contentType: 'admonitionContent',
     contentClassName: PREVIEW_ADMONITION_CONTENT,
     contentChildren: contentChildren as RootContent[],
-  });
+  })
 }
 
 // transform container directives to admonitions
-export default function remarkAdmonitions() {
-  return (tree: Root) => {
+export default function remarkAdmonitions()
+{
+  return (tree: Root) =>
+  {
     visit(
       tree,
       (node: unknown): node is ContainerDirective => isContainerDirective(node),
@@ -170,38 +184,41 @@ export default function remarkAdmonitions() {
         node: ContainerDirective,
         index: number | undefined,
         parent: Parent | undefined
-      ) => {
-        if (index === undefined || !parent) {
-          return;
+      ) =>
+      {
+        if (index === undefined || !parent)
+        {
+          return
         }
 
-        const directiveName = getDirectiveName(node);
+        const directiveName = getDirectiveName(node)
 
         // check if this is a supported admonition type (direct or alias)
-        const admonitionType = resolveAdmonitionType(directiveName);
-        if (!admonitionType) {
+        const admonitionType = resolveAdmonitionType(directiveName)
+        if (!admonitionType)
+        {
           // not an admonition directive, leave it alone
-          return;
+          return
         }
 
         // extract custom title or use default
-        const customTitle = extractCustomTitle(node);
-        const title = customTitle || admonitionType.label;
+        const customTitle = extractCustomTitle(node)
+        const title = customTitle || admonitionType.label
 
         // create admonition node
         const admonitionNode = createAdmonitionNode(
           admonitionType,
           title,
           node.children as Array<BlockContent | PhrasingContent>
-        );
+        )
 
         // replace the directive node w/ the admonition node
         parent.children.splice(
           index,
           1,
           admonitionNode as (typeof parent.children)[number]
-        );
+        )
       }
-    );
-  };
+    )
+  }
 }

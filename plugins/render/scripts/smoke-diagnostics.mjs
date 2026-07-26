@@ -1,78 +1,81 @@
 // plugins/render/scripts/smoke-diagnostics.mjs
 // smoke test registry, diagnostics, prop lint & frontmatter validation
 
-import { renderMdx, shutdownBrowser } from '../dist/render.js';
-import { stopPreviewServer } from '../dist/preview-server.js';
-import { lintMdxSource } from '../dist/lint.js';
+import { renderMdx, shutdownBrowser } from '../dist/render.js'
+import { stopPreviewServer } from '../dist/preview-server.js'
+import { lintMdxSource } from '../dist/lint.js'
 import {
   findComponent,
   getFrontmatterSchema,
   listComponentsForFramework,
   listFrameworks,
-} from '../dist/registry.js';
-import { RenderDiagnosticError, suggestMatch } from '../dist/diagnostics.js';
+} from '../dist/registry.js'
+import { RenderDiagnosticError, suggestMatch } from '../dist/diagnostics.js'
 
-let failed = 0;
-let checked = 0;
-function check(name, ok, detail) {
-  checked += 1;
+let failed = 0
+let checked = 0
+function check(name, ok, detail)
+{
+  checked += 1
   console.log(
     `  ${ok ? 'OK  ' : 'FAIL'} ${name}${detail ? ` — ${detail}` : ''}`
-  );
-  if (!ok) {
-    failed += 1;
+  )
+  if (!ok)
+  {
+    failed += 1
   }
 }
 
-function has(list, predicate) {
-  return list.some(predicate);
+function has(list, predicate)
+{
+  return list.some(predicate)
 }
 
 // --- §1.1 list_components registry surface ---------------------------------
 
-console.log('§1.1 list_components registry...');
+console.log('§1.1 list_components registry...')
 
-const frameworks = listFrameworks();
-check('five frameworks', frameworks.length === 5);
-check('generic listed', frameworks.includes('generic'));
-check('docusaurus listed', frameworks.includes('docusaurus'));
-check('starlight listed', frameworks.includes('starlight'));
-check('nextra listed', frameworks.includes('nextra'));
-check('nextjs listed', frameworks.includes('nextjs'));
+const frameworks = listFrameworks()
+check('five frameworks', frameworks.length === 5)
+check('generic listed', frameworks.includes('generic'))
+check('docusaurus listed', frameworks.includes('docusaurus'))
+check('starlight listed', frameworks.includes('starlight'))
+check('nextra listed', frameworks.includes('nextra'))
+check('nextjs listed', frameworks.includes('nextjs'))
 
-const genericList = listComponentsForFramework('generic');
-check('generic has >=5 components', genericList.length >= 5);
+const genericList = listComponentsForFramework('generic')
+check('generic has >=5 components', genericList.length >= 5)
 check(
   'generic has Callout spec',
   has(genericList, (c) => c.name === 'Callout')
-);
+)
 
-const callout = findComponent('generic', 'Callout');
-check('Callout lookup works', Boolean(callout));
+const callout = findComponent('generic', 'Callout')
+check('Callout lookup works', Boolean(callout))
 const calloutTypeValues =
   callout?.props.find((p) => p.name === 'type' && p.type === 'enum')?.values ??
-  [];
+  []
 check(
   'Callout has expanded generic type enum',
   calloutTypeValues.length >= 17 && calloutTypeValues.includes('attention')
-);
-check('Callout.type accepts danger', calloutTypeValues.includes('danger'));
+)
+check('Callout.type accepts danger', calloutTypeValues.includes('danger'))
 
-const alertAlias = findComponent('generic', 'Alert');
-check('Alert resolves to Callout via alias', alertAlias?.name === 'Callout');
+const alertAlias = findComponent('generic', 'Alert')
+check('Alert resolves to Callout via alias', alertAlias?.name === 'Callout')
 
-const docusaurusTabs = findComponent('docusaurus', 'Tabs');
-check('docusaurus Tabs lookup', Boolean(docusaurusTabs));
+const docusaurusTabs = findComponent('docusaurus', 'Tabs')
+check('docusaurus Tabs lookup', Boolean(docusaurusTabs))
 check(
   'docusaurus Tabs has groupId prop',
   docusaurusTabs?.props.some((p) => p.name === 'groupId')
-);
+)
 check(
   'docusaurus does NOT inherit generic Callout (barrel-scoped)',
   findComponent('docusaurus', 'Callout') === undefined
-);
+)
 
-const linkCard = findComponent('starlight', 'LinkCard');
+const linkCard = findComponent('starlight', 'LinkCard')
 check(
   'starlight LinkCard has required title + href',
   linkCard?.props
@@ -80,15 +83,15 @@ check(
     .map((p) => p.name)
     .sort()
     .join(',') === 'href,title'
-);
+)
 
-const nextraCallout = findComponent('nextra', 'Callout');
+const nextraCallout = findComponent('nextra', 'Callout')
 check(
   'nextra Callout enum differs from generic (has "error")',
   nextraCallout?.props.find((p) => p.name === 'type')?.values?.includes('error')
-);
+)
 
-const nextjsImage = findComponent('nextjs', 'Image');
+const nextjsImage = findComponent('nextjs', 'Image')
 check(
   'nextjs Image src + alt required',
   nextjsImage?.props
@@ -96,232 +99,233 @@ check(
     .map((p) => p.name)
     .sort()
     .join(',') === 'alt,src'
-);
+)
 
 // --- §1.2 structured errors w/ did-you-mean --------------------------------
 
-console.log('\n§1.2 structured errors...');
+console.log('\n§1.2 structured errors...')
 
 check(
   'suggestMatch finds close match',
   suggestMatch('Calout', ['Callout']) === 'Callout'
-);
+)
 check(
   'suggestMatch rejects too-far match',
   suggestMatch('xyz', ['Callout']) === undefined
-);
+)
 check(
   'suggestMatch rejects empty input',
   suggestMatch('', ['Callout']) === undefined
-);
+)
 
 // unknown-component error from Safe Mode lint
-const unknownLint = await lintMdxSource('<WidgetFoo />', 'generic');
+const unknownLint = await lintMdxSource('<WidgetFoo />', 'generic')
 const unknownDiag = unknownLint.diagnostics.find(
   (d) => d.kind === 'unknown-component'
-);
-check('unknown component detected', Boolean(unknownDiag));
+)
+check('unknown component detected', Boolean(unknownDiag))
 check(
   'unknown component has component name',
   unknownDiag?.component === 'WidgetFoo'
-);
+)
 
-const pwnedKey = '__mdxForgeRenderPwned';
-globalThis[pwnedKey] = undefined;
+const pwnedKey = '__mdxForgeRenderPwned'
+globalThis[pwnedKey] = undefined
 const safeFrontmatterLint = await lintMdxSource(
   `---js\n((globalThis['${pwnedKey}'] = true), {})\n---\n# Safe\n`,
   'generic'
-);
-check('---js frontmatter does not eval', globalThis[pwnedKey] === undefined);
+)
+check('---js frontmatter does not eval', globalThis[pwnedKey] === undefined)
 check(
   '---js frontmatter still lints',
   Array.isArray(safeFrontmatterLint.diagnostics)
-);
+)
 
 // did-you-mean for close typo
 const typoLint = await lintMdxSource(
   '<Calout type="tip">body</Calout>',
   'generic'
-);
+)
 const typoDiag = typoLint.diagnostics.find(
   (d) => d.kind === 'unknown-component'
-);
-check('typo component flagged', Boolean(typoDiag));
-check('did-you-mean suggests Callout', typoDiag?.suggestion === 'Callout');
+)
+check('typo component flagged', Boolean(typoDiag))
+check('did-you-mean suggests Callout', typoDiag?.suggestion === 'Callout')
 
 // mdx-syntax (fatal): unterminated JSX
-try {
+try
+{
   await renderMdx({
     source: '<Callout type="tip"\n\nunterminated',
     framework: 'generic',
-  });
-  check('unterminated JSX throws', false, 'expected throw');
-} catch (err) {
+  })
+  check('unterminated JSX throws', false, 'expected throw')
+}
+catch (err)
+{
   check(
     'unterminated JSX is RenderDiagnosticError',
     err instanceof RenderDiagnosticError
-  );
+  )
   check(
     'unterminated JSX kind is mdx-syntax',
     err.diagnostic?.kind === 'mdx-syntax'
-  );
+  )
 }
 
 // position is captured when available
 const posLint = await lintMdxSource(
   ['# Title', '', 'paragraph', '', '<BadComponent />'].join('\n'),
   'generic'
-);
-const posDiag = posLint.diagnostics.find((d) => d.kind === 'unknown-component');
+)
+const posDiag = posLint.diagnostics.find((d) => d.kind === 'unknown-component')
 check(
   'position line captured',
   typeof posDiag?.line === 'number' && posDiag.line >= 5
-);
+)
 
 // --- §1.3 prop lint ---------------------------------------------------------
 
-console.log('\n§1.3 prop lint...');
+console.log('\n§1.3 prop lint...')
 
 // invalid prop value (not in enum)
 const badEnumLint = await lintMdxSource(
   '<Callout type="bogus">body</Callout>',
   'generic'
-);
+)
 const badEnumDiag = badEnumLint.diagnostics.find(
   (d) => d.kind === 'invalid-prop-value'
-);
-check('invalid enum value flagged', Boolean(badEnumDiag));
+)
+check('invalid enum value flagged', Boolean(badEnumDiag))
 check(
   'invalid enum suggestion present',
   typeof badEnumDiag?.suggestion === 'string'
-);
+)
 
 // alias promotion (warn -> warning)
 const aliasLint = await lintMdxSource(
   '<Callout type="warn">body</Callout>',
   'generic'
-);
+)
 const aliasDiag = aliasLint.diagnostics.find(
   (d) => d.kind === 'deprecated-alias'
-);
-check('alias flagged as deprecated-alias', Boolean(aliasDiag));
-check('alias suggestion = warning', aliasDiag?.suggestion === 'warning');
+)
+check('alias flagged as deprecated-alias', Boolean(aliasDiag))
+check('alias suggestion = warning', aliasDiag?.suggestion === 'warning')
 
 // unknown prop w/ did-you-mean
 const badPropLint = await lintMdxSource(
   '<Callout type="tip" titel="x">body</Callout>',
   'generic'
-);
+)
 const badPropDiag = badPropLint.diagnostics.find(
   (d) => d.kind === 'invalid-prop'
-);
-check('unknown prop flagged', Boolean(badPropDiag));
-check('unknown prop suggestion = title', badPropDiag?.suggestion === 'title');
+)
+check('unknown prop flagged', Boolean(badPropDiag))
+check('unknown prop suggestion = title', badPropDiag?.suggestion === 'title')
 
 // missing required prop
 const missingReqLint = await lintMdxSource(
   '<LinkCard href="/docs" />',
   'starlight'
-);
+)
 const missingReqDiag = missingReqLint.diagnostics.find(
   (d) => d.kind === 'missing-required-prop'
-);
-check('missing required prop flagged', Boolean(missingReqDiag));
-check('missing prop name = title', missingReqDiag?.prop === 'title');
+)
+check('missing required prop flagged', Boolean(missingReqDiag))
+check('missing prop name = title', missingReqDiag?.prop === 'title')
 
 // universal props pass without warning (className, data-*, aria-*)
 const universalLint = await lintMdxSource(
   '<Callout type="tip" className="x" data-id="y" aria-label="z">ok</Callout>',
   'generic'
-);
+)
 check(
   'universal props do not warn',
   universalLint.diagnostics.every((d) => d.kind !== 'invalid-prop')
-);
+)
 
 // framework-specific prop: docusaurus groupId accepted
 const docTabsLint = await lintMdxSource(
   '<Tabs groupId="lang"><TabItem label="a">1</TabItem></Tabs>',
   'docusaurus'
-);
+)
 const docTabsErrors = docTabsLint.diagnostics.filter(
   (d) => d.kind === 'invalid-prop'
-);
-check('docusaurus groupId accepted', docTabsErrors.length === 0);
+)
+check('docusaurus groupId accepted', docTabsErrors.length === 0)
 
 // --- §1.4 frontmatter validation -------------------------------------------
 
-console.log('\n§1.4 frontmatter...');
+console.log('\n§1.4 frontmatter...')
 
 // starlight requires title
-const starlightMissing = await lintMdxSource(
-  '# Body\n\nParagraph',
-  'starlight'
-);
+const starlightMissing = await lintMdxSource('# Body\n\nParagraph', 'starlight')
 const starlightMissingDiag = starlightMissing.diagnostics.find(
   (d) => d.kind === 'missing-frontmatter'
-);
-check('starlight missing title flagged', Boolean(starlightMissingDiag));
+)
+check('starlight missing title flagged', Boolean(starlightMissingDiag))
 check(
   'starlight missing title field = title',
   starlightMissingDiag?.field === 'title'
-);
+)
 
 // starlight title satisfies required frontmatter
 const starlightOk = await lintMdxSource(
   '---\ntitle: Hello\n---\n\n# Body',
   'starlight'
-);
+)
 const starlightOkMissing = starlightOk.diagnostics.filter(
   (d) => d.kind === 'missing-frontmatter'
-);
-check('starlight with title passes', starlightOkMissing.length === 0);
+)
+check('starlight with title passes', starlightOkMissing.length === 0)
 
 // starlight template enum validation
 const starlightBadTpl = await lintMdxSource(
   '---\ntitle: Hello\ntemplate: wrong\n---\n\n# Body',
   'starlight'
-);
+)
 const tplDiag = starlightBadTpl.diagnostics.find(
   (d) => d.kind === 'invalid-frontmatter-type'
-);
-check('starlight template enum enforced', Boolean(tplDiag));
+)
+check('starlight template enum enforced', Boolean(tplDiag))
 
 // docusaurus sidebar_position type mismatch
 const docusaurusBad = await lintMdxSource(
   '---\ntitle: Hello\nsidebar_position: not-a-number\n---\n\nbody',
   'docusaurus'
-);
+)
 const docusaurusBadDiag = docusaurusBad.diagnostics.find(
   (d) => d.kind === 'invalid-frontmatter-type'
-);
+)
 check(
   'docusaurus sidebar_position type mismatch flagged',
   Boolean(docusaurusBadDiag)
-);
+)
 
 // generic allows unknown fields without warning
 const genericUnknown = await lintMdxSource(
   '---\ntitle: Hello\ncustom_field: ok\n---\nbody',
   'generic'
-);
+)
 const genericUnknownDiag = genericUnknown.diagnostics.find(
   (d) => d.kind === 'unknown-frontmatter'
-);
-check('generic allows unknown fields', !genericUnknownDiag);
+)
+check('generic allows unknown fields', !genericUnknownDiag)
 
-const schema = getFrontmatterSchema('starlight');
+const schema = getFrontmatterSchema('starlight')
 check(
   'starlight schema marks title required',
   schema.fields.find((f) => f.name === 'title')?.required === true
-);
+)
 
 // --- §1.5 unified core diagnostics engine -----------------------------------
 // gated: plugin-compat's current-core leg sets the env var; the locked
 // minimum core (0.6.2) lacks the analyze subpath & keeps legacy behavior
 
-if (process.env.MDX_FORGE_EXPECT_UNIFIED_DIAGNOSTICS === '1') {
-  console.log('\n§1.5 unified core engine...');
+if (process.env.MDX_FORGE_EXPECT_UNIFIED_DIAGNOSTICS === '1')
+{
+  console.log('\n§1.5 unified core engine...')
 
   // stripped-frontmatter offsets restored: original file lines, not body lines
   const fmPositionLint = await lintMdxSource(
@@ -336,104 +340,108 @@ if (process.env.MDX_FORGE_EXPECT_UNIFIED_DIAGNOSTICS === '1') {
       '<SecondUnknown />',
     ].join('\n'),
     'generic'
-  );
+  )
   const fmUnknowns = fmPositionLint.diagnostics.filter(
     (d) => d.kind === 'unknown-component'
-  );
+  )
   check(
     'frontmatter-relative positions restored (lines 5 & 8)',
     fmUnknowns.length === 2 &&
       fmUnknowns[0].line === 5 &&
       fmUnknowns[1].line === 8,
     `got lines ${fmUnknowns.map((d) => d.line).join(',')}`
-  );
+  )
 
   // string values on boolean props are flagged
   const boolStringLint = await lintMdxSource(
     '<Collapsible open="false">x</Collapsible>',
     'generic'
-  );
+  )
   check(
     'open="false" flagged as invalid-prop-value',
     boolStringLint.diagnostics.some(
       (d) => d.kind === 'invalid-prop-value' && d.prop === 'open'
     )
-  );
+  )
 
   // real event-prop grammar: only= is not an event handler
   const onlyLint = await lintMdxSource(
     '<Collapsible only="x">x</Collapsible>',
     'generic'
-  );
+  )
   check(
     'only="x" flagged as invalid-prop',
     onlyLint.diagnostics.some(
       (d) => d.kind === 'invalid-prop' && d.prop === 'only'
     )
-  );
+  )
 
   // compound members validate against the known-member allowlist
   const memberOkLint = await lintMdxSource(
     '<FileTree.Folder name="src"><FileTree.File name="a" /></FileTree.Folder>',
     'nextra'
-  );
+  )
   check(
     'FileTree.Folder/File accepted',
     memberOkLint.diagnostics.length === 0,
     memberOkLint.diagnostics.map((d) => d.kind).join(',')
-  );
-  const memberBadLint = await lintMdxSource('<FileTree.Nope />', 'nextra');
+  )
+  const memberBadLint = await lintMdxSource('<FileTree.Nope />', 'nextra')
   check(
     'FileTree.Nope rejected',
     memberBadLint.diagnostics.some(
       (d) => d.kind === 'unknown-component' && d.component === 'FileTree.Nope'
     )
-  );
+  )
 }
 
 // --- end-to-end renderMdx result surfaces diagnostics ----------------------
 
-console.log('\nend-to-end renderMdx diagnostics...');
+console.log('\nend-to-end renderMdx diagnostics...')
 
 const warningRender = await renderMdx({
   source: '---\ntitle: Demo\n---\n\n<Callout type="bogus">body</Callout>\n',
   framework: 'generic',
-});
+})
 check(
   'renderMdx returns diagnostics array',
   Array.isArray(warningRender.diagnostics)
-);
+)
 check(
   'renderMdx surfaces invalid enum value as warning',
   warningRender.diagnostics.some((d) => d.kind === 'invalid-prop-value')
-);
+)
 check(
   'renderMdx still returns HTML even with warnings',
   warningRender.html.length > 0
-);
+)
 
 // renderMdx w/ fatal lint (starlight missing title becomes renderer error)
-try {
+try
+{
   await renderMdx({
     source: 'Body without frontmatter',
     framework: 'starlight',
-  });
+  })
   // starlight missing title is non-fatal; warning must propagate
-  check('starlight missing title is non-fatal', true);
-} catch (err) {
+  check('starlight missing title is non-fatal', true)
+}
+catch (err)
+{
   check(
     'starlight missing title is non-fatal',
     false,
     err instanceof Error ? err.message : String(err)
-  );
+  )
 }
 
-await shutdownBrowser();
-await stopPreviewServer();
+await shutdownBrowser()
+await stopPreviewServer()
 
-console.log(`\n${checked - failed}/${checked} passed`);
-if (failed > 0) {
-  console.error(`${failed} assertion(s) failed`);
-  process.exit(1);
+console.log(`\n${checked - failed}/${checked} passed`)
+if (failed > 0)
+{
+  console.error(`${failed} assertion(s) failed`)
+  process.exit(1)
 }
-console.log('OK');
+console.log('OK')

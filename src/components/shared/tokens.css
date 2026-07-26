@@ -2,7 +2,8 @@
 /* Shared CSS custom properties for all shim components */
 /* This is the single source of truth for colors, spacing, & other design tokens */
 
-:root {
+:root
+{
   /* ==================== Semantic Colors ==================== */
   /* Note/Info - Blue (Google Material style) */
   --mdx-color-note: #448aff;
@@ -124,8 +125,10 @@
 }
 
 /* ==================== Dark Mode Overrides ==================== */
-@media (prefers-color-scheme: dark) {
-  :root {
+@media (prefers-color-scheme: dark)
+{
+  :root
+  {
     --mdx-border-color: #333;
     --mdx-bg-primary: #1e1e1e;
     --mdx-bg-secondary: #252526;
@@ -139,7 +142,8 @@
 }
 
 /* VS Code host adapter for webview theme variables */
-.vscode-dark {
+.vscode-dark
+{
   --mdx-border-color: #333;
   --mdx-bg-primary: #1e1e1e;
   --mdx-bg-secondary: #252526;

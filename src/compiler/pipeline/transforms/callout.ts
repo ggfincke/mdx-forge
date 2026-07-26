@@ -1,15 +1,15 @@
 // src/compiler/pipeline/transforms/callout.ts
 // transform Callout/Alert/Admonition components to semantic HTML
 
-import type { RootContent } from 'mdast';
-import type { MdxJsxElement } from '../../types';
-import { getStaticStringProp, createCalloutCard } from './utils';
+import type { RootContent } from 'mdast'
+import type { MdxJsxElement } from '../../types'
+import { getStaticStringProp, createCalloutCard } from './utils'
 import {
   type CalloutType,
   type CalloutStyleConfig,
   normalizeCalloutType,
   buildCalloutStyleMap,
-} from '../../../internal/callout';
+} from '../../../internal/callout'
 import {
   SAFE_CALLOUT,
   SAFE_CALLOUT_NOTE,
@@ -32,13 +32,13 @@ import {
   SAFE_CALLOUT_HEADER,
   SAFE_CALLOUT_ICON,
   SAFE_CALLOUT_CONTENT,
-} from '../../internal/css-classes';
+} from '../../internal/css-classes'
 
 // re-export for consumers that import from this file
 export {
   type CalloutType,
   normalizeCalloutType,
-} from '../../../internal/callout';
+} from '../../../internal/callout'
 
 // CSS class lookup for Safe Mode callout types
 const SAFE_CALLOUT_CLASSES: Record<CalloutType, string> = {
@@ -59,18 +59,19 @@ const SAFE_CALLOUT_CLASSES: Record<CalloutType, string> = {
   quote: SAFE_CALLOUT_QUOTE,
   todo: SAFE_CALLOUT_TODO,
   attention: SAFE_CALLOUT_ATTENTION,
-};
+}
 
 // callout defaults w/ icons & CSS class names for Safe Mode HTML rendering
 export const CALLOUT_DEFAULTS: Record<CalloutType, CalloutStyleConfig> =
-  buildCalloutStyleMap((type) => SAFE_CALLOUT_CLASSES[type]);
+  buildCalloutStyleMap((type) => SAFE_CALLOUT_CLASSES[type])
 
 // transform Callout/Alert/Admonition component to semantic HTML
-export function transformCallout(node: MdxJsxElement): RootContent {
-  const typeStr = getStaticStringProp(node, 'type');
-  const calloutType = normalizeCalloutType(typeStr);
-  const config = CALLOUT_DEFAULTS[calloutType];
-  const title = getStaticStringProp(node, 'title') || config.label;
+export function transformCallout(node: MdxJsxElement): RootContent
+{
+  const typeStr = getStaticStringProp(node, 'type')
+  const calloutType = normalizeCalloutType(typeStr)
+  const config = CALLOUT_DEFAULTS[calloutType]
+  const title = getStaticStringProp(node, 'title') || config.label
 
   return createCalloutCard({
     outerType: 'callout',
@@ -87,5 +88,5 @@ export function transformCallout(node: MdxJsxElement): RootContent {
     contentType: 'calloutContent',
     contentClassName: SAFE_CALLOUT_CONTENT,
     contentChildren: node.children as RootContent[],
-  });
+  })
 }

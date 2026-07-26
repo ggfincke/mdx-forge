@@ -1,87 +1,99 @@
 // src/compiler/pipeline/rehype/create-diagram-placeholder.ts
 // factory for creating rehype diagram placeholder plugins
 
-import { visit } from 'unist-util-visit';
-import type { Root, Element, Text } from 'hast';
-import type { DiagramBehavior } from '../../types';
-import { getSourceLineOffset } from './source-line';
+import { visit } from 'unist-util-visit'
+import type { Root, Element, Text } from 'hast'
+import type { DiagramBehavior } from '../../types'
+import { getSourceLineOffset } from './source-line'
 
 // container modifier & label classes for the visible code fallback
-export const DIAGRAM_CODE_CLASS = 'mdx-diagram-code';
-export const DIAGRAM_CODE_LABEL_CLASS = 'mdx-diagram-code-label';
+export const DIAGRAM_CODE_CLASS = 'mdx-diagram-code'
+export const DIAGRAM_CODE_LABEL_CLASS = 'mdx-diagram-code-label'
 
 // language alias configuration for a diagram type
-interface LanguageAlias {
+interface LanguageAlias
+{
   // CSS class name to match (e.g., 'language-mermaid')
-  className: string;
+  className: string
   // canonical language identifier (e.g., 'mermaid')
-  id: string;
+  id: string
 }
 
 // configuration for a diagram placeholder plugin
-export interface DiagramPlaceholderConfig {
+export interface DiagramPlaceholderConfig
+{
   // diagram type name used for ID prefix (e.g., 'mermaid')
-  name: string;
+  name: string
   // language aliases to match against code block classes
-  languages: LanguageAlias[];
+  languages: LanguageAlias[]
   // CSS class for the container div (e.g., 'mermaid-container')
-  containerClass: string;
+  containerClass: string
   // data attribute name for the code content (e.g., 'data-mermaid-chart')
-  codeAttr: string;
+  codeAttr: string
   // data attribute name for the diagram ID (e.g., 'data-mermaid-id')
-  idAttr: string;
+  idAttr: string
   // optional extra attributes derived from matched language
-  extraAttributes?: (languageId: string) => Record<string, string>;
+  extraAttributes?: (languageId: string) => Record<string, string>
 }
 
 // per-use options accepted by the created rehype plugin
-export interface DiagramPlaceholderOptions {
+export interface DiagramPlaceholderOptions
+{
   // defaults to 'placeholder' (renderer-owning host contract)
-  behavior?: DiagramBehavior;
+  behavior?: DiagramBehavior
 }
 
 // collect raw code text from all text children of a code node
-function getCodeText(node: Element): string {
+function getCodeText(node: Element): string
+{
   return node.children
-    .map((child) => {
-      if (child.type === 'text') {
-        return (child as Text).value;
+    .map((child) =>
+    {
+      if (child.type === 'text')
+      {
+        return (child as Text).value
       }
-      return '';
+      return ''
     })
-    .join('');
+    .join('')
 }
 
 // detect matching language class & return canonical language id
 function matchLanguage(
   classNames: Array<string | number>,
   languages: LanguageAlias[]
-): string | null {
-  for (const lang of languages) {
-    if (classNames.some((c) => String(c) === lang.className)) {
-      return lang.id;
+): string | null
+{
+  for (const lang of languages)
+  {
+    if (classNames.some((c) => String(c) === lang.className))
+    {
+      return lang.id
     }
   }
-  return null;
+  return null
 }
 
-function getSourceLine(node: Element, sourceLineOffset: number): string | null {
-  const fromProperty = node.properties?.['data-source-line'];
-  if (typeof fromProperty === 'string' && fromProperty.length > 0) {
-    return fromProperty;
+function getSourceLine(node: Element, sourceLineOffset: number): string | null
+{
+  const fromProperty = node.properties?.['data-source-line']
+  if (typeof fromProperty === 'string' && fromProperty.length > 0)
+  {
+    return fromProperty
   }
 
-  const fromPosition = node.position?.start?.line;
+  const fromPosition = node.position?.start?.line
   if (
     typeof fromPosition === 'number' &&
     Number.isFinite(fromPosition) &&
     fromPosition > 0
-  ) {
-    const originalLine = fromPosition + sourceLineOffset;
-    return originalLine > 0 ? String(originalLine) : null;
+  )
+  {
+    const originalLine = fromPosition + sourceLineOffset
+    return originalLine > 0 ? String(originalLine) : null
   }
 
-  return null;
+  return null
 }
 
 // build the visible code fallback: labeled container keeping the original fence
@@ -89,13 +101,14 @@ function buildCodeFallback(
   properties: Record<string, string | string[]>,
   languageId: string,
   original: Element
-): Element {
+): Element
+{
   const label: Element = {
     type: 'element',
     tagName: 'div',
     properties: { className: [DIAGRAM_CODE_LABEL_CLASS] },
     children: [{ type: 'text', value: languageId }],
-  };
+  }
   return {
     type: 'element',
     tagName: 'div',
@@ -105,70 +118,80 @@ function buildCodeFallback(
       'data-diagram-language': languageId,
     },
     children: [label, original],
-  };
+  }
 }
 
 // create a rehype plugin that transforms code blocks into placeholder divs
 // or, in 'code' behavior, into visible language-labeled code fallbacks
-export function createDiagramPlaceholder(config: DiagramPlaceholderConfig) {
+export function createDiagramPlaceholder(config: DiagramPlaceholderConfig)
+{
   return function rehypeDiagramPlaceholder(
     options: DiagramPlaceholderOptions = {}
-  ) {
-    const behavior: DiagramBehavior = options.behavior ?? 'placeholder';
-    return (tree: Root, file?: { data: object }) => {
-      const sourceLineOffset = getSourceLineOffset(file);
+  )
+  {
+    const behavior: DiagramBehavior = options.behavior ?? 'placeholder'
+    return (tree: Root, file?: { data: object }) =>
+    {
+      const sourceLineOffset = getSourceLineOffset(file)
 
-      visit(tree, 'element', (node: Element, index, parent) => {
-        if (node.tagName !== 'pre') {
-          return;
+      visit(tree, 'element', (node: Element, index, parent) =>
+      {
+        if (node.tagName !== 'pre')
+        {
+          return
         }
 
-        const codeChild = node.children[0];
+        const codeChild = node.children[0]
         if (
           !codeChild ||
           codeChild.type !== 'element' ||
           codeChild.tagName !== 'code'
-        ) {
-          return;
+        )
+        {
+          return
         }
 
         // normalize className to array
-        const className = codeChild.properties?.className;
+        const className = codeChild.properties?.className
         const classNames = Array.isArray(className)
           ? className
           : typeof className === 'string'
             ? [className]
-            : [];
+            : []
 
         // check for matching language class
-        const languageId = matchLanguage(classNames, config.languages);
-        if (!languageId) {
-          return;
+        const languageId = matchLanguage(classNames, config.languages)
+        if (!languageId)
+        {
+          return
         }
 
-        const code = getCodeText(codeChild);
-        if (!code.trim()) {
-          return;
+        const code = getCodeText(codeChild)
+        if (!code.trim())
+        {
+          return
         }
 
         // generate unique ID for this diagram
-        const diagramId = `${config.name}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        const diagramId = `${config.name}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 
         // build placeholder properties
         const properties: Record<string, string | string[]> = {
           className: [config.containerClass],
           [config.codeAttr]: code,
           [config.idAttr]: diagramId,
-        };
+        }
 
-        const sourceLine = getSourceLine(node, sourceLineOffset);
-        if (sourceLine) {
-          properties['data-source-line'] = sourceLine;
+        const sourceLine = getSourceLine(node, sourceLineOffset)
+        if (sourceLine)
+        {
+          properties['data-source-line'] = sourceLine
         }
 
         // merge extra attributes if configured
-        if (config.extraAttributes) {
-          Object.assign(properties, config.extraAttributes(languageId));
+        if (config.extraAttributes)
+        {
+          Object.assign(properties, config.extraAttributes(languageId))
         }
 
         // replace pre/code w/ empty placeholder div or visible code fallback
@@ -180,14 +203,15 @@ export function createDiagramPlaceholder(config: DiagramPlaceholderConfig) {
                 tagName: 'div',
                 properties,
                 children: [],
-              };
+              }
 
-        if (parent && typeof index === 'number') {
-          (parent as Element).children[index] = replacement;
+        if (parent && typeof index === 'number')
+        {
+          ;(parent as Element).children[index] = replacement
         }
-      });
-    };
-  };
+      })
+    }
+  }
 }
 
 // pre-configured diagram placeholder plugins
@@ -199,7 +223,7 @@ export const rehypeMermaidPlaceholder = createDiagramPlaceholder({
   containerClass: 'mermaid-container',
   codeAttr: 'data-mermaid-chart',
   idAttr: 'data-mermaid-id',
-});
+})
 
 // convert PlantUML code blocks to placeholders for client-side rendering
 export const rehypePlantUmlPlaceholder = createDiagramPlaceholder({
@@ -208,7 +232,7 @@ export const rehypePlantUmlPlaceholder = createDiagramPlaceholder({
   containerClass: 'plantuml-container',
   codeAttr: 'data-plantuml-code',
   idAttr: 'data-plantuml-id',
-});
+})
 
 // convert Graphviz code blocks to placeholders for client-side rendering
 export const rehypeGraphvizPlaceholder = createDiagramPlaceholder({
@@ -221,4 +245,4 @@ export const rehypeGraphvizPlaceholder = createDiagramPlaceholder({
   codeAttr: 'data-graphviz-code',
   idAttr: 'data-graphviz-id',
   extraAttributes: (lang) => ({ 'data-graphviz-language': lang }),
-});
+})

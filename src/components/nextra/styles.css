@@ -7,7 +7,8 @@
  * Nextra Color Overrides (Tailwind palette)
  * ============================================================================ */
 /* Nextra uses Tailwind colors which differ slightly from the default palette */
-.mdx-preview-nextra-callout {
+.mdx-preview-nextra-callout
+{
   /* Override w/ Tailwind colors for Nextra */
   --mdx-color-info: #3b82f6;
   --mdx-color-info-rgb: 59, 130, 246;
@@ -21,7 +22,8 @@
  * Callout Component
  * ============================================================================ */
 
-.mdx-preview-nextra-callout {
+.mdx-preview-nextra-callout
+{
   display: flex;
   border-radius: var(--mdx-radius-lg);
   padding: 12px 16px;
@@ -30,7 +32,8 @@
   align-items: flex-start;
 }
 
-.mdx-preview-nextra-callout-icon {
+.mdx-preview-nextra-callout-icon
+{
   flex-shrink: 0;
   width: 20px;
   height: 20px;
@@ -40,81 +43,95 @@
   margin-top: 2px;
 }
 
-.mdx-preview-nextra-callout-icon svg {
+.mdx-preview-nextra-callout-icon svg
+{
   width: 16px;
   height: 16px;
 }
 
-.mdx-preview-nextra-callout-content {
+.mdx-preview-nextra-callout-content
+{
   flex: 1;
   min-width: 0;
 }
 
-.mdx-preview-nextra-callout-content > :first-child {
+.mdx-preview-nextra-callout-content > :first-child
+{
   margin-top: 0;
 }
 
-.mdx-preview-nextra-callout-content > :last-child {
+.mdx-preview-nextra-callout-content > :last-child
+{
   margin-bottom: 0;
 }
 
 /* Callout type: default (green/tip) */
-.mdx-preview-nextra-callout-default {
+.mdx-preview-nextra-callout-default
+{
   --nextra-callout-text: #166534;
   background-color: rgba(34, 197, 94, 0.1);
   border: 1px solid rgba(34, 197, 94, 0.3);
   color: var(--nextra-callout-text);
 }
 
-.mdx-preview-nextra-callout-default .mdx-preview-nextra-callout-icon {
+.mdx-preview-nextra-callout-default .mdx-preview-nextra-callout-icon
+{
   color: #22c55e;
 }
 
 /* Callout type: info (blue) */
-.mdx-preview-nextra-callout-info {
+.mdx-preview-nextra-callout-info
+{
   --nextra-callout-text: #1e40af;
   background-color: rgba(59, 130, 246, 0.1);
   border: 1px solid rgba(59, 130, 246, 0.3);
   color: var(--nextra-callout-text);
 }
 
-.mdx-preview-nextra-callout-info .mdx-preview-nextra-callout-icon {
+.mdx-preview-nextra-callout-info .mdx-preview-nextra-callout-icon
+{
   color: #3b82f6;
 }
 
 /* Callout type: warning (amber/yellow) */
-.mdx-preview-nextra-callout-warning {
+.mdx-preview-nextra-callout-warning
+{
   --nextra-callout-text: #92400e;
   background-color: rgba(245, 158, 11, 0.1);
   border: 1px solid rgba(245, 158, 11, 0.3);
   color: var(--nextra-callout-text);
 }
 
-.mdx-preview-nextra-callout-warning .mdx-preview-nextra-callout-icon {
+.mdx-preview-nextra-callout-warning .mdx-preview-nextra-callout-icon
+{
   color: #f59e0b;
 }
 
 /* Callout type: error (red) */
-.mdx-preview-nextra-callout-error {
+.mdx-preview-nextra-callout-error
+{
   --nextra-callout-text: #991b1b;
   background-color: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.3);
   color: var(--nextra-callout-text);
 }
 
-.mdx-preview-nextra-callout-error .mdx-preview-nextra-callout-icon {
+.mdx-preview-nextra-callout-error .mdx-preview-nextra-callout-icon
+{
   color: #ef4444;
 }
 
 /* Callout type: important (purple) */
-.mdx-preview-nextra-callout-important {
+.mdx-preview-nextra-callout-important
+{
   --nextra-callout-text: #6b21a8;
   background-color: rgba(168, 85, 247, 0.1);
   border: 1px solid rgba(168, 85, 247, 0.3);
   color: var(--nextra-callout-text);
 }
 
-.mdx-preview-nextra-callout-important .mdx-preview-nextra-callout-icon {
+.mdx-preview-nextra-callout-important .mdx-preview-nextra-callout-icon
+{
   color: #a855f7;
 }
 
@@ -122,18 +139,21 @@
  * Tabs Component
  * ============================================================================ */
 
-.mdx-preview-nextra-tabs {
+.mdx-preview-nextra-tabs
+{
   margin: 16px 0;
 }
 
-.mdx-preview-nextra-tabs-header {
+.mdx-preview-nextra-tabs-header
+{
   display: flex;
   gap: 0;
   border-bottom: 1px solid var(--vscode-panel-border, #e5e7eb);
   overflow-x: auto;
 }
 
-.mdx-preview-nextra-tabs-button {
+.mdx-preview-nextra-tabs-button
+{
   padding: 8px 16px;
   font-size: 14px;
   font-weight: 500;
@@ -149,37 +169,46 @@
   margin-bottom: -1px;
 }
 
-.mdx-preview-nextra-tabs-button:hover {
+.mdx-preview-nextra-tabs-button:hover
+{
   color: #111827;
 }
 
-.mdx-preview-nextra-tabs-button-active {
+.mdx-preview-nextra-tabs-button-active
+{
   color: #111827;
   border-bottom-color: #3b82f6;
 }
 
-.mdx-preview-nextra-tabs-button-disabled {
+.mdx-preview-nextra-tabs-button-disabled
+{
   color: #d1d5db;
   cursor: not-allowed;
 }
 
-.mdx-preview-nextra-tabs-content {
+.mdx-preview-nextra-tabs-content
+{
   padding: 16px 0;
 }
 
-.mdx-preview-nextra-tabs-panel {
+.mdx-preview-nextra-tabs-panel
+{
   animation: nextra-tabs-fade-in 0.2s ease-out;
 }
 
-.mdx-preview-nextra-tabs-panel[hidden] {
+.mdx-preview-nextra-tabs-panel[hidden]
+{
   display: none;
 }
 
-@keyframes nextra-tabs-fade-in {
-  from {
+@keyframes nextra-tabs-fade-in
+{
+  from
+  {
     opacity: 0;
   }
-  to {
+  to
+  {
     opacity: 1;
   }
 }
@@ -188,26 +217,32 @@
  * Cards Component
  * ============================================================================ */
 
-.mdx-preview-nextra-cards {
+.mdx-preview-nextra-cards
+{
   display: grid;
   grid-template-columns: repeat(var(--nextra-cards-num, 3), minmax(0, 1fr));
   gap: 16px;
   margin: 16px 0;
 }
 
-@media (max-width: 768px) {
-  .mdx-preview-nextra-cards {
+@media (max-width: 768px)
+{
+  .mdx-preview-nextra-cards
+  {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 480px) {
-  .mdx-preview-nextra-cards {
+@media (max-width: 480px)
+{
+  .mdx-preview-nextra-cards
+  {
     grid-template-columns: 1fr;
   }
 }
 
-.mdx-preview-nextra-card {
+.mdx-preview-nextra-card
+{
   display: flex;
   flex-direction: column;
   padding: 16px;
@@ -221,30 +256,35 @@
     box-shadow 0.15s;
 }
 
-a.mdx-preview-nextra-card:hover {
+a.mdx-preview-nextra-card:hover
+{
   border-color: #3b82f6;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-.mdx-preview-nextra-card-header {
+.mdx-preview-nextra-card-header
+{
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.mdx-preview-nextra-card-icon {
+.mdx-preview-nextra-card-icon
+{
   flex-shrink: 0;
   font-size: 20px;
   line-height: 1;
 }
 
-.mdx-preview-nextra-card-title {
+.mdx-preview-nextra-card-title
+{
   font-weight: 600;
   font-size: 15px;
   flex: 1;
 }
 
-.mdx-preview-nextra-card-arrow {
+.mdx-preview-nextra-card-arrow
+{
   flex-shrink: 0;
   width: 16px;
   height: 16px;
@@ -254,12 +294,14 @@ a.mdx-preview-nextra-card:hover {
     color 0.15s;
 }
 
-a.mdx-preview-nextra-card:hover .mdx-preview-nextra-card-arrow {
+a.mdx-preview-nextra-card:hover .mdx-preview-nextra-card-arrow
+{
   color: #3b82f6;
   transform: translateX(4px);
 }
 
-.mdx-preview-nextra-card-content {
+.mdx-preview-nextra-card-content
+{
   margin-top: 8px;
   font-size: 14px;
   color: #6b7280;
@@ -269,21 +311,25 @@ a.mdx-preview-nextra-card:hover .mdx-preview-nextra-card-arrow {
  * FileTree Component (compound Folder/File + Starlight list fallback)
  * ============================================================================ */
 
-.mdx-preview-nextra-file-tree {
+.mdx-preview-nextra-file-tree
+{
   margin: 16px 0;
 }
 
-.mdx-preview-nextra-file-tree .mdx-preview-starlight-file-tree ul {
+.mdx-preview-nextra-file-tree .mdx-preview-starlight-file-tree ul
+{
   margin: 0;
   padding-left: 20px;
   list-style: none;
 }
 
-.mdx-preview-nextra-file-tree .mdx-preview-starlight-file-tree > ul {
+.mdx-preview-nextra-file-tree .mdx-preview-starlight-file-tree > ul
+{
   padding-left: 0;
 }
 
-.mdx-preview-nextra-file-tree .mdx-preview-starlight-file-tree summary {
+.mdx-preview-nextra-file-tree .mdx-preview-starlight-file-tree summary
+{
   display: flex;
   align-items: center;
   gap: 4px;
@@ -293,25 +339,29 @@ a.mdx-preview-nextra-card:hover .mdx-preview-nextra-card-arrow {
 
 .mdx-preview-nextra-file-tree
   .mdx-preview-starlight-file-tree
-  summary::-webkit-details-marker {
+  summary::-webkit-details-marker
+  {
   display: none;
 }
 
 .mdx-preview-nextra-file-tree
   .mdx-preview-starlight-file-tree
-  .mdx-preview-starlight-file-tree-file {
+  .mdx-preview-starlight-file-tree-file
+  {
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-.mdx-preview-nextra-file-tree .mdx-preview-starlight-file-tree .icon {
+.mdx-preview-nextra-file-tree .mdx-preview-starlight-file-tree .icon
+{
   display: inline-flex;
   width: 14px;
   height: 14px;
 }
 
-.mdx-preview-nextra-file-tree .mdx-preview-starlight-file-tree .icon svg {
+.mdx-preview-nextra-file-tree .mdx-preview-starlight-file-tree .icon svg
+{
   width: 100%;
   height: 100%;
 }
@@ -320,7 +370,8 @@ a.mdx-preview-nextra-card:hover .mdx-preview-nextra-card-arrow {
   .mdx-preview-starlight-file-tree
   details[open]
   > summary
-  .icon.chevron {
+  .icon.chevron
+  {
   transform: rotate(90deg);
 }
 
@@ -328,14 +379,16 @@ a.mdx-preview-nextra-card:hover .mdx-preview-nextra-card-arrow {
  * Steps Component (numbered rail around heading-delimited content)
  * ============================================================================ */
 
-.mdx-preview-nextra-steps {
+.mdx-preview-nextra-steps
+{
   margin: 16px 0 16px 14px;
   padding-left: 24px;
   border-left: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
   counter-reset: nextra-step;
 }
 
-.mdx-preview-nextra-steps :is(h2, h3, h4) {
+.mdx-preview-nextra-steps :is(h2, h3, h4)
+{
   counter-increment: nextra-step;
   display: flex;
   align-items: center;
@@ -345,7 +398,8 @@ a.mdx-preview-nextra-card:hover .mdx-preview-nextra-card-arrow {
   font-weight: 600;
 }
 
-.mdx-preview-nextra-steps :is(h2, h3, h4)::before {
+.mdx-preview-nextra-steps :is(h2, h3, h4)::before
+{
   content: counter(nextra-step);
   display: inline-flex;
   align-items: center;
@@ -365,7 +419,8 @@ a.mdx-preview-nextra-card:hover .mdx-preview-nextra-card-arrow {
  * Bleed Component
  * ============================================================================ */
 
-.mdx-preview-nextra-bleed {
+.mdx-preview-nextra-bleed
+{
   position: relative;
   margin: 16px -1.5rem;
   padding: 1rem 1.5rem;
@@ -373,7 +428,8 @@ a.mdx-preview-nextra-card:hover .mdx-preview-nextra-card-arrow {
 }
 
 /* full mode stretches edge-to-edge across the viewport */
-.mdx-preview-nextra-bleed-full {
+.mdx-preview-nextra-bleed-full
+{
   margin-left: calc(-50vw + 50%);
   margin-right: calc(-50vw + 50%);
   padding-left: calc(50vw - 50%);
@@ -384,8 +440,10 @@ a.mdx-preview-nextra-card:hover .mdx-preview-nextra-card-arrow {
  * Accessibility
  * ============================================================================ */
 
-@media (prefers-reduced-motion: reduce) {
-  .mdx-preview-nextra-tabs-panel {
+@media (prefers-reduced-motion: reduce)
+{
+  .mdx-preview-nextra-tabs-panel
+  {
     animation: none;
   }
 }
@@ -394,75 +452,90 @@ a.mdx-preview-nextra-card:hover .mdx-preview-nextra-card-arrow {
  * Dark Mode Support
  * ============================================================================ */
 
-.vscode-dark .mdx-preview-nextra-callout-default {
+.vscode-dark .mdx-preview-nextra-callout-default
+{
   --nextra-callout-text: #86efac;
   background-color: rgba(34, 197, 94, 0.15);
   border-color: rgba(34, 197, 94, 0.4);
 }
 
-.vscode-dark .mdx-preview-nextra-callout-info {
+.vscode-dark .mdx-preview-nextra-callout-info
+{
   --nextra-callout-text: #93c5fd;
   background-color: rgba(59, 130, 246, 0.15);
   border-color: rgba(59, 130, 246, 0.4);
 }
 
-.vscode-dark .mdx-preview-nextra-callout-warning {
+.vscode-dark .mdx-preview-nextra-callout-warning
+{
   --nextra-callout-text: #fcd34d;
   background-color: rgba(245, 158, 11, 0.15);
   border-color: rgba(245, 158, 11, 0.4);
 }
 
-.vscode-dark .mdx-preview-nextra-callout-error {
+.vscode-dark .mdx-preview-nextra-callout-error
+{
   --nextra-callout-text: #fca5a5;
   background-color: rgba(239, 68, 68, 0.15);
   border-color: rgba(239, 68, 68, 0.4);
 }
 
-.vscode-dark .mdx-preview-nextra-callout-important {
+.vscode-dark .mdx-preview-nextra-callout-important
+{
   --nextra-callout-text: #d8b4fe;
   background-color: rgba(168, 85, 247, 0.15);
   border-color: rgba(168, 85, 247, 0.4);
 }
 
-.vscode-dark .mdx-preview-nextra-tabs-header {
+.vscode-dark .mdx-preview-nextra-tabs-header
+{
   border-bottom-color: var(--vscode-panel-border, #374151);
 }
 
-.vscode-dark .mdx-preview-nextra-tabs-button {
+.vscode-dark .mdx-preview-nextra-tabs-button
+{
   color: #9ca3af;
 }
 
-.vscode-dark .mdx-preview-nextra-tabs-button:hover {
+.vscode-dark .mdx-preview-nextra-tabs-button:hover
+{
   color: #f3f4f6;
 }
 
-.vscode-dark .mdx-preview-nextra-tabs-button-active {
+.vscode-dark .mdx-preview-nextra-tabs-button-active
+{
   color: #f3f4f6;
   border-bottom-color: #60a5fa;
 }
 
-.vscode-dark .mdx-preview-nextra-tabs-button-disabled {
+.vscode-dark .mdx-preview-nextra-tabs-button-disabled
+{
   color: #4b5563;
 }
 
-.vscode-dark .mdx-preview-nextra-card {
+.vscode-dark .mdx-preview-nextra-card
+{
   background: #1f2937;
   border-color: #374151;
 }
 
-.vscode-dark a.mdx-preview-nextra-card:hover {
+.vscode-dark a.mdx-preview-nextra-card:hover
+{
   border-color: #60a5fa;
 }
 
-.vscode-dark .mdx-preview-nextra-card-content {
+.vscode-dark .mdx-preview-nextra-card-content
+{
   color: #9ca3af;
 }
 
-.vscode-dark .mdx-preview-nextra-card-arrow {
+.vscode-dark .mdx-preview-nextra-card-arrow
+{
   color: #6b7280;
 }
 
-.vscode-dark a.mdx-preview-nextra-card:hover .mdx-preview-nextra-card-arrow {
+.vscode-dark a.mdx-preview-nextra-card:hover .mdx-preview-nextra-card-arrow
+{
   color: #60a5fa;
 }
 
@@ -471,21 +544,24 @@ a.mdx-preview-nextra-card:hover .mdx-preview-nextra-card-arrow {
  * ============================================================================ */
 
 /* Full-width layout - removes max-width constraints */
-.nextra-layout-full .mdx-preview-content {
+.nextra-layout-full .mdx-preview-content
+{
   max-width: 100%;
   padding-left: 1rem;
   padding-right: 1rem;
 }
 
 /* Raw layout - minimal styling, no padding */
-.nextra-layout-raw .mdx-preview-content {
+.nextra-layout-raw .mdx-preview-content
+{
   max-width: 100%;
   padding: 0;
   margin: 0;
 }
 
 /* Page title from _meta.json or frontmatter */
-.nextra-page-title {
+.nextra-page-title
+{
   font-size: 2.5rem;
   font-weight: 700;
   margin: 0 0 1.5rem 0;
@@ -493,6 +569,7 @@ a.mdx-preview-nextra-card:hover .mdx-preview-nextra-card-arrow {
   color: var(--vscode-editor-foreground, #111827);
 }
 
-.vscode-dark .nextra-page-title {
+.vscode-dark .nextra-page-title
+{
   color: var(--vscode-editor-foreground, #f3f4f6);
 }

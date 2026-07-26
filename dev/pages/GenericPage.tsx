@@ -1,5 +1,5 @@
 // dev/pages/GenericPage.tsx
-// Showcase for generic framework-agnostic components
+// showcase for generic framework-agnostic components
 
 import {
   Callout,
@@ -10,11 +10,12 @@ import {
   Tabs,
   TabItem,
   CodeGroup,
-} from '@forge/components/generic';
-import '@forge/components/styles/generic.css';
-import { Section } from '../components/Section';
+} from '@forge/components/generic'
+import '@forge/components/styles/generic.css'
+import { Section } from '../components/Section'
 
-export function GenericPage() {
+export function GenericPage()
+{
   return (
     <div>
       <h1>Generic Components</h1>
@@ -186,5 +187,5 @@ export function GenericPage() {
         </CodeGroup>
       </Section>
     </div>
-  );
+  )
 }

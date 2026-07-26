@@ -1,0 +1,15 @@
+# build output
+dist
+coverage
+
+# third-party tooling drop-ins
+.agents
+.claude
+skills-lock.json
+
+# lockfiles & node_modules
+node_modules
+package-lock.json
+
+# plugin nested install
+plugins/render/node_modules

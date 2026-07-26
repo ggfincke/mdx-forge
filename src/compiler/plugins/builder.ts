@@ -1,31 +1,33 @@
 // src/compiler/plugins/builder.ts
 // shared MDX plugin pipeline construction for trusted & safe compilers
 
-import type { Pluggable } from 'unified';
-import rehypeRawPkg from 'rehype-raw';
-import rehypeFenceMeta from '../pipeline/rehype/fence-meta';
+import type { Pluggable } from 'unified'
+import rehypeRawPkg from 'rehype-raw'
+import rehypeFenceMeta from '../pipeline/rehype/fence-meta'
 import {
   sharedRemarkPlugins,
   getSharedRehypePluginsPreMath,
   sharedRehypePluginsPostMath,
   rehypeKatex,
-} from './shared-plugins';
-import type { DiagramBehavior, LoadedPlugins, PluginPipeline } from '../types';
-import { REHYPE_RAW_CONFIG } from '../pipeline/common/pipeline-config';
-import { mergePlugins } from './loader';
+} from './shared-plugins'
+import type { DiagramBehavior, LoadedPlugins, PluginPipeline } from '../types'
+import { REHYPE_RAW_CONFIG } from '../pipeline/common/pipeline-config'
+import { mergePlugins } from './loader'
 
 // build the remark plugin array for Trusted Mode (merge shared & custom plugins)
 export function buildTrustedRemarkPlugins(
   customPlugins: LoadedPlugins
-): Pluggable[] {
-  return mergePlugins(sharedRemarkPlugins, customPlugins.remarkPlugins);
+): Pluggable[]
+{
+  return mergePlugins(sharedRemarkPlugins, customPlugins.remarkPlugins)
 }
 
 // build the rehype plugin array for Trusted Mode (rehype-raw, math, shiki, custom)
 export function buildTrustedRehypePlugins(
   customPlugins: LoadedPlugins,
   diagramBehavior?: DiagramBehavior
-): Pluggable[] {
+): Pluggable[]
+{
   const basePlugins: Pluggable[] = [
     // fence meta must be captured before rehype-raw drops hast data fields
     rehypeFenceMeta,
@@ -33,35 +35,38 @@ export function buildTrustedRehypePlugins(
     ...getSharedRehypePluginsPreMath(diagramBehavior),
     rehypeKatex,
     ...sharedRehypePluginsPostMath,
-  ];
+  ]
 
-  return mergePlugins(basePlugins, customPlugins.rehypePlugins);
+  return mergePlugins(basePlugins, customPlugins.rehypePlugins)
 }
 
 // build the complete plugin pipeline for Trusted Mode
 export function buildTrustedPluginPipeline(
   customPlugins: LoadedPlugins,
   diagramBehavior?: DiagramBehavior
-): PluginPipeline {
+): PluginPipeline
+{
   return {
     remarkPlugins: buildTrustedRemarkPlugins(customPlugins),
     rehypePlugins: buildTrustedRehypePlugins(customPlugins, diagramBehavior),
-  };
+  }
 }
 
 // get shared remark plugins for Safe Mode (does not support custom plugins)
-export function getSafeRemarkPlugins(): Pluggable[] {
-  return [...sharedRemarkPlugins];
+export function getSafeRemarkPlugins(): Pluggable[]
+{
+  return [...sharedRemarkPlugins]
 }
 
 // get rehype plugins for Safe Mode (fence meta, rehype-raw, diagram, math & post-math)
 export function getSafeRehypePluginSets(diagramBehavior?: DiagramBehavior): {
-  fenceMeta: Pluggable;
-  raw: Pluggable;
-  preMath: Pluggable[];
-  math: Pluggable;
-  postMath: Pluggable[];
-} {
+  fenceMeta: Pluggable
+  raw: Pluggable
+  preMath: Pluggable[]
+  math: Pluggable
+  postMath: Pluggable[]
+}
+{
   return {
     // fence meta must be captured before rehype-raw drops hast data fields
     fenceMeta: rehypeFenceMeta as Pluggable,
@@ -69,5 +74,5 @@ export function getSafeRehypePluginSets(diagramBehavior?: DiagramBehavior): {
     preMath: getSharedRehypePluginsPreMath(diagramBehavior),
     math: rehypeKatex,
     postMath: [...sharedRehypePluginsPostMath],
-  };
+  }
 }

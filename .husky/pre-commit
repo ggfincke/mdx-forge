@@ -1,0 +1,4 @@
+# .husky/pre-commit
+# run staged checks before committing
+
+npx lint-staged

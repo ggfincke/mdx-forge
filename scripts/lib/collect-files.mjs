@@ -1,58 +1,69 @@
 // scripts/lib/collect-files.mjs
 // shared recursive file collector for guard & build scripts
 
-import { existsSync, readdirSync, statSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { existsSync, readdirSync, statSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 
 // normalize separators for stable cross-platform output
-export function normalizePath(filePath) {
-  return filePath.replaceAll('\\', '/');
+export function normalizePath(filePath)
+{
+  return filePath.replaceAll('\\', '/')
 }
 
 // collect files under entries (files or dirs) in depth-first readdir order
 // filters file names by suffix; skips ignored dir names & missing entries
 // returns absolute paths
-export function collectFiles(rootDir, entries, options = {}) {
-  const { extensions, ignoredDirectories } = options;
-  const suffixes = extensions ? Array.from(extensions) : undefined;
-  const ignored = ignoredDirectories ?? new Set();
-  const output = [];
+export function collectFiles(rootDir, entries, options = {})
+{
+  const { extensions, ignoredDirectories } = options
+  const suffixes = extensions ? Array.from(extensions) : undefined
+  const ignored = ignoredDirectories ?? new Set()
+  const output = []
 
   const matches = (name) =>
-    !suffixes || suffixes.some((suffix) => name.endsWith(suffix));
+    !suffixes || suffixes.some((suffix) => name.endsWith(suffix))
 
-  function walk(currentPath) {
-    for (const entry of readdirSync(currentPath, { withFileTypes: true })) {
-      const absolutePath = join(currentPath, entry.name);
+  function walk(currentPath)
+  {
+    for (const entry of readdirSync(currentPath, { withFileTypes: true }))
+    {
+      const absolutePath = join(currentPath, entry.name)
 
-      if (entry.isDirectory()) {
-        if (!ignored.has(entry.name)) {
-          walk(absolutePath);
+      if (entry.isDirectory())
+      {
+        if (!ignored.has(entry.name))
+        {
+          walk(absolutePath)
         }
-        continue;
+        continue
       }
 
-      if (matches(entry.name)) {
-        output.push(absolutePath);
+      if (matches(entry.name))
+      {
+        output.push(absolutePath)
       }
     }
   }
 
-  for (const entry of entries) {
-    const absolutePath = resolve(rootDir, entry);
-    if (!existsSync(absolutePath)) {
-      continue;
+  for (const entry of entries)
+  {
+    const absolutePath = resolve(rootDir, entry)
+    if (!existsSync(absolutePath))
+    {
+      continue
     }
 
-    if (statSync(absolutePath).isFile()) {
-      if (matches(absolutePath)) {
-        output.push(absolutePath);
+    if (statSync(absolutePath).isFile())
+    {
+      if (matches(absolutePath))
+      {
+        output.push(absolutePath)
       }
-      continue;
+      continue
     }
 
-    walk(absolutePath);
+    walk(absolutePath)
   }
 
-  return output;
+  return output
 }

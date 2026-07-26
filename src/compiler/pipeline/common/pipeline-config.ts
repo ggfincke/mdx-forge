@@ -9,9 +9,9 @@ export const MDX_PASSTHROUGH_NODES = [
   'mdxFlowExpression',
   'mdxTextExpression',
   'mdxjsEsm',
-] as const;
+] as const
 
 // rehype-raw configuration w/ MDX passthrough
 export const REHYPE_RAW_CONFIG = {
   passThrough: [...MDX_PASSTHROUGH_NODES],
-} as const;
+} as const

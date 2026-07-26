@@ -4,36 +4,36 @@
 import {
   CALLOUT_TYPE_ALIASES,
   VALID_CALLOUT_TYPES,
-} from '../../internal/callout';
+} from '../../internal/callout'
 import {
   ASIDE_TYPES,
   BADGE_SIZES,
   BADGE_VARIANTS,
   NEXTRA_CALLOUT_TYPES,
-} from '../internal/metadata';
+} from '../internal/metadata'
 import {
   COMPONENT_IDENTITY_DEFINITIONS,
   type ComponentIdentityDefinition,
   type ComponentIdentityEntry,
   type ComponentIdentityTuple,
-} from '../internal/component-identity';
-import { deepFreeze } from './freeze';
+} from '../internal/component-identity'
+import { deepFreeze } from './freeze'
 import type {
   ComponentAuthoringMetadata,
   ComponentOpenPropsPolicy,
-} from './types';
+} from './types'
 
 const DOM_OPEN_PROPS: ComponentOpenPropsPolicy = {
   dom: true,
   dataAttributes: true,
   ariaAttributes: true,
   eventHandlers: true,
-};
+}
 
 type AliasDocsFor<Identity extends ComponentIdentityEntry> = readonly {
-  readonly name: Identity['aliases'][number];
-  readonly canonical: Identity['name'];
-}[];
+  readonly name: Identity['aliases'][number]
+  readonly canonical: Identity['name']
+}[]
 
 type MetadataForIdentity<
   Identity extends ComponentIdentityEntry,
@@ -41,7 +41,7 @@ type MetadataForIdentity<
 > = Metadata &
   (Identity['aliases'] extends readonly []
     ? unknown
-    : { readonly aliasDocs: AliasDocsFor<Identity> });
+    : { readonly aliasDocs: AliasDocsFor<Identity> })
 
 type MetadataRecordFor<
   Identities extends readonly ComponentIdentityDefinition[],
@@ -57,10 +57,10 @@ type MetadataRecordFor<
     ? {
         readonly [
           Key in `${Identity['framework']}:${Identity['name']}`
-        ]: MetadataForIdentity<Identity, AuthoringMetadata>;
+        ]: MetadataForIdentity<Identity, AuthoringMetadata>
       } & MetadataRecordFor<RemainingIdentities, RemainingMetadata>
     : never
-  : object;
+  : object
 
 const COMPONENT_AUTHORING_METADATA = deepFreeze([
   {
@@ -951,20 +951,21 @@ const COMPONENT_AUTHORING_METADATA = deepFreeze([
     openProps: DOM_OPEN_PROPS,
   },
 ] as const satisfies readonly ComponentAuthoringMetadata[] & {
-  readonly length: ComponentIdentityTuple['length'];
-});
+  readonly length: ComponentIdentityTuple['length']
+})
 
-function buildComponentMetadata(): Record<string, ComponentAuthoringMetadata> {
+function buildComponentMetadata(): Record<string, ComponentAuthoringMetadata>
+{
   const identities = COMPONENT_IDENTITY_DEFINITIONS.filter(
     (definition): definition is ComponentIdentityEntry =>
       definition.kind === 'component'
-  );
-  const metadata: Record<string, ComponentAuthoringMetadata> = {};
+  )
+  const metadata: Record<string, ComponentAuthoringMetadata> = {}
 
-  for (const [index, identity] of identities.entries()) {
-    const authoringMetadata = COMPONENT_AUTHORING_METADATA[index];
-    const { examples, props, openProps, ...leadingMetadata } =
-      authoringMetadata;
+  for (const [index, identity] of identities.entries())
+  {
+    const authoringMetadata = COMPONENT_AUTHORING_METADATA[index]
+    const { examples, props, openProps, ...leadingMetadata } = authoringMetadata
     metadata[`${identity.framework}:${identity.name}`] = {
       ...leadingMetadata,
       ...(identity.aliases.length > 0
@@ -978,10 +979,10 @@ function buildComponentMetadata(): Record<string, ComponentAuthoringMetadata> {
       examples,
       props,
       ...(openProps === undefined ? {} : { openProps }),
-    };
+    }
   }
 
-  return metadata;
+  return metadata
 }
 
 export const COMPONENT_METADATA = deepFreeze(
@@ -989,4 +990,4 @@ export const COMPONENT_METADATA = deepFreeze(
 ) as MetadataRecordFor<
   ComponentIdentityTuple,
   typeof COMPONENT_AUTHORING_METADATA
->;
+>

@@ -1,5 +1,5 @@
 // dev/pages/StarlightPage.tsx
-// Showcase for Starlight component shims
+// showcase for Starlight component shims
 
 import {
   Aside,
@@ -12,11 +12,12 @@ import {
   Code,
   Tabs,
   TabItem,
-} from '@forge/components/starlight';
-import '@forge/components/styles/starlight.css';
-import { Section } from '../components/Section';
+} from '@forge/components/starlight'
+import '@forge/components/styles/starlight.css'
+import { Section } from '../components/Section'
 
-export function StarlightPage() {
+export function StarlightPage()
+{
   return (
     <div>
       <h1>Starlight Components</h1>
@@ -238,5 +239,5 @@ export function StarlightPage() {
         </Tabs>
       </Section>
     </div>
-  );
+  )
 }

@@ -5,13 +5,13 @@ import type {
   FrameworkId,
   FrontmatterField,
   FrontmatterSchema,
-} from './registry-types.js';
+} from './registry-types.js'
 
 const COMMON_TAGS_FIELD: FrontmatterField = {
   name: 'tags',
   type: 'array',
   description: 'List of topic tags.',
-};
+}
 
 const FRONTMATTER: readonly FrontmatterSchema[] = [
   {
@@ -221,18 +221,20 @@ const FRONTMATTER: readonly FrontmatterSchema[] = [
     ],
     allowUnknown: true,
   },
-];
+]
 
-const FRONTMATTER_BY_FRAMEWORK = new Map<FrameworkId, FrontmatterSchema>();
-for (const schema of FRONTMATTER) {
-  FRONTMATTER_BY_FRAMEWORK.set(schema.framework, schema);
+const FRONTMATTER_BY_FRAMEWORK = new Map<FrameworkId, FrontmatterSchema>()
+for (const schema of FRONTMATTER)
+{
+  FRONTMATTER_BY_FRAMEWORK.set(schema.framework, schema)
 }
 
 export function getFrontmatterSchema(
   framework: FrameworkId
-): FrontmatterSchema {
+): FrontmatterSchema
+{
   return (
     FRONTMATTER_BY_FRAMEWORK.get(framework) ??
     FRONTMATTER_BY_FRAMEWORK.get('generic')!
-  );
+  )
 }

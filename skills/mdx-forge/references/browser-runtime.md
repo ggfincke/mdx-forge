@@ -51,16 +51,16 @@ import {
   registerPreloadEntries,
   setModuleFetcher,
   evaluateModuleToComponent,
-} from 'mdx-forge/browser';
+} from 'mdx-forge/browser'
 
-registerPreloadEntries(preloadManifest); // 1
-setModuleFetcher(hostFetcher); // 2
+registerPreloadEntries(preloadManifest) // 1
+setModuleFetcher(hostFetcher) // 2
 
 const Component = await evaluateModuleToComponent(
   code, // from compileTrusted
   '/preview.mdx', // entry path
   entryDependencies // the entry's direct import specifiers
-); // 3
+) // 3
 
 // render Component in your React tree
 ```
@@ -78,7 +78,7 @@ function evaluateModuleToComponent(
   code: string,
   entryFilePath: string,
   dependencies: ModuleDependencyInput[]
-): Promise<(...args: unknown[]) => unknown>;
+): Promise<(...args: unknown[]) => unknown>
 ```
 
 - Ensures preloaded modules are initialized
@@ -108,7 +108,7 @@ const dependencies: ModuleDependencyInput[] = [
     kind: 'require',
     runtimeRequest: 'conditional-package',
   },
-];
+]
 ```
 
 The transformed code must call `require(dependency.runtimeRequest)`. The
@@ -127,12 +127,12 @@ function loadModule(
   fetcher: ModuleFetcher,
   depth?: number,
   importChain?: string[]
-): Promise<Module>;
+): Promise<Module>
 
 interface Module {
-  id: string;
-  exports: unknown;
-  loaded: boolean;
+  id: string
+  exports: unknown
+  loaded: boolean
 }
 ```
 
@@ -143,30 +143,30 @@ access to the `Module` object (e.g., to read named exports, not just
 ## `setModuleFetcher(fetcher)`
 
 ```ts
-function setModuleFetcher(fetcher: ModuleFetcher): void;
+function setModuleFetcher(fetcher: ModuleFetcher): void
 
 type ModuleFetcher = (
   request: string,
   isBare: boolean,
   parentId: string,
   kind?: ModuleDependencyKind
-) => Promise<FetchResult | undefined>;
+) => Promise<FetchResult | undefined>
 
-type ModuleDependencyKind = 'import' | 'require';
+type ModuleDependencyKind = 'import' | 'require'
 
 interface ModuleDependency {
-  specifier: string;
-  kind: ModuleDependencyKind;
-  runtimeRequest: string;
+  specifier: string
+  kind: ModuleDependencyKind
+  runtimeRequest: string
 }
 
-type ModuleDependencyInput = string | ModuleDependency;
+type ModuleDependencyInput = string | ModuleDependency
 
 interface FetchResult {
-  fsPath: string; // absolute path or virtual id
-  code: string; // transpiled JS source
-  dependencies: ModuleDependencyInput[]; // direct deps for prefetching
-  css?: string; // optional CSS to inject
+  fsPath: string // absolute path or virtual id
+  code: string // transpiled JS source
+  dependencies: ModuleDependencyInput[] // direct deps for prefetching
+  css?: string // optional CSS to inject
 }
 ```
 
@@ -188,19 +188,19 @@ non-preloaded import.
 
 ```ts
 // one-arg form registers into the singleton registry
-function registerPreloadEntries(entries: readonly PreloadEntry[]): void;
+function registerPreloadEntries(entries: readonly PreloadEntry[]): void
 // two-arg form targets a caller-supplied ModuleRegistry instance
 function registerPreloadEntries(
   registry: ModuleRegistry,
   entries: readonly PreloadEntry[]
-): void;
+): void
 
-function setPreloadEntries(entries: readonly PreloadEntry[]): void;
+function setPreloadEntries(entries: readonly PreloadEntry[]): void
 
 interface PreloadEntry {
-  id: string; // canonical id (e.g., 'npm://react@18')
-  exports: unknown; // the actual module exports object
-  aliases?: string[]; // additional names this preload satisfies
+  id: string // canonical id (e.g., 'npm://react@18')
+  exports: unknown // the actual module exports object
+  aliases?: string[] // additional names this preload satisfies
 }
 ```
 
@@ -220,7 +220,7 @@ const PRELOADED_MODULE_IDS = {
   jsxRuntime: 'npm://react/jsx-runtime@18',
   mdxReact: 'npm://@mdx-js/react@3',
   vscodeLayout: 'npm://vscode-markdown-layout@0.1.0',
-} as const;
+} as const
 ```
 
 Aliases let you resolve bare specifiers — e.g., `aliases: ['react']` makes
@@ -230,15 +230,15 @@ Aliases let you resolve bare specifiers — e.g., `aliases: ['react']` makes
 
 ```ts
 interface HostPreloadCallbacks {
-  initPreloadedModules?: (registry: ModuleRegistry, layout: unknown) => void;
+  initPreloadedModules?: (registry: ModuleRegistry, layout: unknown) => void
   ensureFrameworkShims?: (
     registry: ModuleRegistry,
     framework: FrameworkId
-  ) => Promise<void>;
+  ) => Promise<void>
   ensureGenericShims?: (
     registry: ModuleRegistry,
     components: string[]
-  ) => Promise<void>;
+  ) => Promise<void>
 }
 ```
 
@@ -250,18 +250,18 @@ shim bundles.
 
 ```ts
 interface ModuleLoaderConfig {
-  maxModuleLoadDepth?: number; // default: large
-  maxConcurrentFetches?: number; // default: small
-  preloadAliases?: Record<string, string>;
-  runtime?: Partial<MDXRuntime>;
+  maxModuleLoadDepth?: number // default: large
+  maxConcurrentFetches?: number // default: small
+  preloadAliases?: Record<string, string>
+  runtime?: Partial<MDXRuntime>
 }
 
 interface MDXRuntime {
-  Fragment: unknown;
-  jsx: unknown;
-  jsxs: unknown;
-  jsxDEV?: unknown;
-  useMDXComponents?: () => Record<string, unknown>;
+  Fragment: unknown
+  jsx: unknown
+  jsxs: unknown
+  jsxDEV?: unknown
+  useMDXComponents?: () => Record<string, unknown>
 }
 ```
 
@@ -288,7 +288,7 @@ Call the primitives directly for HMR-style edits or manual cache control.
 ## Style injection
 
 ```ts
-function clearInjectedStyles(): void;
+function clearInjectedStyles(): void
 ```
 
 CSS injection is automatic: when a fetcher returns `FetchResult.css`, the
@@ -300,8 +300,8 @@ between `evaluateModuleToComponent` calls on the same entry.
 ## Framework shim lazy-loading
 
 ```ts
-function ensureFrameworkShimsLoaded(framework: Framework): void;
-function ensureGenericShimsLoaded(components: string[]): void;
+function ensureFrameworkShimsLoaded(framework: Framework): void
+function ensureGenericShimsLoaded(components: string[]): void
 ```
 
 Both are fire-and-forget. The next call to `evaluateModuleToComponent`
