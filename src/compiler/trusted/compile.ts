@@ -2,7 +2,7 @@
 // MDX transpilation w/ layout injection & React root wrapping for Trusted Mode
 
 import { compile } from '@mdx-js/mdx';
-import hasDefaultExport from './hasDefaultExport';
+import remarkInjectLayout, { type LayoutResolution } from './hasDefaultExport';
 
 import { extractFrontmatter } from '../pipeline/common/mdx-common';
 import { buildTrustedPluginPipeline } from '../plugins/builder';
@@ -14,6 +14,7 @@ import { resolveDocumentFormat } from '../internal/format';
 import { warnMarkdownModeIgnoredConfig } from '../pipeline/common/pipeline-warnings';
 
 import type { CompilerConfig, MdxTranspileResult } from '../types';
+import type { Pluggable } from 'unified';
 
 // strip MDX 3's module-level default export so the content component can be
 // re-wrapped; anchor to line start so prose/string literals are untouched
@@ -33,12 +34,11 @@ const createUniqueIdentifier = (source: string, base: string): string => {
   return name;
 };
 
-// resolved layout source shared by the mdx-source & compiled-js wrap paths
-// custom: an import specifier literal; host: the createLayout options string
-type LayoutResolution =
-  | { kind: 'custom'; specifier: string }
-  | { kind: 'host'; options: string }
-  | null;
+// derive offsets from the exact prefix so generated import counts can vary
+const prependMdxSource = (mdxText: string, prefix: string) => ({
+  mdxText: prefix + mdxText,
+  prependedLineCount: prefix.split('\n').length - 1,
+});
 
 // resolve which layout applies from config (custom file vs host styles)
 // centralizes the customLayoutFilePath try/catch/warn & useHostMarkdownStyles
@@ -65,33 +65,6 @@ const resolveLayout = (
     return { kind: 'host', options };
   }
   return null;
-};
-
-// inject MDX layout styles based on configuration
-const injectMDXStyles = (mdxText: string, config: CompilerConfig): string => {
-  const log = getLogger(config.logger);
-  const layout = resolveLayout(config, (err) =>
-    log.warn(
-      `Failed to load custom layout from ${config.customLayoutFilePath}: ${err}`
-    )
-  );
-
-  if (!layout) {
-    return mdxText;
-  }
-
-  if (layout.kind === 'custom') {
-    return `import Layout from ${layout.specifier};
-
-export default Layout;
-
-${mdxText}`;
-  }
-  return `import { createLayout } from 'vscode-markdown-layout';
-
-export default createLayout(${layout.options});
-
-${mdxText}`;
 };
 
 // wrap compiled MDX output (webview owns React root & handles rendering, wrap w/ MDXProvider if components provided)
@@ -216,7 +189,7 @@ export async function compileTrusted(
   const log = getLogger(config.logger);
 
   // extract frontmatter before compilation
-  const { content, frontmatter } = extractFrontmatter(mdxText);
+  const { content, frontmatter, bodyStartLine } = extractFrontmatter(mdxText);
 
   // .md compiles as lenient CommonMark; .mdx parses JSX/ESM
   // markdown mode cannot use ESM, so layout & component injection are mdx-only
@@ -235,12 +208,9 @@ export async function compileTrusted(
     );
   }
 
-  let mdxTextToCompile: string;
-  if (isMdx && !hasDefaultExport(content)) {
-    mdxTextToCompile = injectMDXStyles(content, config);
-  } else {
-    mdxTextToCompile = content;
-  }
+  let mdxTextToCompile = content;
+  let sourceLineOffset = bodyStartLine - 1;
+  let injectedPrefixLength = 0;
 
   // load custom plugins from config
   const customPlugins = await loadPluginsFromConfig(
@@ -285,7 +255,14 @@ export async function compileTrusted(
   // prepend component imports to MDX source (before compilation)
   if (componentImports.hasComponents) {
     log.debug('Prepending component imports to MDX source');
-    mdxTextToCompile = componentImports.imports + '\n\n' + mdxTextToCompile;
+    const componentPrefix = componentImports.imports + '\n\n';
+    const componentInjection = prependMdxSource(
+      mdxTextToCompile,
+      componentPrefix
+    );
+    mdxTextToCompile = componentInjection.mdxText;
+    sourceLineOffset -= componentInjection.prependedLineCount;
+    injectedPrefixLength = componentPrefix.length;
   }
 
   // build plugin pipeline (merges built-in & custom plugins)
@@ -293,22 +270,42 @@ export async function compileTrusted(
     customPlugins,
     config.diagramBehavior
   );
+  if (isMdx) {
+    remarkPlugins.unshift([
+      remarkInjectLayout,
+      {
+        insertionOffset: injectedPrefixLength,
+        resolveLayout: () =>
+          resolveLayout(config, (err) =>
+            log.warn(
+              `Failed to load custom layout from ${config.customLayoutFilePath}: ${err}`
+            )
+          ),
+      },
+    ] as Pluggable);
+  }
 
-  const compiled = await compile(mdxTextToCompile, {
-    // lenient CommonMark for .md, strict MDX for .mdx
-    format: documentFormat,
-    outputFormat: 'program',
-    development: false,
-    jsx: false,
-    jsxRuntime: 'automatic',
-    jsxImportSource: 'react',
-    // enable MDXProvider context reading (MDX will call useMDXComponents() to get components)
-    providerImportSource: '@mdx-js/react',
-    // remark plugins: GFM, GitHub alerts, math (shared w/ Safe Mode) & custom
-    remarkPlugins,
-    // rehype plugins: raw HTML, diagram placeholders, math, syntax, anchors, lazy images & custom
-    rehypePlugins,
-  });
+  const compiled = await compile(
+    {
+      value: mdxTextToCompile,
+      data: { sourceLineOffset },
+    },
+    {
+      // lenient CommonMark for .md, strict MDX for .mdx
+      format: documentFormat,
+      outputFormat: 'program',
+      development: false,
+      jsx: false,
+      jsxRuntime: 'automatic',
+      jsxImportSource: 'react',
+      // enable MDXProvider context reading (MDX will call useMDXComponents() to get components)
+      providerImportSource: '@mdx-js/react',
+      // remark plugins: GFM, GitHub alerts, math (shared w/ Safe Mode) & custom
+      remarkPlugins,
+      // rehype plugins: raw HTML, diagram placeholders, math, syntax, anchors, lazy images & custom
+      rehypePlugins,
+    }
+  );
 
   // markdown re-attaches the layout at the JS level; mdx wraps as before
   const code = isMdx

@@ -1,6 +1,7 @@
 // src/compiler/safe-document/schema.ts
 // normalize options & validate host component values against closed schemas
 
+import { isReservedObjectKey } from '../../internal/object-key';
 import type {
   SafeDocumentComponentSchema,
   SafeDocumentCompileOptions,
@@ -10,7 +11,6 @@ import type {
 
 const MAX_SCHEMA_DEPTH = 16;
 const COMPONENT_NAME = /^[A-Z_$][A-Za-z0-9_$]*(?:\.[A-Z_$][A-Za-z0-9_$]*)*$/;
-const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 const RESERVED_COMPONENT_PROPS = new Set([
   'children',
   'dangerouslySetInnerHTML',
@@ -140,7 +140,7 @@ function normalizeComponents(
 export function isForbiddenProp(name: string): boolean {
   return (
     RESERVED_COMPONENT_PROPS.has(name) ||
-    FORBIDDEN_KEYS.has(name) ||
+    isReservedObjectKey(name) ||
     /^on[A-Z]/.test(name)
   );
 }
@@ -365,7 +365,7 @@ function normalizeSchemaShape(
         propertiesValue,
         `${path}.properties`
       )) {
-        if (FORBIDDEN_KEYS.has(name)) {
+        if (isReservedObjectKey(name)) {
           throw new TypeError(`reserved object key ${path}.${name}`);
         }
         properties[name] = normalizeSchema(

@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Component metadata has one canonical identity source**: public metadata, registry queries, framework barrels, compound-member diagnostics, and compiler identity checks derive from the same immutable definition table while identity-only compiler paths remain React-free
+- **Open-prop contracts are authoritative**: components marked open now expose and forward their supported DOM props to the correct root; closed components no longer advertise unsupported forwarding
+- **Neutral compiler infrastructure**: browser/compiler LRU ownership, frontmatter extraction, source-position rebasing, reserved object-key policy, and component identity now live in dependency-neutral internal modules
+
+### Fixed
+
+- **Conditional export identity**: structured browser dependencies carry import-vs-require intent through fetch, in-flight coordination, resolution hints, and evaluation, so one parent can load both conditional branches of the same package without collisions; runtime requests are canonicalized before loading, duplicate legacy/structured requires prefer the structured identity deterministically, and legacy string dependencies plus three-argument fetchers remain supported
+- **Compiler hardening**: prototype-sensitive directive names no longer crash Safe or Trusted compilation; source lines account for frontmatter and injected imports; directive titles are retained; unknown inline components preserve authored children; non-object frontmatter is rejected; frontmatter byte limits count UTF-8 bytes
+- **Compiler parity**: Safe and Trusted modes agree on `open="false"`, table-of-contents data is preserved, fence titles retain embedded brackets, public plugin arrays cannot mutate process-wide defaults, and plugin failures use the documented diagnostic code
+- **Browser loader concurrency**: cross-branch cycles reject instead of deadlocking; cache clears and targeted invalidations fence old in-flight fetches while preserving unrelated cached modules; preload generations cannot repopulate cleared state; sibling commits protect dependencies before LRU eviction; failed graphs cannot retain dependency, resolution, or CSS state; preload batches commit atomically
+- **Incremental module evaluation**: same-entry refreshes and single-leaf invalidations reuse stable relative and bare dependencies while refetching only changed targets; cached CSS is restored after style cleanup; cache size accounting no longer serializes exported functions or ignores retained closure estimates
+- **Prototype-name identities**: preload aliases such as `constructor` and `__proto__` register atomically, while component identity queries no longer mistake inherited object properties for known components
+- **Diagnostics accuracy**: compound members are framework-aware, unresolved spreads suppress false missing-required errors, named default functions and recursive destructuring count as local bindings, rule overrides take effect, and enum checks accept only genuinely static strings
+- **Framework components**: Nextra Callout preserves its unstyled `type={null}` mode, Tabs callbacks receive documented arguments, and FileTree owns framework-neutral structure; Next Image invokes its advertised loader; Next/Nextra/Starlight link, tab, code, and open-prop behavior now matches exported types and registry metadata
+- **Component lifecycle details**: tab persistence is not blocked after the first mount, clipboard timers cannot update after unmount, copied code retains meaningful whitespace, Next Image `fill` does not force `object-fit: cover`, and registry query arrays cannot mutate canonical state
+
+### Performance
+
+- **Trusted compilation parses once**: default-export discovery reuses the existing MDX AST instead of reparsing the document
+- **Custom plugin loading is cached**: resolved plugin modules are reused within the compiler session
+- **Safe document stripping is linear**: removable sibling runs compact without repeated array splices
+- **Compiler identity bundles are smaller**: identity-only imports no longer pull the component metadata table or React
+
 ## [0.8.0] - 2026-07-19
 
 Carries the mega-review remediation (34 findings across the Safe render boundary, browser runtime, compiler fidelity, diagnostics, framework component contracts, and the published package) alongside the new structured Safe Document compiler. Hosts should re-check the behavior changes below: Trusted MCP responses no longer inline the rendered artifact by default, Nextra `Bleed` drops its unrelated `size`/`weight`/`align` props, and Starlight `LinkCard` now keeps internal links in the same tab.

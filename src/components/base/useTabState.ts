@@ -5,11 +5,13 @@ import {
   useState,
   useCallback,
   useEffect,
-  useRef,
   ReactNode,
+  HTMLAttributes,
   isValidElement,
   Children,
 } from 'react';
+
+const ITEM_IS_DISABLED = () => false;
 
 // tab item extracted from children
 export interface TabItem {
@@ -17,6 +19,7 @@ export interface TabItem {
   label: string;
   icon?: ReactNode;
   content: ReactNode;
+  panelProps: Omit<HTMLAttributes<HTMLDivElement>, 'children'>;
 }
 
 // tab definition (value, label & optional icon)
@@ -27,7 +30,10 @@ export interface TabDefinition {
 }
 
 // props for a TabItem component
-export interface TabItemProps {
+export interface TabItemProps extends Omit<
+  HTMLAttributes<HTMLDivElement>,
+  'children'
+> {
   children: ReactNode;
   // optional - can use label as fallback (Starlight uses label only)
   value?: string;
@@ -52,6 +58,18 @@ export interface UseTabStateResult {
   tabItems: TabItem[];
 }
 
+function extractPanelProps(
+  props: TabItemProps
+): Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
+  const panelProps: Partial<TabItemProps> = { ...props };
+  delete panelProps.children;
+  delete panelProps.value;
+  delete panelProps.label;
+  delete panelProps.default;
+  delete panelProps.icon;
+  return panelProps;
+}
+
 // extract TabItem children w/ their props
 export function extractTabItems(children: ReactNode): TabItem[] {
   const items: TabItem[] = [];
@@ -70,6 +88,7 @@ export function extractTabItems(children: ReactNode): TabItem[] {
         label: props.label || value,
         icon: props.icon,
         content: props.children,
+        panelProps: extractPanelProps(props),
       });
     }
   });
@@ -259,35 +278,29 @@ export function useIndexTabs<T>({
   controlledIndex,
   storageKey,
   onChange,
-  isDisabled = () => false,
+  isDisabled = ITEM_IS_DISABLED,
 }: UseIndexTabsOptions<T>): UseIndexTabsResult {
   const [internalIndex, setInternalIndex] = useState(defaultIndex);
 
-  // restore persisted index once after hydration; storage errors are ignored
-  const restoredRef = useRef(false);
+  // restore persisted index after hydration & whenever its inputs change
   useEffect(() => {
-    if (restoredRef.current || !storageKey) {
+    if (!storageKey) {
       return;
     }
-    restoredRef.current = true;
     try {
       const stored = window.localStorage.getItem(`nextra-tabs-${storageKey}`);
       if (stored === null) {
+        setInternalIndex(
+          normalizeEnabledIndex(defaultIndex, items, isDisabled)
+        );
         return;
       }
       const parsed = Number.parseInt(stored, 10);
-      if (
-        Number.isInteger(parsed) &&
-        parsed >= 0 &&
-        parsed < items.length &&
-        !isDisabled(items[parsed])
-      ) {
-        setInternalIndex(parsed);
-      }
+      setInternalIndex(normalizeEnabledIndex(parsed, items, isDisabled));
     } catch {
       // ignore localStorage errors
     }
-  }, [storageKey, items, isDisabled]);
+  }, [storageKey, defaultIndex, items, isDisabled]);
 
   // controlled wins over internal; invalid values normalize to first enabled
   const activeIndex = normalizeEnabledIndex(

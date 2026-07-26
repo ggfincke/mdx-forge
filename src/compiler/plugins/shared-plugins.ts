@@ -32,13 +32,15 @@ export const autolinkHeadingsConfig = {
 
 // shared remark plugins in directive -> alert -> GFM -> math order
 // keep GitHub alert transform before GFM
-export const sharedRemarkPlugins: Pluggable[] = [
+export const sharedRemarkPlugins: readonly Pluggable[] = Object.freeze<
+  Pluggable[]
+>([
   remarkDirective,
   remarkAdmonitions,
   remarkGithubAlerts,
   remarkGfm,
   remarkMath,
-];
+]);
 
 // shared rehype plugins before math rendering (diagram fences for lazy
 // rendering or visible code fallback, per the configured behavior)
@@ -56,11 +58,13 @@ export function getSharedRehypePluginsPreMath(
 export { rehypeKatex };
 
 // shared rehype plugins after math rendering (& after rehypeRaw in Trusted mode)
-export const sharedRehypePluginsPostMath: Pluggable[] = [
+export const sharedRehypePluginsPostMath: readonly Pluggable[] = Object.freeze<
+  Pluggable[]
+>([
   // run before shiki so transformed wrappers can preserve source-line metadata
   rehypeSourceLine,
   rehypeShiki,
   rehypeSlug,
   [rehypeAutolinkHeadings, autolinkHeadingsConfig],
   rehypeLazyImages,
-];
+]);

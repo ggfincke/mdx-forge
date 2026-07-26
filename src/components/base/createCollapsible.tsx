@@ -5,8 +5,8 @@ import React, {
   useState,
   ReactNode,
   ReactElement,
-  SyntheticEvent,
   MouseEvent,
+  ComponentPropsWithoutRef,
 } from 'react';
 import { cn } from '../internal/cn';
 import { ChevronIcon } from './icons';
@@ -31,8 +31,13 @@ export interface CollapsibleConfig {
   defaultSummary?: string;
 }
 
+type DetailsProps = ComponentPropsWithoutRef<'details'>;
+
 // common collapsible props
-export interface BaseCollapsibleProps {
+export interface BaseCollapsibleProps extends Omit<
+  DetailsProps,
+  'children' | 'title' | 'open' | 'onToggle' | 'onClick'
+> {
   children: ReactNode;
   summary?: ReactNode;
   // alias for summary
@@ -41,6 +46,8 @@ export interface BaseCollapsibleProps {
   // alias for defaultOpen
   open?: boolean;
   className?: string;
+  onToggle?: DetailsProps['onToggle'];
+  onClick?: DetailsProps['onClick'];
 }
 
 // preset class configurations for each framework
@@ -84,6 +91,9 @@ export function createCollapsible(
     defaultOpen = false,
     open,
     className,
+    onToggle,
+    onClick,
+    ...detailsProps
   }: BaseCollapsibleProps): ReactElement {
     // resolve prop aliases
     const effectiveSummary = summary ?? title ?? defaultSummary;
@@ -92,11 +102,12 @@ export function createCollapsible(
     const [isOpen, setIsOpen] = useState(effectiveDefaultOpen);
 
     // native toggle handler (Docusaurus pattern)
-    const handleNativeToggle = useNativeToggle
-      ? (e: SyntheticEvent<HTMLDetailsElement>) => {
-          setIsOpen((e.target as HTMLDetailsElement).open);
-        }
-      : undefined;
+    const handleNativeToggle: NonNullable<DetailsProps['onToggle']> = (e) => {
+      if (useNativeToggle) {
+        setIsOpen((e.target as HTMLDetailsElement).open);
+      }
+      onToggle?.(e);
+    };
 
     // custom click handler (Generic Collapsible pattern)
     const handleSummaryClick = !useNativeToggle
@@ -107,13 +118,14 @@ export function createCollapsible(
       : undefined;
 
     // prevent native toggle when using custom click handling
-    const handleDetailsClick = !useNativeToggle
-      ? (e: MouseEvent<HTMLDetailsElement>) => {
-          if ((e.target as HTMLElement).tagName === 'SUMMARY') {
-            e.preventDefault();
-          }
+    const handleDetailsClick = (e: MouseEvent<HTMLDetailsElement>) => {
+      if (!useNativeToggle) {
+        if ((e.target as HTMLElement).tagName === 'SUMMARY') {
+          e.preventDefault();
         }
-      : undefined;
+      }
+      onClick?.(e);
+    };
 
     // determine icon class based on applyOpenClassToWrapper
     const iconWrapperClass = applyOpenClassToWrapper
@@ -125,6 +137,7 @@ export function createCollapsible(
 
     return (
       <details
+        {...detailsProps}
         className={cn(classNames.container, className)}
         data-component="collapsible"
         open={isOpen}

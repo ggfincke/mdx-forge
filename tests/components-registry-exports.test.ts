@@ -3,23 +3,8 @@
 
 import { build } from 'esbuild';
 import { describe, expect, it } from 'vitest';
-import {
-  COMPONENT_METADATA,
-  getComponentMetadata,
-  getCanonicalComponentName,
-  getFrameworkComponentEntries,
-  getFrameworkComponents,
-} from '../src/components/registry/index';
 
 describe('components registry exports', () => {
-  it('exposes stable query helpers', () => {
-    expect(typeof getCanonicalComponentName).toBe('function');
-    expect(typeof getFrameworkComponents).toBe('function');
-    expect(typeof getComponentMetadata).toBe('function');
-    expect(typeof getFrameworkComponentEntries).toBe('function');
-    expect(typeof COMPONENT_METADATA).toBe('object');
-  });
-
   it('keeps the registry entrypoint free of React component shims', async () => {
     const result = await build({
       absWorkingDir: process.cwd(),
@@ -37,6 +22,38 @@ describe('components registry exports', () => {
     );
 
     expect(componentShims).toEqual([]);
+    expect(inputs.some((input) => input.includes('node_modules/react'))).toBe(
+      false
+    );
+  });
+
+  it('keeps compiler identity consumers off authoring metadata', async () => {
+    const result = await build({
+      absWorkingDir: process.cwd(),
+      bundle: true,
+      entryPoints: [
+        'src/compiler/pipeline/remark/generic-components.ts',
+        'src/compiler/safe/compile.ts',
+        'src/compiler/trusted/component-mapper.ts',
+      ],
+      format: 'esm',
+      logLevel: 'silent',
+      metafile: true,
+      outdir: 'identity-consumers',
+      platform: 'node',
+      write: false,
+    });
+    const inputs = Object.keys(result.metafile?.inputs ?? {});
+
+    expect(inputs).toContain('src/components/internal/component-identity.ts');
+    expect(inputs).toContain(
+      'src/components/internal/component-identity-queries.ts'
+    );
+    expect(inputs).not.toContain(
+      'src/components/registry/component-metadata.ts'
+    );
+    expect(inputs).not.toContain('src/components/registry/registry-data.ts');
+    expect(inputs).not.toContain('src/components/registry/queries.ts');
     expect(inputs.some((input) => input.includes('node_modules/react'))).toBe(
       false
     );

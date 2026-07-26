@@ -7,27 +7,9 @@ import {
   isValidCalloutType,
 } from '../../src/internal/callout';
 
-describe('normalizeCalloutType()', () => {
-  it('passes through valid callout types unchanged', () => {
-    expect(normalizeCalloutType('note')).toBe('note');
-    expect(normalizeCalloutType('tip')).toBe('tip');
-    expect(normalizeCalloutType('warning')).toBe('warning');
-    expect(normalizeCalloutType('danger')).toBe('danger');
-    expect(normalizeCalloutType('info')).toBe('info');
-    expect(normalizeCalloutType('caution')).toBe('caution');
-    expect(normalizeCalloutType('important')).toBe('important');
-    expect(normalizeCalloutType('summary')).toBe('summary');
-    expect(normalizeCalloutType('hint')).toBe('hint');
-    expect(normalizeCalloutType('success')).toBe('success');
-    expect(normalizeCalloutType('question')).toBe('question');
-    expect(normalizeCalloutType('failure')).toBe('failure');
-    expect(normalizeCalloutType('bug')).toBe('bug');
-    expect(normalizeCalloutType('example')).toBe('example');
-    expect(normalizeCalloutType('quote')).toBe('quote');
-    expect(normalizeCalloutType('todo')).toBe('todo');
-    expect(normalizeCalloutType('attention')).toBe('attention');
-  });
+const OBJECT_PROTOTYPE_NAMES = Object.getOwnPropertyNames(Object.prototype);
 
+describe('normalizeCalloutType()', () => {
   it('resolves aliases to canonical types', () => {
     expect(normalizeCalloutType('abstract')).toBe('summary');
     expect(normalizeCalloutType('tldr')).toBe('summary');
@@ -59,6 +41,12 @@ describe('normalizeCalloutType()', () => {
   it('falls back to note for undefined input', () => {
     expect(normalizeCalloutType(undefined)).toBe('note');
   });
+
+  it('falls back to note for every Object.prototype property name', () => {
+    for (const name of OBJECT_PROTOTYPE_NAMES) {
+      expect(normalizeCalloutType(name), name).toBe('note');
+    }
+  });
 });
 
 describe('isValidCalloutType()', () => {
@@ -84,5 +72,11 @@ describe('isValidCalloutType()', () => {
     expect(isValidCalloutType('unknown')).toBe(false);
     expect(isValidCalloutType('custom')).toBe(false);
     expect(isValidCalloutType('')).toBe(false);
+  });
+
+  it('rejects every Object.prototype property name', () => {
+    for (const name of OBJECT_PROTOTYPE_NAMES) {
+      expect(isValidCalloutType(name), name).toBe(false);
+    }
   });
 });

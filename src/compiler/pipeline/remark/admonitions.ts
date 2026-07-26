@@ -66,6 +66,10 @@ const ADMONITION_CLASSES: Record<CalloutType, string> = {
 const ADMONITION_TYPES: Record<string, CalloutStyleConfig> =
   buildCalloutStyleMap((type) => ADMONITION_CLASSES[type]);
 
+const OBJECT_PROTOTYPE_NAMES = new Set(
+  Object.getOwnPropertyNames(Object.prototype).map((name) => name.toLowerCase())
+);
+
 // type guard for container directive
 function isContainerDirective(node: unknown): node is ContainerDirective {
   return (
@@ -77,35 +81,21 @@ function isContainerDirective(node: unknown): node is ContainerDirective {
 }
 
 // extract custom title from directive children (e.g., :::note[Custom Title])
-function extractCustomTitle(node: ContainerDirective): string | null {
+function extractCustomTitle(
+  node: ContainerDirective
+): string | PhrasingContent[] | null {
   // check attributes first (some parsers put it there)
-  if (node.attributes && 'title' in node.attributes) {
-    return node.attributes.title as string;
+  if (typeof node.attributes?.title === 'string') {
+    return node.attributes.title;
   }
 
-  // check for directiveLabel in data
-  const data = node.data as { directiveLabel?: boolean } | undefined;
-  if (data?.directiveLabel) {
-    // the label is in the first child if it's a paragraph w/ directiveLabel
-    const firstChild = node.children?.[0];
-    if (
-      firstChild &&
-      'type' in firstChild &&
-      firstChild.type === 'paragraph' &&
-      'data' in firstChild &&
-      (firstChild.data as { directiveLabel?: boolean })?.directiveLabel
-    ) {
-      // extract text content from the label paragraph
-      const labelNode = firstChild as Parent;
-      const textContent = labelNode.children
-        ?.filter(
-          (child): child is { type: 'text'; value: string } =>
-            'type' in child && child.type === 'text'
-        )
-        .map((child) => child.value)
-        .join('');
-      return textContent || null;
-    }
+  const firstChild = node.children?.[0];
+  if (
+    firstChild?.type === 'paragraph' &&
+    (firstChild.data as { directiveLabel?: boolean } | undefined)
+      ?.directiveLabel
+  ) {
+    return firstChild.children.length > 0 ? firstChild.children : null;
   }
 
   return null;
@@ -119,14 +109,18 @@ function getDirectiveName(node: ContainerDirective): string {
 // resolve directive name to admonition config (handles aliases)
 function resolveAdmonitionType(name: string): CalloutStyleConfig | undefined {
   // direct match
-  if (name in ADMONITION_TYPES) {
+  if (Object.hasOwn(ADMONITION_TYPES, name)) {
     return ADMONITION_TYPES[name];
   }
 
   // alias match
-  const canonical = CALLOUT_TYPE_ALIASES[name];
-  if (canonical) {
+  if (Object.hasOwn(CALLOUT_TYPE_ALIASES, name)) {
+    const canonical = CALLOUT_TYPE_ALIASES[name];
     return ADMONITION_TYPES[canonical];
+  }
+
+  if (OBJECT_PROTOTYPE_NAMES.has(name)) {
+    return ADMONITION_TYPES.note;
   }
 
   return undefined;
@@ -135,7 +129,7 @@ function resolveAdmonitionType(name: string): CalloutStyleConfig | undefined {
 // create AST node for admonition via the shared createCalloutCard scaffold
 function createAdmonitionNode(
   config: CalloutStyleConfig,
-  title: string,
+  title: string | PhrasingContent[],
   children: Array<BlockContent | PhrasingContent>
 ): RootContent {
   // filter out directive label from children if present
@@ -158,7 +152,8 @@ function createAdmonitionNode(
     headerMode: 'split-icon-text',
     iconClassName: PREVIEW_ADMONITION_ICON,
     icon: config.icon,
-    title,
+    title: typeof title === 'string' ? title : config.label,
+    titleChildren: typeof title === 'string' ? undefined : title,
     contentType: 'admonitionContent',
     contentClassName: PREVIEW_ADMONITION_CONTENT,
     contentChildren: contentChildren as RootContent[],

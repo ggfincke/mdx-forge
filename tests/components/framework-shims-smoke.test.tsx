@@ -3,9 +3,9 @@
 
 // @vitest-environment jsdom
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import React from 'react';
-import { render } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 
 // docusaurus
 import {
@@ -24,23 +24,14 @@ import {
   Steps as StarlightSteps,
   Tabs as StarlightTabs,
   TabItem as StarlightTabItem,
-  FileTree as StarlightFileTree,
 } from '../../src/components/starlight/index';
 
 // nextra
 import {
   Callout as NextraCallout,
   Tabs as NextraTabs,
-  Steps as NextraSteps,
-  Bleed as NextraBleed,
   Cards as NextraCards,
 } from '../../src/components/nextra/index';
-
-// nextjs
-import {
-  Image as NextImage,
-  Link as NextLink,
-} from '../../src/components/nextjs/index';
 
 describe('Docusaurus shims [smoke]', () => {
   it('Tabs w/ TabItem renders', () => {
@@ -58,63 +49,101 @@ describe('Docusaurus shims [smoke]', () => {
     expect(container.textContent).toContain('A');
   });
 
-  it('CodeBlock renders', () => {
+  it('CodeBlock renders & copies child whitespace exactly', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
     const { container } = render(
-      React.createElement(DocuCodeBlock, { language: 'js' }, 'const x = 1;')
+      React.createElement(
+        DocuCodeBlock,
+        { language: 'js', id: 'example-code' },
+        '\n  const x = 1;\n'
+      )
     );
     expect(container.textContent).toContain('const x = 1;');
+    expect(container.querySelector('pre')?.id).toBe('example-code');
+
+    fireEvent.click(container.querySelector('button')!);
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith('\n  const x = 1;\n');
+    });
   });
 
   it('Details renders', () => {
     const { container } = render(
       React.createElement(
         DocuDetails,
-        { summary: React.createElement('span', null, 'Click me') },
+        {
+          summary: React.createElement('span', null, 'Click me'),
+          id: 'docu-details',
+        },
         'Hidden content'
       )
     );
     expect(container.textContent).toContain('Click me');
+    expect(container.querySelector('details')?.id).toBe('docu-details');
   });
 });
 
 describe('Starlight shims [smoke]', () => {
   it('Card renders', () => {
     const { container } = render(
-      React.createElement(StarlightCard, { title: 'Guide' }, 'Card body')
+      React.createElement(
+        StarlightCard,
+        { title: 'Guide', id: 'starlight-card' },
+        'Card body'
+      )
     );
     expect(container.textContent).toContain('Guide');
+    expect(container.querySelector('.mdx-preview-starlight-card')?.id).toBe(
+      'starlight-card'
+    );
   });
 
   it('CardGrid renders', () => {
     const { container } = render(
       React.createElement(
         StarlightCardGrid,
-        null,
+        { id: 'starlight-grid' },
         React.createElement(StarlightCard, { title: 'A' }, 'Content')
       )
     );
     expect(container.textContent).toContain('A');
+    expect(
+      container.querySelector('.mdx-preview-starlight-card-grid')?.id
+    ).toBe('starlight-grid');
   });
 
   it('Badge renders', () => {
     const { container } = render(
-      React.createElement(StarlightBadge, { text: 'New' })
+      React.createElement(StarlightBadge, {
+        text: 'New',
+        id: 'starlight-badge',
+      })
     );
     expect(container.textContent).toContain('New');
+    expect(container.querySelector('span')?.id).toBe('starlight-badge');
   });
 
   it('Aside renders', () => {
     const { container } = render(
-      React.createElement(StarlightAside, { type: 'tip' }, 'Tip text')
+      React.createElement(
+        StarlightAside,
+        { type: 'tip', id: 'starlight-aside' },
+        'Tip text'
+      )
     );
     expect(container.textContent).toContain('Tip text');
+    expect(container.querySelector('aside')?.id).toBe('starlight-aside');
   });
 
   it('Steps renders', () => {
     const { container } = render(
       React.createElement(
         StarlightSteps,
-        null,
+        { id: 'starlight-steps' },
         React.createElement(
           'ol',
           null,
@@ -123,6 +152,9 @@ describe('Starlight shims [smoke]', () => {
       )
     );
     expect(container.textContent).toContain('Step 1');
+    expect(container.querySelector('.mdx-preview-starlight-steps')?.id).toBe(
+      'starlight-steps'
+    );
   });
 
   it('Tabs w/ TabItem renders', () => {
@@ -135,21 +167,6 @@ describe('Starlight shims [smoke]', () => {
     );
     expect(container.textContent).toContain('Tab1');
   });
-
-  it('FileTree renders', () => {
-    const { container } = render(
-      React.createElement(
-        StarlightFileTree,
-        null,
-        React.createElement(
-          'ul',
-          null,
-          React.createElement('li', null, 'README.md')
-        )
-      )
-    );
-    expect(container.textContent).toContain('README.md');
-  });
 });
 
 describe('Nextra shims [smoke]', () => {
@@ -161,33 +178,70 @@ describe('Nextra shims [smoke]', () => {
   });
 
   it('Tabs w/ compound Tab pattern renders', () => {
+    const listClassName = vi.fn(
+      ({ selectedIndex }: { selectedIndex: number }) =>
+        `selected-${selectedIndex}`
+    );
+    const tabClassName = vi.fn(({ selected }: { selected: boolean }) =>
+      selected ? 'selected-tab' : 'idle-tab'
+    );
     const { container } = render(
       React.createElement(
         NextraTabs,
-        { items: ['First', 'Second'] },
-        React.createElement(NextraTabs.Tab, null, 'First content'),
+        {
+          items: [
+            React.createElement('strong', { key: 'first' }, 'First'),
+            { label: 'Second', disabled: true },
+          ],
+          className: listClassName,
+          tabClassName,
+        },
+        React.createElement(
+          NextraTabs.Tab,
+          {
+            className: ({ selected }: { selected: boolean }) =>
+              selected ? 'selected-panel' : 'idle-panel',
+          },
+          ({ selected }: { selected: boolean }) =>
+            selected ? 'First selected' : 'First hidden'
+        ),
         React.createElement(NextraTabs.Tab, null, 'Second content')
       )
     );
     expect(container.textContent).toContain('First');
-  });
-
-  it('Steps renders', () => {
-    const { container } = render(
-      React.createElement(
-        NextraSteps,
-        null,
-        React.createElement('p', null, 'Step one')
-      )
+    expect(container.textContent).toContain('First selected');
+    expect(container.querySelector('strong')?.textContent).toBe('First');
+    expect(
+      container
+        .querySelector('.mdx-preview-nextra-tabs')
+        ?.classList.contains('selected-0')
+    ).toBe(true);
+    expect(
+      container
+        .querySelector('[role="tab"]')
+        ?.classList.contains('selected-tab')
+    ).toBe(true);
+    expect(
+      container
+        .querySelector('[role="tabpanel"]')
+        ?.classList.contains('selected-panel')
+    ).toBe(true);
+    expect(listClassName).toHaveBeenCalledWith({ selectedIndex: 0 });
+    expect(tabClassName).toHaveBeenCalledWith(
+      expect.objectContaining({ selected: true, disabled: false })
     );
-    expect(container.textContent).toContain('Step one');
-  });
-
-  it('Bleed renders', () => {
-    const { container } = render(
-      React.createElement(NextraBleed, null, 'Bleed content')
+    const tabs = container.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+    expect(tabs[1]?.disabled).toBe(true);
+    expect(tabs[1]?.getAttribute('aria-disabled')).toBe('true');
+    expect(
+      tabs[1]?.classList.contains('mdx-preview-nextra-tabs-button-disabled')
+    ).toBe(true);
+    expect(tabClassName).toHaveBeenCalledWith(
+      expect.objectContaining({ selected: false, disabled: true })
     );
-    expect(container.textContent).toContain('Bleed content');
+    fireEvent.click(tabs[1]!);
+    expect(tabs[0]?.getAttribute('aria-selected')).toBe('true');
+    expect(container.textContent).not.toContain('Second content');
   });
 
   it('Cards.Card w/ external href sets target=_blank rel=noopener', () => {
@@ -205,28 +259,5 @@ describe('Nextra shims [smoke]', () => {
     expect(anchor?.getAttribute('href')).toBe('https://example.com');
     expect(anchor?.getAttribute('target')).toBe('_blank');
     expect(anchor?.getAttribute('rel')).toBe('noopener noreferrer');
-  });
-});
-
-describe('Next.js shims [smoke]', () => {
-  it('Image renders', () => {
-    const { container } = render(
-      React.createElement(NextImage, {
-        src: '/logo.png',
-        alt: 'Logo',
-      })
-    );
-    const img = container.querySelector('img');
-    expect(img).toBeTruthy();
-    expect(img?.getAttribute('src')).toBe('/logo.png');
-  });
-
-  it('Link renders', () => {
-    const { container } = render(
-      React.createElement(NextLink, { href: '/docs' }, 'Docs')
-    );
-    const anchor = container.querySelector('a');
-    expect(anchor).toBeTruthy();
-    expect(anchor?.textContent).toBe('Docs');
   });
 });

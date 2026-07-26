@@ -2,6 +2,7 @@
 // shim for next/link - provide basic anchor rendering w/o Next.js routing
 
 import { AnchorHTMLAttributes, ReactNode } from 'react';
+import { classifyExternalHref, mergeBlankTargetRel } from '../internal/link';
 
 // Next.js Link component props subset (relevant props for preview)
 export interface LinkProps extends Omit<
@@ -61,18 +62,16 @@ export function Link({
 }: LinkProps) {
   const resolvedHref = resolveHref(href);
 
-  // check if external link
-  const isExternal =
-    resolvedHref.startsWith('http://') ||
-    resolvedHref.startsWith('https://') ||
-    resolvedHref.startsWith('//');
+  const hrefKind = classifyExternalHref(resolvedHref);
+  const isExternal = hrefKind === 'http' || hrefKind === 'protocol-relative';
+  const target = isExternal ? '_blank' : undefined;
 
   return (
     <a
       href={resolvedHref}
       className={className}
-      target={isExternal ? '_blank' : undefined}
-      rel={isExternal ? 'noopener noreferrer' : undefined}
+      target={target}
+      rel={mergeBlankTargetRel(target, undefined)}
       {...rest}
     >
       {children}

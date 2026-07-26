@@ -18,6 +18,7 @@ export type ComponentPropType =
   | 'boolean'
   | 'array'
   | 'object'
+  | 'function'
   | 'node'
   | 'enum'
   | 'union';
@@ -107,6 +108,9 @@ export interface ComponentDefinition extends ComponentDefinitionBase {
 
   // aliases
   aliases: readonly string[];
+
+  // compound component statics exposed by the runtime
+  members?: readonly string[];
 
   // semantic aliases (e.g., "note" -> Callout, "accordion" -> Collapsible)
   semanticAliases?: readonly string[];

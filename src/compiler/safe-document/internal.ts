@@ -4,6 +4,10 @@
 import type { Program } from 'estree';
 import type { Node, Position } from 'unist';
 import { DIAGNOSTIC_CODES } from '../../diagnostics/types';
+import {
+  rebasePosition,
+  type SourceOrigin,
+} from '../../internal/source-position';
 import type {
   SafeDocumentCompileOptions,
   SafeDocumentDiagnostic,
@@ -16,9 +20,7 @@ export interface SafeDocumentCompileContext {
   options: SafeDocumentCompileOptions;
   diagnostics: SafeDocumentDiagnostic[];
   definitions: Map<string, SafeDocumentDefinition>;
-  bodyLineOffset: number;
-  bodyStartColumn: number;
-  bodyOffset: number;
+  bodyOrigin: SourceOrigin;
 }
 
 export interface SafeDocumentDefinition {
@@ -84,30 +86,7 @@ export function toSafeDocumentRange(
   position: Position,
   context: SafeDocumentCompileContext
 ) {
-  const startColumn =
-    position.start.line === 1
-      ? position.start.column + context.bodyStartColumn - 1
-      : position.start.column;
-  const endColumn =
-    position.end.line === 1
-      ? position.end.column + context.bodyStartColumn - 1
-      : position.end.column;
-  return {
-    start: {
-      line: position.start.line + context.bodyLineOffset,
-      column: startColumn,
-      ...(position.start.offset !== undefined
-        ? { offset: position.start.offset + context.bodyOffset }
-        : {}),
-    },
-    end: {
-      line: position.end.line + context.bodyLineOffset,
-      column: endColumn,
-      ...(position.end.offset !== undefined
-        ? { offset: position.end.offset + context.bodyOffset }
-        : {}),
-    },
-  };
+  return rebasePosition(position, context.bodyOrigin);
 }
 
 export function allowSafeDocumentUrl(

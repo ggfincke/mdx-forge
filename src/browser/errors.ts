@@ -29,10 +29,6 @@ export class ModuleError extends Error {
   }
 }
 
-export function isModuleErrorData(value: unknown): value is ModuleErrorData {
-  return typeof value === 'object' && value !== null && 'code' in value;
-}
-
 export function createModuleNotFoundError(
   request: string,
   parentId: string

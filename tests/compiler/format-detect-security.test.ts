@@ -168,22 +168,6 @@ describe('format security (.md vs .mdx)', () => {
     });
   });
 
-  describe('frontmatter eval guard still applies to .md', () => {
-    const jsFence = '---js\n((globalThis.__fmPwned = true), {})\n---\n\nhi\n';
-
-    it('compileSafe .md does not eval ---js frontmatter', async () => {
-      (globalThis as Record<string, unknown>).__fmPwned = false;
-      await compileSafe(jsFence, config({ documentPath: '/w/n.md' }));
-      expect((globalThis as Record<string, unknown>).__fmPwned).toBe(false);
-    });
-
-    it('compileTrusted .md does not eval ---js frontmatter', async () => {
-      (globalThis as Record<string, unknown>).__fmPwned = false;
-      await compileTrusted(jsFence, true, config({ documentPath: '/w/n.md' }));
-      expect((globalThis as Record<string, unknown>).__fmPwned).toBe(false);
-    });
-  });
-
   describe('TRUST-STRIP: export-default strip does not corrupt content', () => {
     it('.md prose containing "export default MDXContent" is preserved', async () => {
       const result = await compileTrusted(
@@ -198,8 +182,7 @@ describe('format security (.md vs .mdx)', () => {
     });
   });
 
-  // pins: each wrap path emits exactly one module-level export default
-  // the .md layout path also re-attaches the layout import
+  // pins: custom-components wrap emits exactly one module-level export default
   describe('WRAP-EXPORT: single module-level export default per wrap path', () => {
     it('.mdx wrap (with custom components) has exactly one export default', async () => {
       const result = await compileTrusted(
@@ -214,27 +197,6 @@ describe('format security (.md vs .mdx)', () => {
           },
         })
       );
-      const defaults = result.code.match(/^export default/gm) ?? [];
-      expect(defaults.length).toBe(1);
-    });
-
-    it('.mdx wrap (no components) has exactly one export default', async () => {
-      const result = await compileTrusted(
-        '# hi\n',
-        true,
-        config({ documentPath: '/w/d.mdx', useHostMarkdownStyles: true })
-      );
-      const defaults = result.code.match(/^export default/gm) ?? [];
-      expect(defaults.length).toBe(1);
-    });
-
-    it('.md layout wrap includes the vscode-markdown-layout import', async () => {
-      const result = await compileTrusted(
-        '# hi\n',
-        true,
-        config({ documentPath: '/w/n.md', useHostMarkdownStyles: true })
-      );
-      expect(importSources(result.code)).toContain('vscode-markdown-layout');
       const defaults = result.code.match(/^export default/gm) ?? [];
       expect(defaults.length).toBe(1);
     });

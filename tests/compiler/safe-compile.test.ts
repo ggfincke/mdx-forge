@@ -52,6 +52,20 @@ describe('compileSafe()', () => {
     expect(result.html).toContain('CustomComponent');
   });
 
+  it('preserves rich children of inline unknown component placeholders', async () => {
+    const result = await compileSafe(
+      'Before <Unknown>important *text* and <Nested>deep **content**</Nested></Unknown> after.',
+      createConfig()
+    );
+
+    expect(result.html).toContain('important');
+    expect(result.html).toMatch(/<em[^>]*>text<\/em>/);
+    expect(result.html).toContain('deep');
+    expect(result.html).toMatch(/<strong[^>]*>content<\/strong>/);
+    expect(result.html).toContain('after.');
+    expect(result.html.match(/mdx-jsx-placeholder/g)).toHaveLength(2);
+  });
+
   it('strips unknown components when unknownBehavior is "strip"', async () => {
     const result = await compileSafe(
       FIXTURES.mdxWithJsx,
@@ -60,6 +74,28 @@ describe('compileSafe()', () => {
 
     expect(result.html).not.toContain('CustomComponent');
     expect(result.html).not.toContain('mdx-unknown-component');
+  });
+
+  it('compacts 1k alternating inline removals w/ byte-equivalent output', async () => {
+    const source = Array.from(
+      { length: 1000 },
+      (_, index) => `kept-${index} <Unknown /> `
+    ).join('');
+    const strippedSource = source.replaceAll('<Unknown />', '');
+    const stripConfig = createConfig({
+      componentsBuiltins: false,
+      componentsUnknownBehavior: 'strip',
+    });
+
+    const [actual, expected] = await Promise.all([
+      compileSafe(source, stripConfig),
+      compileSafe(strippedSource, stripConfig),
+    ]);
+
+    // whitespace text nodes around removed elements survive (same as splice-based removal)
+    expect(actual.html.replace(/\s+(?=<\/p>)/g, '')).toBe(expected.html);
+    expect(actual.html).toContain('kept-999');
+    expect(actual.html).not.toContain('Unknown');
   });
 
   it('replaces JSX expressions with placeholder', async () => {
@@ -87,6 +123,35 @@ describe('compileSafe()', () => {
 
     expect(result.html).toMatch(/<h1[^>]*data-source-line="1"[^>]*>/);
     expect(result.html).toMatch(/<p[^>]*data-source-line="3"[^>]*>/);
+  });
+
+  it('maps source-line metadata to the original document after frontmatter', async () => {
+    const result = await compileSafe('---\ntitle: x\n---\n# H', createConfig());
+
+    // original-document line contract (BH-FC-2)
+    expect(result.html).toMatch(/<h1[^>]*data-source-line="4"[^>]*>/);
+  });
+
+  it('maps CRLF and BOM frontmatter to original document lines', async () => {
+    const result = await compileSafe(
+      '\uFEFF---\r\ntitle: x\r\n---\r\n# H',
+      createConfig()
+    );
+
+    // original-document line contract (BH-FC-2)
+    expect(result.html).toMatch(/<h1[^>]*data-source-line="4"[^>]*>/);
+  });
+
+  it('maps diagram source-line metadata past frontmatter', async () => {
+    const result = await compileSafe(
+      '---\ntitle: x\n---\n```plantuml\nAlice -> Bob\n```',
+      createConfig()
+    );
+
+    // original-document line contract (BH-FC-2)
+    expect(result.html).toMatch(
+      /<div class="plantuml-container"[\s\S]*?data-source-line="4"><\/div>/
+    );
   });
 
   it('converts PlantUML code blocks into placeholders', async () => {
@@ -230,6 +295,30 @@ digraph G { A -> B }
 
 // pins: structural scaffolds are largely untested; lock the divergent shapes
 describe('callout/admonition/alert scaffold pins (Safe Mode)', () => {
+  it('defaults Object.prototype callout types through JSX & directives', async () => {
+    // representative proto names: own-property, method, & dunder
+    for (const name of ['constructor', 'toString', '__proto__'] as const) {
+      const callout = await compileSafe(
+        `<Callout type="${name}">body</Callout>`,
+        createConfig()
+      );
+      const admonition = await compileSafe(
+        `:::${name}
+body
+:::`,
+        createConfig()
+      );
+
+      expect(callout.html, name).toContain('data-callout-type="note"');
+      // dunder names never parse as directives (markdown emphasis wins); no-throw is the guarantee
+      if (name.includes('__')) {
+        expect(admonition.html, name).toBeTruthy();
+      } else {
+        expect(admonition.html, name).toContain('data-admonition-type="note"');
+      }
+    }
+  });
+
   it('Callout scaffold: aside outer, div header w/ icon span + escaped text, div content', async () => {
     const result = await compileSafe(
       `<Callout type="note" title="My Title">
@@ -288,6 +377,35 @@ Body text
     );
   });
 
+  it('renders a directive label as the custom admonition title', async () => {
+    const result = await compileSafe(
+      `:::note[Custom Title]
+Body text
+:::`,
+      createConfig()
+    );
+
+    expect(result.html).toMatch(
+      /<div class="mdx-preview-admonition-header">[\s\S]*?<\/span>Custom Title<\/div>/
+    );
+    expect(result.html.match(/Custom Title/g)).toHaveLength(1);
+    expect(result.html).toContain('Body text');
+  });
+
+  it('preserves inline formatting in a custom admonition title', async () => {
+    const result = await compileSafe(
+      `:::note[Custom *Title*]
+Body text
+:::`,
+      createConfig()
+    );
+
+    expect(result.html).toMatch(
+      /<div class="mdx-preview-admonition-header">[\s\S]*?<\/span>Custom <em[^>]*>Title<\/em><\/div>/
+    );
+    expect(result.html.match(/Custom/g)).toHaveLength(1);
+  });
+
   it('github-alert scaffold: div outer, p title w/ combined icon+label HTML, div content', async () => {
     const result = await compileSafe(`> [!TIP]\n> tip body`, createConfig());
 
@@ -301,15 +419,12 @@ Body text
     expect(result.html).toContain('<div class="github-alert-content">');
   });
 
-  it('github-alert classes + title + content for all 5 alert types', async () => {
-    const cases: Array<[string, string, string]> = [
+  it('github-alert classes + title + content for representative alert types', async () => {
+    // scaffold pins TIP; rich-content covers NOTE shapes — keep map bookends
+    for (const [type, cls, label] of [
       ['NOTE', 'note', 'Note'],
-      ['TIP', 'tip', 'Tip'],
-      ['IMPORTANT', 'important', 'Important'],
-      ['WARNING', 'warning', 'Warning'],
       ['CAUTION', 'caution', 'Caution'],
-    ];
-    for (const [type, cls, label] of cases) {
+    ] as const) {
       const result = await compileSafe(`> [!${type}]\n> body`, createConfig());
       expect(result.html).toContain(`class="github-alert github-alert-${cls}"`);
       expect(result.html).toContain('class="github-alert-title"');

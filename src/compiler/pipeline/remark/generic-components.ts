@@ -15,31 +15,21 @@ import {
   transformCodeGroup,
 } from '../transforms';
 
+import type { GenericComponentName } from '../../../components/internal/component-identity';
 import {
   getGenericComponentAliases,
   getGenericComponentSet,
-} from '../../../components/registry/queries';
+} from '../../../components/internal/component-identity-queries';
 
-const CALLOUT_COMPONENTS = new Set([
-  'Callout',
-  ...getGenericComponentAliases('Callout'),
-]);
-const COLLAPSIBLE_COMPONENTS = new Set([
-  'Collapsible',
-  ...getGenericComponentAliases('Collapsible'),
-]);
-const TABS_COMPONENTS = new Set([
-  'Tabs',
-  ...getGenericComponentAliases('Tabs'),
-]);
-const TABITEM_COMPONENTS = new Set([
-  'TabItem',
-  ...getGenericComponentAliases('TabItem'),
-]);
-const CODEGROUP_COMPONENTS = new Set([
-  'CodeGroup',
-  ...getGenericComponentAliases('CodeGroup'),
-]);
+function getComponentNames(canonical: GenericComponentName): Set<string> {
+  return new Set([canonical, ...getGenericComponentAliases(canonical)]);
+}
+
+const CALLOUT_COMPONENTS = getComponentNames('Callout');
+const COLLAPSIBLE_COMPONENTS = getComponentNames('Collapsible');
+const TABS_COMPONENTS = getComponentNames('Tabs');
+const TABITEM_COMPONENTS = getComponentNames('TabItem');
+const CODEGROUP_COMPONENTS = getComponentNames('CodeGroup');
 
 // export the full set of known generic components
 // snapshot decoupled from registry internals; compiler paths use isGenericComponent()

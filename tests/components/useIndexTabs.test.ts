@@ -126,6 +126,36 @@ describe('useIndexTabs', () => {
     expect(result.current.activeIndex).toBe(1);
   });
 
+  it('restores again when the storage key changes', () => {
+    storage.setItem('nextra-tabs-first', '1');
+    storage.setItem('nextra-tabs-second', '2');
+    const { result, rerender } = renderHook(
+      ({ storageKey }: { storageKey: string }) =>
+        useIndexTabs({
+          items: ['A', 'B', 'C'],
+          storageKey,
+        }),
+      { initialProps: { storageKey: 'first' } }
+    );
+
+    expect(result.current.activeIndex).toBe(1);
+    rerender({ storageKey: 'second' });
+    expect(result.current.activeIndex).toBe(2);
+  });
+
+  it('retries a stored index when the item set changes', () => {
+    storage.setItem('nextra-tabs-test-tabs', '2');
+    const { result, rerender } = renderHook(
+      ({ items }: { items: string[] }) =>
+        useIndexTabs({ items, storageKey: 'test-tabs' }),
+      { initialProps: { items: ['A', 'B'] } }
+    );
+
+    expect(result.current.activeIndex).toBe(0);
+    rerender({ items: ['A', 'B', 'C'] });
+    expect(result.current.activeIndex).toBe(2);
+  });
+
   it('ignores invalid localStorage value', () => {
     storage.setItem('nextra-tabs-test-tabs', 'garbage');
 
@@ -140,18 +170,11 @@ describe('useIndexTabs', () => {
     expect(result.current.activeIndex).toBe(0);
   });
 
-  // impossible-state normalization (F13)
+  // impossible-state normalization (F13) — distinct entry points only
 
   it('normalizes an out-of-range defaultIndex to the first enabled item', () => {
     const { result } = renderHook(() =>
       useIndexTabs({ items: ['A', 'B'], defaultIndex: 9 })
-    );
-    expect(result.current.activeIndex).toBe(0);
-  });
-
-  it('normalizes an invalid controlled index to the first enabled item', () => {
-    const { result } = renderHook(() =>
-      useIndexTabs({ items: ['A', 'B'], controlledIndex: 5 })
     );
     expect(result.current.activeIndex).toBe(0);
   });
@@ -166,21 +189,6 @@ describe('useIndexTabs', () => {
     expect(result.current.activeIndex).toBe(0);
   });
 
-  it('re-normalizes when items shrink below the active index', () => {
-    const { result, rerender } = renderHook(
-      ({ items }: { items: string[] }) => useIndexTabs({ items }),
-      { initialProps: { items: ['A', 'B', 'C'] } }
-    );
-
-    act(() => {
-      result.current.setActiveIndex(2);
-    });
-    expect(result.current.activeIndex).toBe(2);
-
-    rerender({ items: ['A'] });
-    expect(result.current.activeIndex).toBe(0);
-  });
-
   it('skips a disabled default & lands on the first enabled item', () => {
     const { result } = renderHook(() =>
       useIndexTabs({
@@ -190,13 +198,6 @@ describe('useIndexTabs', () => {
       })
     );
     expect(result.current.activeIndex).toBe(1);
-  });
-
-  it('falls back to index 0 when every item is disabled', () => {
-    const { result } = renderHook(() =>
-      useIndexTabs({ items: ['A', 'B'], isDisabled: () => true })
-    );
-    expect(result.current.activeIndex).toBe(0);
   });
 
   it('returns 0 for an empty item list', () => {

@@ -11,9 +11,15 @@ import {
   BADGE_VARIANTS,
   NEXTRA_CALLOUT_TYPES,
 } from '../internal/metadata';
+import {
+  COMPONENT_IDENTITY_DEFINITIONS,
+  type ComponentIdentityDefinition,
+  type ComponentIdentityEntry,
+  type ComponentIdentityTuple,
+} from '../internal/component-identity';
+import { deepFreeze } from './freeze';
 import type {
   ComponentAuthoringMetadata,
-  ComponentKey,
   ComponentOpenPropsPolicy,
 } from './types';
 
@@ -24,16 +30,44 @@ const DOM_OPEN_PROPS: ComponentOpenPropsPolicy = {
   eventHandlers: true,
 };
 
-export const COMPONENT_METADATA = {
-  'generic:Callout': {
+type AliasDocsFor<Identity extends ComponentIdentityEntry> = readonly {
+  readonly name: Identity['aliases'][number];
+  readonly canonical: Identity['name'];
+}[];
+
+type MetadataForIdentity<
+  Identity extends ComponentIdentityEntry,
+  Metadata extends ComponentAuthoringMetadata,
+> = Metadata &
+  (Identity['aliases'] extends readonly []
+    ? unknown
+    : { readonly aliasDocs: AliasDocsFor<Identity> });
+
+type MetadataRecordFor<
+  Identities extends readonly ComponentIdentityDefinition[],
+  Metadata extends readonly ComponentAuthoringMetadata[],
+> = Identities extends readonly [
+  infer Identity extends ComponentIdentityEntry,
+  ...infer RemainingIdentities extends readonly ComponentIdentityDefinition[],
+]
+  ? Metadata extends readonly [
+      infer AuthoringMetadata extends ComponentAuthoringMetadata,
+      ...infer RemainingMetadata extends readonly ComponentAuthoringMetadata[],
+    ]
+    ? {
+        readonly [
+          Key in `${Identity['framework']}:${Identity['name']}`
+        ]: MetadataForIdentity<Identity, AuthoringMetadata>;
+      } & MetadataRecordFor<RemainingIdentities, RemainingMetadata>
+    : never
+  : object;
+
+const COMPONENT_AUTHORING_METADATA = deepFreeze([
+  {
     summary: 'Callout box w/ themed icon + title.',
     childrenKind: 'block',
     safeMode: { support: 'full' },
     cssDeps: ['generic'],
-    aliasDocs: [
-      { name: 'Alert', canonical: 'Callout' },
-      { name: 'Admonition', canonical: 'Callout' },
-    ],
     examples: [
       {
         code: '<Callout type="tip" title="Heads up">Body text</Callout>',
@@ -60,15 +94,11 @@ export const COMPONENT_METADATA = {
     ],
     openProps: DOM_OPEN_PROPS,
   },
-  'generic:Collapsible': {
+  {
     summary: 'Expandable section w/ click-to-toggle header.',
     childrenKind: 'block',
     safeMode: { support: 'full' },
     cssDeps: ['generic'],
-    aliasDocs: [
-      { name: 'Accordion', canonical: 'Collapsible' },
-      { name: 'Details', canonical: 'Collapsible' },
-    ],
     examples: [
       {
         code: '<Collapsible title="Details">Hidden body</Collapsible>',
@@ -102,7 +132,7 @@ export const COMPONENT_METADATA = {
     ],
     openProps: DOM_OPEN_PROPS,
   },
-  'generic:Tabs': {
+  {
     summary: 'Tab group. Wrap each panel in <TabItem>.',
     childrenKind: 'tabitems',
     safeMode: {
@@ -149,7 +179,7 @@ export const COMPONENT_METADATA = {
     ],
     openProps: DOM_OPEN_PROPS,
   },
-  'generic:TabItem': {
+  {
     summary: 'Single tab panel; nest inside <Tabs>.',
     childrenKind: 'block',
     safeMode: {
@@ -157,7 +187,6 @@ export const COMPONENT_METADATA = {
       fallback: 'Renders as a labeled static panel.',
     },
     cssDeps: ['generic'],
-    aliasDocs: [{ name: 'Tab', canonical: 'TabItem' }],
     examples: [
       {
         code: '<TabItem label="First" value="first">body</TabItem>',
@@ -182,7 +211,7 @@ export const COMPONENT_METADATA = {
     ],
     openProps: DOM_OPEN_PROPS,
   },
-  'generic:CodeGroup': {
+  {
     summary: 'Wrap multiple code blocks into a tab group.',
     childrenKind: 'block',
     safeMode: {
@@ -212,7 +241,7 @@ export const COMPONENT_METADATA = {
     ],
     openProps: DOM_OPEN_PROPS,
   },
-  'docusaurus:Tabs': {
+  {
     summary: 'Docusaurus-flavored tab group; supports groupId sync.',
     childrenKind: 'tabitems',
     safeMode: {
@@ -259,7 +288,7 @@ export const COMPONENT_METADATA = {
     ],
     openProps: DOM_OPEN_PROPS,
   },
-  'docusaurus:TabItem': {
+  {
     summary: 'Docusaurus tab panel.',
     childrenKind: 'block',
     safeMode: {
@@ -291,7 +320,7 @@ export const COMPONENT_METADATA = {
     ],
     openProps: DOM_OPEN_PROPS,
   },
-  'docusaurus:CodeBlock': {
+  {
     summary: 'Docusaurus highlighted code block w/ optional title.',
     childrenKind: 'text',
     safeMode: {
@@ -322,7 +351,7 @@ export const COMPONENT_METADATA = {
     ],
     openProps: DOM_OPEN_PROPS,
   },
-  'docusaurus:Details': {
+  {
     summary: 'Docusaurus disclosure wrapper (renders <details>).',
     childrenKind: 'block',
     safeMode: {
@@ -347,7 +376,7 @@ export const COMPONENT_METADATA = {
     ],
     openProps: DOM_OPEN_PROPS,
   },
-  'starlight:Card': {
+  {
     summary: 'Starlight card w/ icon + title.',
     childrenKind: 'block',
     safeMode: {
@@ -374,7 +403,7 @@ export const COMPONENT_METADATA = {
     ],
     openProps: DOM_OPEN_PROPS,
   },
-  'starlight:CardGrid': {
+  {
     summary: 'Responsive grid for Card / LinkCard.',
     childrenKind: 'block',
     safeMode: {
@@ -399,7 +428,7 @@ export const COMPONENT_METADATA = {
     ],
     openProps: DOM_OPEN_PROPS,
   },
-  'starlight:LinkCard': {
+  {
     summary: 'Clickable card linking to a destination.',
     childrenKind: 'none',
     safeMode: {
@@ -430,7 +459,7 @@ export const COMPONENT_METADATA = {
     ],
     openProps: DOM_OPEN_PROPS,
   },
-  'starlight:Steps': {
+  {
     summary: 'Numbered step list; wrap an <ol>.',
     childrenKind: 'steps',
     safeMode: {
@@ -446,7 +475,7 @@ export const COMPONENT_METADATA = {
     props: [],
     openProps: DOM_OPEN_PROPS,
   },
-  'starlight:Badge': {
+  {
     summary: 'Inline status badge.',
     childrenKind: 'none',
     safeMode: {
@@ -479,7 +508,7 @@ export const COMPONENT_METADATA = {
     ],
     openProps: DOM_OPEN_PROPS,
   },
-  'starlight:Aside': {
+  {
     summary: 'Starlight aside/admonition; JSX alternative to ::: directives.',
     childrenKind: 'block',
     safeMode: {
@@ -505,7 +534,7 @@ export const COMPONENT_METADATA = {
     ],
     openProps: DOM_OPEN_PROPS,
   },
-  'starlight:Tabs': {
+  {
     summary: 'Starlight tab group.',
     childrenKind: 'tabitems',
     safeMode: {
@@ -524,6 +553,14 @@ export const COMPONENT_METADATA = {
     ],
     props: [
       {
+        name: 'defaultValue',
+        type: 'string',
+      },
+      {
+        name: 'values',
+        type: 'array',
+      },
+      {
         name: 'syncKey',
         type: 'string',
         description:
@@ -532,7 +569,7 @@ export const COMPONENT_METADATA = {
     ],
     openProps: DOM_OPEN_PROPS,
   },
-  'starlight:TabItem': {
+  {
     summary: 'Starlight tab panel.',
     childrenKind: 'block',
     safeMode: {
@@ -565,7 +602,7 @@ export const COMPONENT_METADATA = {
     ],
     openProps: DOM_OPEN_PROPS,
   },
-  'starlight:FileTree': {
+  {
     summary: 'Render a list as a file/directory tree.',
     childrenKind: 'block',
     safeMode: {
@@ -581,7 +618,7 @@ export const COMPONENT_METADATA = {
     props: [],
     openProps: DOM_OPEN_PROPS,
   },
-  'starlight:Code': {
+  {
     summary: 'Starlight syntax-highlighted code block.',
     childrenKind: 'none',
     safeMode: {
@@ -605,6 +642,11 @@ export const COMPONENT_METADATA = {
         type: 'string',
       },
       {
+        name: 'language',
+        type: 'string',
+        description: 'Alias for lang.',
+      },
+      {
         name: 'title',
         type: 'string',
       },
@@ -614,10 +656,14 @@ export const COMPONENT_METADATA = {
         values: ['auto', 'code', 'terminal', 'none'],
         description: 'Frame chrome; auto picks terminal for shell languages.',
       },
+      {
+        name: 'showLineNumbers',
+        type: 'boolean',
+      },
     ],
     openProps: DOM_OPEN_PROPS,
   },
-  'nextjs:Image': {
+  {
     summary: 'Next.js image; preview falls back to <img> (no optimization).',
     childrenKind: 'none',
     safeMode: {
@@ -678,10 +724,15 @@ export const COMPONENT_METADATA = {
         name: 'unoptimized',
         type: 'boolean',
       },
+      {
+        name: 'loader',
+        type: 'function',
+        description: 'Resolve the source URL from src, width, & quality.',
+      },
     ],
     openProps: DOM_OPEN_PROPS,
   },
-  'nextjs:Link': {
+  {
     summary: 'Next.js link; preview renders as <a>.',
     childrenKind: 'block',
     safeMode: {
@@ -696,8 +747,13 @@ export const COMPONENT_METADATA = {
     props: [
       {
         name: 'href',
-        type: 'string',
+        type: 'union',
         required: true,
+        description: 'URL string or pathname/query/hash object.',
+      },
+      {
+        name: 'as',
+        type: 'string',
       },
       {
         name: 'replace',
@@ -711,10 +767,26 @@ export const COMPONENT_METADATA = {
         name: 'prefetch',
         type: 'boolean',
       },
+      {
+        name: 'shallow',
+        type: 'boolean',
+      },
+      {
+        name: 'passHref',
+        type: 'boolean',
+      },
+      {
+        name: 'locale',
+        type: 'union',
+      },
+      {
+        name: 'legacyBehavior',
+        type: 'boolean',
+      },
     ],
     openProps: DOM_OPEN_PROPS,
   },
-  'nextra:Callout': {
+  {
     summary: 'Nextra callout; no title, icon comes from `emoji` or type.',
     childrenKind: 'block',
     safeMode: {
@@ -741,7 +813,7 @@ export const COMPONENT_METADATA = {
     ],
     openProps: DOM_OPEN_PROPS,
   },
-  'nextra:Tabs': {
+  {
     summary: 'Nextra tabs; uses `items` prop + <Tabs.Tab> children.',
     childrenKind: 'block',
     safeMode: {
@@ -776,10 +848,24 @@ export const COMPONENT_METADATA = {
         name: 'storageKey',
         type: 'string',
       },
+      {
+        name: 'onChange',
+        type: 'function',
+      },
+      {
+        name: 'className',
+        type: 'union',
+        description: 'Class string or selected-index render callback.',
+      },
+      {
+        name: 'tabClassName',
+        type: 'union',
+        description: 'Class string or Headless UI-style render callback.',
+      },
     ],
     openProps: DOM_OPEN_PROPS,
   },
-  'nextra:Cards': {
+  {
     summary: 'Nextra card grid.',
     childrenKind: 'block',
     safeMode: {
@@ -805,7 +891,7 @@ export const COMPONENT_METADATA = {
     ],
     openProps: DOM_OPEN_PROPS,
   },
-  'nextra:FileTree': {
+  {
     summary: 'Nextra file/folder tree.',
     childrenKind: 'block',
     safeMode: {
@@ -826,7 +912,7 @@ export const COMPONENT_METADATA = {
     props: [],
     openProps: DOM_OPEN_PROPS,
   },
-  'nextra:Steps': {
+  {
     summary: 'Nextra numbered steps (wraps heading hierarchy).',
     childrenKind: 'block',
     safeMode: {
@@ -842,7 +928,7 @@ export const COMPONENT_METADATA = {
     props: [],
     openProps: DOM_OPEN_PROPS,
   },
-  'nextra:Bleed': {
+  {
     summary: 'Break out of content width.',
     childrenKind: 'block',
     safeMode: {
@@ -864,4 +950,43 @@ export const COMPONENT_METADATA = {
     ],
     openProps: DOM_OPEN_PROPS,
   },
-} as const satisfies Record<ComponentKey, ComponentAuthoringMetadata>;
+] as const satisfies readonly ComponentAuthoringMetadata[] & {
+  readonly length: ComponentIdentityTuple['length'];
+});
+
+function buildComponentMetadata(): Record<string, ComponentAuthoringMetadata> {
+  const identities = COMPONENT_IDENTITY_DEFINITIONS.filter(
+    (definition): definition is ComponentIdentityEntry =>
+      definition.kind === 'component'
+  );
+  const metadata: Record<string, ComponentAuthoringMetadata> = {};
+
+  for (const [index, identity] of identities.entries()) {
+    const authoringMetadata = COMPONENT_AUTHORING_METADATA[index];
+    const { examples, props, openProps, ...leadingMetadata } =
+      authoringMetadata;
+    metadata[`${identity.framework}:${identity.name}`] = {
+      ...leadingMetadata,
+      ...(identity.aliases.length > 0
+        ? {
+            aliasDocs: identity.aliases.map((name) => ({
+              name,
+              canonical: identity.name,
+            })),
+          }
+        : {}),
+      examples,
+      props,
+      ...(openProps === undefined ? {} : { openProps }),
+    };
+  }
+
+  return metadata;
+}
+
+export const COMPONENT_METADATA = deepFreeze(
+  buildComponentMetadata()
+) as MetadataRecordFor<
+  ComponentIdentityTuple,
+  typeof COMPONENT_AUTHORING_METADATA
+>;

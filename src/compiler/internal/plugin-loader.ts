@@ -6,10 +6,14 @@ import { createRequire } from 'module';
 import { pathToFileURL } from 'url';
 import type { PluginLoader } from '../types';
 
+const resolverCache = new Map<string, ReturnType<typeof createRequire>>();
+
 function resolvePluginPath(specifier: string, fromDir: string): string {
-  const resolver = createRequire(
-    path.join(fromDir, '__mdx_forge_resolver__.js')
-  );
+  let resolver = resolverCache.get(fromDir);
+  if (!resolver) {
+    resolver = createRequire(path.join(fromDir, '__mdx_forge_resolver__.js'));
+    resolverCache.set(fromDir, resolver);
+  }
   return resolver.resolve(specifier);
 }
 
@@ -29,3 +33,8 @@ export const DEFAULT_PLUGIN_LOADER: PluginLoader = {
   resolve: resolvePluginPath,
   load: loadPluginModule,
 };
+
+// clear cached config-directory resolvers alongside the plugin load cache
+export function clearDefaultPluginResolverCache(): void {
+  resolverCache.clear();
+}

@@ -2,15 +2,11 @@
 // decode bounded JSON literals from MDX expression ASTs
 
 import type { Expression, ObjectExpression, Program, Property } from 'estree';
+import { isReservedObjectKey } from '../../internal/object-key';
 import type { SafeDocumentJsonValue } from './types';
 
 const MAX_LITERAL_DEPTH = 16;
 const MAX_LITERAL_NODES = 1000;
-const FORBIDDEN_OBJECT_KEYS = new Set([
-  '__proto__',
-  'constructor',
-  'prototype',
-]);
 
 export type SafeLiteralResult =
   { ok: true; value: SafeDocumentJsonValue } | { ok: false; reason: string };
@@ -130,7 +126,7 @@ function readObject(
       return { ok: false, reason: 'object spreads are not allowed' };
     }
     const key = propertyKey(entry);
-    if (!key || FORBIDDEN_OBJECT_KEYS.has(key)) {
+    if (!key || isReservedObjectKey(key)) {
       return { ok: false, reason: 'object key is unsupported' };
     }
     if (

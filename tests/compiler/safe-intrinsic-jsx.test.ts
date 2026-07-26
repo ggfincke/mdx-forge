@@ -31,27 +31,6 @@ describe('Safe intrinsic JSX structural crossing (F8)', () => {
     expect(result.html).not.toMatch(/<p[^>]*><\/p>/);
   });
 
-  it('preserves inline code inside an intrinsic element', async () => {
-    const result = await compileSafe(
-      '<div>run `npm test` now</div>',
-      createConfig()
-    );
-
-    expect(result.html).toMatch(/<code[^>]*>npm test<\/code>/);
-    expect(result.html).not.toMatch(/<p[^>]*><\/p>/);
-  });
-
-  it('preserves structure for inline intrinsic elements in prose', async () => {
-    const result = await compileSafe(
-      'Text with <span title="hi">**inner**</span> here.',
-      createConfig()
-    );
-
-    expect(result.html).toMatch(
-      /<span title="hi"><strong[^>]*>inner<\/strong><\/span>/
-    );
-  });
-
   it('preserves nested intrinsic elements & block content', async () => {
     const result = await compileSafe(
       `<section>

@@ -2,6 +2,7 @@
 // shared base card component for framework shims
 
 import React, { ReactNode, ReactElement } from 'react';
+import { mergeBlankTargetRel } from '../internal/link';
 
 // props for BaseCard component
 export interface BaseCardProps {
@@ -32,7 +33,10 @@ export function BaseCard({
         href={href}
         className={className}
         target={openInNewTab ? '_blank' : undefined}
-        rel={openInNewTab ? 'noopener noreferrer' : undefined}
+        rel={mergeBlankTargetRel(
+          openInNewTab ? '_blank' : undefined,
+          undefined
+        )}
         {...containerProps}
       >
         {children}

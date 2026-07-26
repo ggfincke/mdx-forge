@@ -22,7 +22,11 @@ import {
   type TabDefinition,
   type TabItemProps,
 } from './useTabState';
-import { useTabListInteraction } from './useTabListInteraction';
+import {
+  TabScaffold,
+  type TabScaffoldButton,
+  type TabScaffoldPanel,
+} from './TabScaffold';
 import {
   subscribeTabGroup,
   getTabGroupChoice,
@@ -52,7 +56,10 @@ export interface BaseTabsConfig {
 }
 
 // base props for all Tabs implementations
-export interface BaseTabsProps {
+export interface BaseTabsProps extends Omit<
+  HTMLAttributes<HTMLDivElement>,
+  'children'
+> {
   children: ReactNode;
   defaultValue?: string;
   values?: TabDefinition[];
@@ -104,6 +111,7 @@ export function createTabs(config: BaseTabsConfig): CreateTabsResult {
     syncKey,
     queryString,
     lazy = false,
+    ...rootProps
   }: BaseTabsProps): ReactElement {
     const { activeValue, setActiveValue, tabs, tabItems } = useTabState({
       children,
@@ -186,17 +194,53 @@ export function createTabs(config: BaseTabsConfig): CreateTabsResult {
       [setActiveValue, storeKey, queryParam]
     );
 
-    // shared interaction machinery; selection maps index -> tab value
     const selectIndex = useCallback(
       (index: number) => selectValue(tabs[index].value),
       [tabs, selectValue]
     );
-    const { tabId, panelId, tabButtonProps } = useTabListInteraction({
-      count: tabs.length,
-      onSelect: selectIndex,
-    });
     const tabIndexOf = (value: string) =>
       tabs.findIndex((tab) => tab.value === value);
+    const scaffoldButtons: TabScaffoldButton[] = tabs.map((tab) => {
+      const selected = tab.value === currentValue;
+      return {
+        key: tab.value,
+        selected,
+        panelPresent: !lazy || selected,
+        className: cn(`${classPrefix}-button`, selected && 'active'),
+        content: (
+          <>
+            {renderTabIcon && tab.icon !== undefined && (
+              <span className={`${classPrefix}-icon`} aria-hidden="true">
+                {renderTabIcon(tab.icon)}
+              </span>
+            )}
+            {tab.label}
+          </>
+        ),
+      };
+    });
+    const scaffoldPanels: TabScaffoldPanel[] = tabItems.flatMap((item) => {
+      const selected = item.value === currentValue;
+      if (lazy && !selected) {
+        return [];
+      }
+      const index = tabIndexOf(item.value);
+      const { className: panelClassName, ...panelProps } = item.panelProps;
+      return [
+        {
+          key: item.value,
+          index,
+          content: item.content,
+          className: cn(
+            `${classPrefix}-panel`,
+            selected && 'active',
+            panelClassName
+          ),
+          hidden: !selected,
+          props: panelProps,
+        },
+      ];
+    });
 
     // build wrapper class
     const wrapperClassName = cn(wrapperClass || classPrefix, className);
@@ -204,57 +248,18 @@ export function createTabs(config: BaseTabsConfig): CreateTabsResult {
     return (
       <TabsContext.Provider value={true}>
         <div
+          {...rootProps}
           className={wrapperClassName}
           data-component="tabs"
           data-group-id={group}
         >
-          {/* tab headers */}
-          <div className={`${classPrefix}-header`} role="tablist">
-            {tabs.map((tab, index) => (
-              <button
-                key={tab.value}
-                {...tabButtonProps(
-                  index,
-                  tab.value === currentValue,
-                  !lazy || tab.value === currentValue
-                )}
-                className={cn(
-                  `${classPrefix}-button`,
-                  tab.value === currentValue && 'active'
-                )}
-              >
-                {renderTabIcon && tab.icon !== undefined && (
-                  <span className={`${classPrefix}-icon`} aria-hidden="true">
-                    {renderTabIcon(tab.icon)}
-                  </span>
-                )}
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* tab content; lazy mode mounts only the selected panel */}
-          <div className={`${classPrefix}-content`}>
-            {tabItems.map((item) => {
-              const selected = item.value === currentValue;
-              if (lazy && !selected) {
-                return null;
-              }
-              const index = tabIndexOf(item.value);
-              return (
-                <div
-                  key={item.value}
-                  id={index >= 0 ? panelId(index) : undefined}
-                  role="tabpanel"
-                  aria-labelledby={index >= 0 ? tabId(index) : undefined}
-                  className={cn(`${classPrefix}-panel`, selected && 'active')}
-                  hidden={!selected}
-                >
-                  {item.content}
-                </div>
-              );
-            })}
-          </div>
+          <TabScaffold
+            buttons={scaffoldButtons}
+            panels={scaffoldPanels}
+            headerClassName={`${classPrefix}-header`}
+            contentClassName={`${classPrefix}-content`}
+            onSelect={selectIndex}
+          />
         </div>
       </TabsContext.Provider>
     );
@@ -263,12 +268,24 @@ export function createTabs(config: BaseTabsConfig): CreateTabsResult {
   Tabs.displayName = contextName;
 
   // provide TabItem for shared props extraction
-  function TabItem({ children }: TabItemProps): ReactElement {
+  function TabItem({
+    children,
+    value: _value,
+    label: _label,
+    default: _default,
+    icon: _icon,
+    className,
+    ...props
+  }: TabItemProps): ReactElement {
     const isInsideTabs = useContext(TabsContext);
 
     // if used outside of Tabs context, render directly
     if (!isInsideTabs) {
-      return <div className={tabItemClassName}>{children}</div>;
+      return (
+        <div {...props} className={cn(tabItemClassName, className)}>
+          {children}
+        </div>
+      );
     }
 
     // render content via parent when inside Tabs
@@ -294,10 +311,37 @@ export interface IndexTabsConfig {
   contextName: string;
 }
 
+export interface IndexTabsListRenderProps {
+  selectedIndex: number;
+}
+
+export interface IndexTabRenderProps {
+  hover: boolean;
+  focus: boolean;
+  active: boolean;
+  autofocus: boolean;
+  selected: boolean;
+  disabled: boolean;
+}
+
+export interface IndexTabPanelRenderProps {
+  selected: boolean;
+  focus: boolean;
+}
+
+export interface IndexTabPanelProps extends Omit<
+  HTMLAttributes<HTMLDivElement>,
+  'children' | 'className'
+> {
+  children: ReactNode | ((props: IndexTabPanelRenderProps) => ReactNode);
+  className?:
+    string | ((props: IndexTabPanelRenderProps) => string | undefined);
+}
+
 // props for index-based Tabs components
 export interface IndexTabsProps<T> extends Omit<
   HTMLAttributes<HTMLDivElement>,
-  'onChange'
+  'children' | 'className' | 'onChange'
 > {
   children: ReactNode;
   items: T[];
@@ -305,19 +349,21 @@ export interface IndexTabsProps<T> extends Omit<
   selectedIndex?: number;
   storageKey?: string;
   onChange?: (index: number) => void;
-  tabClassName?: string | ((index: number, selected: boolean) => string);
+  className?:
+    string | ((props: IndexTabsListRenderProps) => string | undefined);
+  tabClassName?: string | ((props: IndexTabRenderProps) => string | undefined);
 }
 
 // item accessors for index-based tabs
 export interface IndexTabsItemAccessors<T> {
-  getLabel: (item: T) => string;
+  getLabel: (item: T) => ReactNode;
   isDisabled?: (item: T) => boolean;
 }
 
 // result from createIndexTabs factory
 export interface CreateIndexTabsResult<T> {
   Tabs: React.FC<IndexTabsProps<T>> & {
-    Tab: React.FC<{ children: ReactNode }>;
+    Tab: React.FC<IndexTabPanelProps>;
   };
   TabsContext: Context<boolean>;
 }
@@ -335,8 +381,14 @@ export function createIndexTabs<T>(
   TabsContext.displayName = `${contextName}Context`;
 
   // tab subcomponent (compound component pattern)
-  function Tab({ children }: { children: ReactNode }): ReactElement {
-    return <>{children}</>;
+  function Tab({ children }: IndexTabPanelProps): ReactElement {
+    return (
+      <>
+        {typeof children === 'function'
+          ? children({ selected: true, focus: false })
+          : children}
+      </>
+    );
   }
 
   function TabsComponent({
@@ -359,69 +411,92 @@ export function createIndexTabs<T>(
       isDisabled,
     });
 
-    // shared interaction machinery (disabled-aware)
     const itemDisabled = useCallback(
       (index: number) => isDisabled(items[index]),
       [items]
     );
-    const { tabId, panelId, tabButtonProps } = useTabListInteraction({
-      count: items.length,
-      onSelect: setActiveIndex,
-      isDisabled: itemDisabled,
-    });
 
-    // get Tab children for content panels
     const tabChildren = Children.toArray(children).filter(
       (child) => isValidElement(child) && child.type === Tab
+    );
+    const tabsListRenderProps = { selectedIndex: activeIndex };
+    const rootClassName =
+      typeof className === 'function'
+        ? className(tabsListRenderProps)
+        : className;
+    const scaffoldButtons: TabScaffoldButton[] = items.map((item, index) => {
+      const label = getLabel(item);
+      const disabled = isDisabled(item);
+      const selected = index === activeIndex;
+      const tabRenderProps: IndexTabRenderProps = {
+        hover: false,
+        focus: false,
+        active: false,
+        autofocus: false,
+        selected,
+        disabled,
+      };
+      const customClass = tabClassName
+        ? typeof tabClassName === 'function'
+          ? tabClassName(tabRenderProps)
+          : tabClassName
+        : undefined;
+
+      return {
+        key: index,
+        content: label,
+        selected,
+        disabled,
+        className: cn(
+          `${classPrefix}-button`,
+          selected && `${classPrefix}-button-active`,
+          disabled && `${classPrefix}-button-disabled`,
+          customClass
+        ),
+      };
+    });
+    const scaffoldPanels: TabScaffoldPanel[] = tabChildren.map(
+      (child, index) => {
+        const {
+          children: panelChildren,
+          className: panelClassName,
+          ...panelProps
+        } = (child as ReactElement<IndexTabPanelProps>).props;
+        const panelRenderProps: IndexTabPanelRenderProps = {
+          selected: index === activeIndex,
+          focus: false,
+        };
+        const customClass =
+          typeof panelClassName === 'function'
+            ? panelClassName(panelRenderProps)
+            : panelClassName;
+
+        return {
+          key: index,
+          index,
+          content:
+            panelRenderProps.selected &&
+            (typeof panelChildren === 'function'
+              ? panelChildren(panelRenderProps)
+              : panelChildren),
+          className: cn(`${classPrefix}-panel`, customClass),
+          hidden: !panelRenderProps.selected,
+          props: panelProps,
+        };
+      }
     );
 
     return (
       <TabsContext.Provider value={true}>
-        <div className={cn(classPrefix, className)} {...props}>
-          <div className={`${classPrefix}-header`} role="tablist">
-            {items.map((item, index) => {
-              const label = getLabel(item);
-              const disabled = isDisabled(item);
-              const selected = index === activeIndex;
-
-              const customClass = tabClassName
-                ? typeof tabClassName === 'function'
-                  ? tabClassName(index, selected)
-                  : tabClassName
-                : undefined;
-
-              return (
-                <button
-                  key={index}
-                  {...tabButtonProps(index, selected)}
-                  aria-disabled={disabled}
-                  className={cn(
-                    `${classPrefix}-button`,
-                    selected && `${classPrefix}-button-active`,
-                    disabled && `${classPrefix}-button-disabled`,
-                    customClass
-                  )}
-                  disabled={disabled}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-          <div className={`${classPrefix}-content`}>
-            {tabChildren.map((child, index) => (
-              <div
-                key={index}
-                id={panelId(index)}
-                role="tabpanel"
-                aria-labelledby={tabId(index)}
-                hidden={index !== activeIndex}
-                className={`${classPrefix}-panel`}
-              >
-                {index === activeIndex && child}
-              </div>
-            ))}
-          </div>
+        <div className={cn(classPrefix, rootClassName)} {...props}>
+          <TabScaffold
+            buttons={scaffoldButtons}
+            panels={scaffoldPanels}
+            headerClassName={`${classPrefix}-header`}
+            contentClassName={`${classPrefix}-content`}
+            onSelect={setActiveIndex}
+            isDisabled={itemDisabled}
+          />
         </div>
       </TabsContext.Provider>
     );

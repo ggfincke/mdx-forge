@@ -111,6 +111,7 @@ to `evaluateModuleToComponent` in the browser.
 ```ts
 import {
   registerPreloadEntries,
+  createImportRuntimeRequest,
   setModuleFetcher,
   evaluateModuleToComponent,
 } from 'mdx-forge/browser';
@@ -121,15 +122,21 @@ registerPreloadEntries(preloadManifest);
 
 // supply a fetcher the runtime calls for each listed dependency
 // (typically RPC back to the host that ran compileTrusted)
-setModuleFetcher(async (request, isBare, parentId) => {
+setModuleFetcher(async (request, isBare, parentId, kind) => {
   // return { fsPath, code, dependencies, css? } for the requested module
-  return await rpc.fetch(request, parentId);
+  return await rpc.fetch(request, parentId, kind);
 });
+
+const imported = {
+  specifier: 'conditional-package',
+  kind: 'import',
+  runtimeRequest: createImportRuntimeRequest('conditional-package'),
+} as const;
 
 const Component = await evaluateModuleToComponent(
   code, // from compileTrusted
   '/preview.mdx', // entry file path
-  dependencies // the entry's direct import specifiers (host-computed)
+  [imported] // direct dependency identities from transformed code
 );
 ```
 
@@ -175,6 +182,9 @@ unlisted imports — `[]` is valid only when every import is preloaded.
   `loadModule` fetch only the specifiers you pass (recursively via each
   `FetchResult.dependencies`). An unlisted, non-preloaded `import` fails
   at evaluation time; it is never discovered dynamically.
+- **Conditional exports need structured dependencies** — legacy strings still
+  mean CommonJS `require`, while ESM-origin dependencies use
+  `createImportRuntimeRequest(specifier)` and pass `kind: 'import'`.
 - **Diagram fences default to empty placeholders** — mermaid/plantuml/
   graphviz code blocks compile to empty `<div data-*-chart>` placeholders
   for hosts that own a diagram runtime. Hosts without one should pass

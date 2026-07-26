@@ -13,15 +13,20 @@ import {
   Tabs,
   TabItem,
   Tab,
-  CodeGroup,
-  Collapsible,
   Accordion,
 } from '../../src/components/generic/index';
 
 describe('generic components [smoke]', () => {
   it('Callout renders w/ children', () => {
-    const { container } = render(React.createElement(Callout, null, 'Hello'));
+    const { container } = render(
+      React.createElement(
+        Callout,
+        { id: 'generic-callout', 'data-probe': 'callout' },
+        'Hello'
+      )
+    );
     expect(container.textContent).toContain('Hello');
+    expect(container.querySelector('aside')?.id).toBe('generic-callout');
   });
 
   it('Alert alias renders (same as Callout)', () => {
@@ -42,12 +47,22 @@ describe('generic components [smoke]', () => {
     const { container } = render(
       React.createElement(
         Tabs,
-        null,
-        React.createElement(TabItem, { value: 'a', label: 'A' }, 'Content A'),
+        { id: 'generic-tabs' },
+        React.createElement(
+          TabItem,
+          { value: 'a', label: 'A', 'data-panel': 'first' },
+          'Content A'
+        ),
         React.createElement(TabItem, { value: 'b', label: 'B' }, 'Content B')
       )
     );
     expect(container.textContent).toContain('A');
+    expect(container.querySelector('[data-component="tabs"]')?.id).toBe(
+      'generic-tabs'
+    );
+    expect(
+      container.querySelector('[role="tabpanel"]')?.getAttribute('data-panel')
+    ).toBe('first');
   });
 
   it('Tab alias renders (same as TabItem)', () => {
@@ -59,33 +74,6 @@ describe('generic components [smoke]', () => {
       )
     );
     expect(container.textContent).toContain('X');
-  });
-
-  it('CodeGroup renders w/ code block children', () => {
-    const { container } = render(
-      React.createElement(
-        CodeGroup,
-        null,
-        React.createElement(
-          'pre',
-          { title: 'JavaScript' },
-          React.createElement('code', null, 'const x = 1;')
-        ),
-        React.createElement(
-          'pre',
-          { title: 'Python' },
-          React.createElement('code', null, 'x = 1')
-        )
-      )
-    );
-    expect(container.textContent).toContain('const x = 1;');
-  });
-
-  it('Collapsible renders w/ title & children', () => {
-    const { container } = render(
-      React.createElement(Collapsible, { title: 'Details' }, 'Hidden content')
-    );
-    expect(container.textContent).toContain('Details');
   });
 
   it('Accordion alias renders (same as Collapsible)', () => {

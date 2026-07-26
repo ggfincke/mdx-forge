@@ -9,6 +9,7 @@ import type { Root } from 'mdast';
 import type { Position } from 'unist';
 import type {
   ClassDeclaration,
+  ExportDefaultDeclaration,
   ExportNamedDeclaration,
   FunctionDeclaration,
   Identifier,
@@ -17,6 +18,10 @@ import type {
   Program,
   VariableDeclaration,
 } from 'estree';
+import {
+  rebasePosition,
+  type SourceOrigin,
+} from '../../internal/source-position';
 import type { DiagnosticRange } from '../types';
 
 export type DetectedAttributeKind =
@@ -28,6 +33,8 @@ export interface DetectedAttribute {
   name?: string;
   // literal string value or raw expression source
   value?: string;
+  // statically-resolved string expression value
+  staticValue?: string;
 }
 
 export interface DetectedComponent {
@@ -55,6 +62,7 @@ interface MdxEsmNode {
 interface MdxJsxAttributeValueExpression {
   type: string;
   value?: string;
+  data?: { estree?: Program };
 }
 
 interface MdxJsxAttributeNode {
@@ -67,6 +75,31 @@ interface MdxJsxNode {
   name: string | null;
   attributes?: MdxJsxAttributeNode[];
   position?: Position;
+}
+
+function staticStringExpression(
+  value: MdxJsxAttributeValueExpression
+): string | undefined {
+  const statements = value.data?.estree?.body;
+  if (
+    statements?.length !== 1 ||
+    statements[0].type !== 'ExpressionStatement'
+  ) {
+    return undefined;
+  }
+
+  const expression = statements[0].expression;
+  if (expression.type === 'Literal' && typeof expression.value === 'string') {
+    return expression.value;
+  }
+  if (
+    expression.type === 'TemplateLiteral' &&
+    expression.expressions.length === 0 &&
+    expression.quasis.length === 1
+  ) {
+    return expression.quasis[0].value.cooked ?? expression.quasis[0].value.raw;
+  }
+  return undefined;
 }
 
 // JSX name semantics: lowercase-start & dashed single identifiers are
@@ -101,18 +134,21 @@ function collectAttributes(node: MdxJsxNode): DetectedAttribute[] {
       out.push({ kind: 'string', name: attr.name, value: attr.value });
       continue;
     }
-    out.push({ kind: 'expression', name: attr.name, value: attr.value.value });
+    out.push({
+      kind: 'expression',
+      name: attr.name,
+      value: attr.value.value,
+      staticValue: staticStringExpression(attr.value),
+    });
   }
   return out;
 }
 
 export function parseMdxForAnalysis(
   content: string,
-  bodyStartLine: number,
-  bodyStartColumn = 1
+  bodyOrigin: SourceOrigin
 ): ParsedMdx {
   const tree = parser.parse(content) as Root;
-  const lineOffset = bodyStartLine - 1;
 
   const imports = new Set<string>();
   visit(tree, 'mdxjsEsm', (node) => {
@@ -143,7 +179,7 @@ export function parseMdxForAnalysis(
       name: jsx.name,
       root: info.root,
       members: info.members,
-      range: toRange(jsx.position, lineOffset, bodyStartColumn),
+      range: toRange(jsx.position, bodyOrigin),
       attributes: collectAttributes(jsx),
     });
   });
@@ -159,6 +195,10 @@ function collectLocalBindings(program: Program, bindings: Set<string>): void {
     }
     if (stmt.type === 'ExportNamedDeclaration') {
       collectExportBindings(stmt, bindings);
+      continue;
+    }
+    if (stmt.type === 'ExportDefaultDeclaration') {
+      collectDefaultExportBinding(stmt, bindings);
     }
   }
 }
@@ -190,6 +230,20 @@ function collectExportBindings(
   }
 }
 
+function collectDefaultExportBinding(
+  stmt: ExportDefaultDeclaration,
+  bindings: Set<string>
+): void {
+  const declaration = stmt.declaration;
+  if (
+    (declaration.type === 'FunctionDeclaration' ||
+      declaration.type === 'ClassDeclaration') &&
+    isIdentifier(declaration.id)
+  ) {
+    bindings.add(declaration.id.name);
+  }
+}
+
 function collectDeclarationBindings(
   declaration: ExportNamedDeclaration['declaration'],
   bindings: Set<string>
@@ -216,8 +270,31 @@ function collectVariableBindings(
 }
 
 function collectPatternBindings(pattern: Pattern, bindings: Set<string>): void {
-  if (pattern.type === 'Identifier') {
-    bindings.add(pattern.name);
+  switch (pattern.type) {
+    case 'Identifier':
+      bindings.add(pattern.name);
+      break;
+    case 'ObjectPattern':
+      for (const property of pattern.properties) {
+        collectPatternBindings(
+          property.type === 'RestElement' ? property.argument : property.value,
+          bindings
+        );
+      }
+      break;
+    case 'ArrayPattern':
+      for (const element of pattern.elements) {
+        if (element) {
+          collectPatternBindings(element, bindings);
+        }
+      }
+      break;
+    case 'RestElement':
+      collectPatternBindings(pattern.argument, bindings);
+      break;
+    case 'AssignmentPattern':
+      collectPatternBindings(pattern.left, bindings);
+      break;
   }
 }
 
@@ -244,25 +321,17 @@ function isIdentifier(node: unknown): node is Identifier {
 
 function toRange(
   position: Position,
-  lineOffset: number,
-  bodyStartColumn: number
+  bodyOrigin: SourceOrigin
 ): DiagnosticRange {
-  const startColumn =
-    position.start.line === 1
-      ? position.start.column + bodyStartColumn - 1
-      : position.start.column;
-  const endColumn =
-    position.end.line === 1
-      ? position.end.column + bodyStartColumn - 1
-      : position.end.column;
+  const rebased = rebasePosition(position, bodyOrigin);
   return {
     start: {
-      line: position.start.line + lineOffset,
-      column: startColumn,
+      line: rebased.start.line,
+      column: rebased.start.column,
     },
     end: {
-      line: position.end.line + lineOffset,
-      column: endColumn,
+      line: rebased.end.line,
+      column: rebased.end.column,
     },
   };
 }

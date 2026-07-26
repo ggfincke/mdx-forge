@@ -1,12 +1,11 @@
 // src/components/starlight/CardGrid.tsx
-// Starlight CardGrid component shim for MDX Preview
-// provide preview-compatible version of @astrojs/starlight/components CardGrid
+// preview-compatible @astrojs/starlight CardGrid shim
 
-import React, { ReactNode, ReactElement } from 'react';
+import React, { ReactNode, ReactElement, HTMLAttributes } from 'react';
 import { cn } from '../internal/cn';
 
 // cardGrid props (compatible w/ Starlight)
-export interface CardGridProps {
+export interface CardGridProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
   stagger?: boolean;
 }
@@ -15,10 +14,17 @@ export interface CardGridProps {
 export function CardGrid({
   children,
   stagger = false,
+  className,
+  ...props
 }: CardGridProps): ReactElement {
   return (
     <div
-      className={cn('mdx-preview-starlight-card-grid', stagger && 'stagger')}
+      {...props}
+      className={cn(
+        'mdx-preview-starlight-card-grid',
+        stagger && 'stagger',
+        className
+      )}
     >
       {children}
     </div>

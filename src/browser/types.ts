@@ -2,10 +2,21 @@
 // browser runtime types & host callback interfaces
 
 import type { ModuleRegistry } from './registry/ModuleRegistry';
+
+export type ModuleDependencyKind = 'import' | 'require';
+
+export interface ModuleDependency {
+  specifier: string;
+  kind: ModuleDependencyKind;
+  runtimeRequest: string;
+}
+
+export type ModuleDependencyInput = string | ModuleDependency;
+
 export interface FetchResult {
   fsPath: string;
   code: string;
-  dependencies: string[];
+  dependencies: ModuleDependencyInput[];
   css?: string;
 }
 
@@ -45,7 +56,8 @@ export interface ModuleRuntime extends MDXRuntime {
 export type ModuleFetcher = (
   request: string,
   isBare: boolean,
-  parentId: string
+  parentId: string,
+  kind?: ModuleDependencyKind
 ) => Promise<FetchResult | undefined>;
 
 // typed preload payload (atomic registration entry)

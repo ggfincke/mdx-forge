@@ -1,10 +1,11 @@
 // src/diagnostics/analyze/index.ts
 // render-free MDX analysis -> Diagnostic[]
 
-import type { Diagnostic } from '../types';
+import type { Diagnostic, DiagnosticRuleOptions } from '../types';
 import type { FrameworkId } from '../../components/registry';
 import { getComponentMetadata } from '../../components/registry';
-import { extractFrontmatter } from '../../compiler/pipeline/common/mdx-common';
+import { extractFrontmatter } from '../../internal/frontmatter';
+import type { SourceOrigin } from '../../internal/source-position';
 import { parseMdxForAnalysis, type DetectedComponent } from './parse';
 import {
   analyzeUnknownComponents,
@@ -31,10 +32,8 @@ export interface AnalyzeContext {
   framework: FrameworkId;
   // component names declared in .mdx-previewrc.json (host-supplied)
   configComponents?: readonly string[];
-  // future: per-rule enablement & severity overrides
-  rules?: Partial<
-    Record<string, 'off' | 'hint' | 'info' | 'warning' | 'error'>
-  >;
+  // per-rule enablement & severity overrides
+  rules?: DiagnosticRuleOptions;
 }
 
 export interface AnalyzeParseError {
@@ -63,16 +62,12 @@ function analyzeComponent(
   if (source === 'unknown') {
     return analyzeUnknownComponents([component], ctx);
   }
-  if (component.members.length > 0) {
-    // members of imported/config roots are host-owned; skip validation
-    if (source === 'import' || source === 'config') {
-      return [];
-    }
-    const diag = analyzeCompoundMember(component);
-    return diag ? [diag] : [];
-  }
   if (source === 'import' || source === 'config') {
     return [];
+  }
+  if (component.members.length > 0) {
+    const diag = analyzeCompoundMember(component, ctx.framework);
+    return diag ? [diag] : [];
   }
   const metadata =
     (ctx.framework !== 'generic'
@@ -84,10 +79,34 @@ function analyzeComponent(
   return analyzeComponentProps(component, metadata.props);
 }
 
+function applyRuleOptions(
+  diagnostics: readonly Diagnostic[],
+  rules: DiagnosticRuleOptions | undefined
+): Diagnostic[] {
+  if (!rules) {
+    return [...diagnostics];
+  }
+
+  const out: Diagnostic[] = [];
+  for (const diagnostic of diagnostics) {
+    const setting = rules[diagnostic.ruleId];
+    if (setting === 'off') {
+      continue;
+    }
+    out.push(
+      setting && setting !== diagnostic.severity
+        ? { ...diagnostic, severity: setting }
+        : diagnostic
+    );
+  }
+  return out;
+}
+
 export function analyzeMdxDocument(
   source: string,
   ctx: AnalyzeContext
 ): AnalyzeDocumentResult {
+  let bodyOrigin: SourceOrigin;
   const result: AnalyzeDocumentResult = {
     diagnostics: [],
     frontmatter: {},
@@ -97,23 +116,20 @@ export function analyzeMdxDocument(
   };
 
   try {
-    const { content, frontmatter, bodyStartLine, bodyStartColumn } =
-      extractFrontmatter(source);
+    const extracted = extractFrontmatter(source);
+    const { content, frontmatter } = extracted;
+    bodyOrigin = extracted.bodyOrigin;
     result.frontmatter = frontmatter;
     result.content = content;
-    result.bodyStartLine = bodyStartLine;
-    result.bodyStartColumn = bodyStartColumn;
+    result.bodyStartLine = bodyOrigin.line;
+    result.bodyStartColumn = bodyOrigin.column;
   } catch (error) {
     result.parseError = { phase: 'frontmatter', error };
     return result;
   }
 
   try {
-    const parsed = parseMdxForAnalysis(
-      result.content,
-      result.bodyStartLine,
-      result.bodyStartColumn
-    );
+    const parsed = parseMdxForAnalysis(result.content, bodyOrigin);
     const classifyCtx: ClassifyContext = {
       imports: parsed.imports,
       configComponents: new Set(ctx.configComponents ?? []),
@@ -122,6 +138,7 @@ export function analyzeMdxDocument(
     for (const component of parsed.components) {
       result.diagnostics.push(...analyzeComponent(component, classifyCtx));
     }
+    result.diagnostics = applyRuleOptions(result.diagnostics, ctx.rules);
   } catch (error) {
     result.parseError = { phase: 'mdx', error };
     result.diagnostics = [];

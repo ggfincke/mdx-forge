@@ -24,6 +24,30 @@ export class DependencyTracker {
     return `${parentId}\0${request}`;
   }
 
+  // remove one resolution & both reverse-index entries
+  private deleteResolutionKey(key: string): void {
+    const target = this.resolutionMap.get(key);
+    if (target === undefined) {
+      return;
+    }
+
+    this.resolutionMap.delete(key);
+
+    const separatorIndex = key.indexOf('\0');
+    const parentId = key.slice(0, separatorIndex);
+    const parentKeys = this.parentToResolutionKeys.get(parentId);
+    parentKeys?.delete(key);
+    if (parentKeys?.size === 0) {
+      this.parentToResolutionKeys.delete(parentId);
+    }
+
+    const targetKeys = this.targetToResolutionKeys.get(target);
+    targetKeys?.delete(key);
+    if (targetKeys?.size === 0) {
+      this.targetToResolutionKeys.delete(target);
+    }
+  }
+
   // register a resolved path for a (parent, request) pair
   // maintain reverse indexes for O(k) cleanup
   setResolution(parentId: string, request: string, fsPath: string): void {
@@ -32,7 +56,11 @@ export class DependencyTracker {
     // clean up old target mapping if this key existed
     const oldTarget = this.resolutionMap.get(key);
     if (oldTarget) {
-      this.targetToResolutionKeys.get(oldTarget)?.delete(key);
+      const oldTargetKeys = this.targetToResolutionKeys.get(oldTarget);
+      oldTargetKeys?.delete(key);
+      if (oldTargetKeys?.size === 0) {
+        this.targetToResolutionKeys.delete(oldTarget);
+      }
     }
 
     // set the resolution
@@ -55,6 +83,21 @@ export class DependencyTracker {
   getResolution(parentId: string, request: string): string | undefined {
     const key = this.makeResolutionKey(parentId, request);
     return this.resolutionMap.get(key);
+  }
+
+  // replace one parent's committed mappings after a successful reload
+  replaceResolutions(
+    parentId: string,
+    resolutions: ReadonlyMap<string, string>
+  ): void {
+    for (const key of Array.from(
+      this.parentToResolutionKeys.get(parentId) ?? []
+    )) {
+      this.deleteResolutionKey(key);
+    }
+    for (const [request, fsPath] of resolutions) {
+      this.setResolution(parentId, request, fsPath);
+    }
   }
 
   // record that moduleId depends on dependsOnId
@@ -91,27 +134,17 @@ export class DependencyTracker {
   // O(k) via reverse indexes instead of O(n) full scan
   cleanResolutionMapFor(moduleId: string): void {
     // clean entries where moduleId is parent
-    const parentKeys = this.parentToResolutionKeys.get(moduleId);
-    if (parentKeys) {
-      for (const key of parentKeys) {
-        const target = this.resolutionMap.get(key);
-        if (target) {
-          this.targetToResolutionKeys.get(target)?.delete(key);
-        }
-        this.resolutionMap.delete(key);
-      }
-      this.parentToResolutionKeys.delete(moduleId);
+    for (const key of Array.from(
+      this.parentToResolutionKeys.get(moduleId) ?? []
+    )) {
+      this.deleteResolutionKey(key);
     }
 
     // clean entries where moduleId is target
-    const targetKeys = this.targetToResolutionKeys.get(moduleId);
-    if (targetKeys) {
-      for (const key of targetKeys) {
-        const parentId = key.split('\0')[0];
-        this.parentToResolutionKeys.get(parentId)?.delete(key);
-        this.resolutionMap.delete(key);
-      }
-      this.targetToResolutionKeys.delete(moduleId);
+    for (const key of Array.from(
+      this.targetToResolutionKeys.get(moduleId) ?? []
+    )) {
+      this.deleteResolutionKey(key);
     }
   }
 
@@ -134,7 +167,10 @@ export class DependencyTracker {
   // collect all modules that transitively depend on the given module
   // & clean up all tracking metadata for those modules
   // return a Set of all module IDs that were invalidated
-  invalidateWithDependents(moduleId: string): Set<string> {
+  invalidateWithDependents(
+    moduleId: string,
+    canRetainResolutionTarget: (targetId: string) => boolean
+  ): Set<string> {
     const invalidated = new Set<string>();
     const queue = [moduleId];
 
@@ -158,10 +194,34 @@ export class DependencyTracker {
       }
     }
 
-    // second pass: clean up all metadata for ALL invalidated modules (batch cleanup)
+    // remove graph edges before retaining stable request identities
     for (const id of invalidated) {
       this.cleanDependentsFor(id);
-      this.cleanResolutionMapFor(id);
+    }
+
+    for (const parentId of invalidated) {
+      for (const key of Array.from(
+        this.parentToResolutionKeys.get(parentId) ?? []
+      )) {
+        const targetId = this.resolutionMap.get(key);
+        if (
+          targetId !== undefined &&
+          !invalidated.has(targetId) &&
+          canRetainResolutionTarget(targetId)
+        ) {
+          continue;
+        }
+        this.deleteResolutionKey(key);
+      }
+    }
+
+    // invalidated targets must never remain usable as reload hints
+    for (const targetId of invalidated) {
+      for (const key of Array.from(
+        this.targetToResolutionKeys.get(targetId) ?? []
+      )) {
+        this.deleteResolutionKey(key);
+      }
     }
 
     return invalidated;

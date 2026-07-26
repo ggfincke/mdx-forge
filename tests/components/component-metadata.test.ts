@@ -1,6 +1,7 @@
 // tests/components/component-metadata.test.ts
 // verify component authoring metadata contract
 
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
   COMPONENT_METADATA,
@@ -19,6 +20,7 @@ import {
   BADGE_VARIANTS,
   NEXTRA_CALLOUT_TYPES,
 } from '../../src/components/internal/metadata';
+import { COMPONENT_IDENTITY_DEFINITIONS } from '../../src/components/internal/component-identity';
 import {
   NEXTRA_CALLOUT_ICONS,
   NEXTRA_CALLOUT_TYPES as NEXTRA_CALLOUT_TYPES_FROM_ICONS,
@@ -34,11 +36,61 @@ function isComponentEntry(
   return entry.kind === 'component';
 }
 
-function componentKey(entry: ComponentDefinition): ComponentKey {
+function componentKey(
+  entry: Pick<ComponentDefinition, 'framework' | 'name'>
+): ComponentKey {
   return `${entry.framework}:${entry.name}`;
 }
 
 describe('component authoring metadata', () => {
+  it('derives ordered registry identity & metadata keys from one table', () => {
+    const registryIdentities = COMPONENT_REGISTRY.map((entry) => {
+      if (!isComponentEntry(entry)) {
+        return entry;
+      }
+      const { metadata: _metadata, ...identity } = entry;
+      return identity;
+    });
+    const componentIdentities = COMPONENT_IDENTITY_DEFINITIONS.filter(
+      (identity) => identity.kind === 'component'
+    );
+
+    expect(registryIdentities).toEqual(COMPONENT_IDENTITY_DEFINITIONS);
+    expect(Object.keys(COMPONENT_METADATA)).toEqual(
+      componentIdentities.map(componentKey)
+    );
+    expect(Object.isFrozen(COMPONENT_IDENTITY_DEFINITIONS)).toBe(true);
+
+    for (const entry of COMPONENT_REGISTRY) {
+      if (isComponentEntry(entry)) {
+        expect(entry.metadata).toBe(COMPONENT_METADATA[componentKey(entry)]);
+      }
+    }
+
+    for (const identity of componentIdentities) {
+      const aliasDocs = COMPONENT_METADATA[componentKey(identity)].aliasDocs;
+      expect(aliasDocs?.map((alias) => alias.name)).toEqual(
+        identity.aliases.length > 0 ? identity.aliases : undefined
+      );
+    }
+  });
+
+  it('keeps byte-stable public metadata & registry snapshots', () => {
+    const metadataHash = createHash('sha256')
+      .update(JSON.stringify(COMPONENT_METADATA))
+      .digest('hex');
+    const registryHash = createHash('sha256')
+      .update(JSON.stringify(COMPONENT_REGISTRY))
+      .digest('hex');
+
+    expect(metadataHash).toBe(
+      'd416af81080be3e299f0f095c647eee6cba262dc54b6368edd4a1230c63b7ba2'
+    );
+    expect(registryHash).toBe(
+      '1218c3ebfc8a96d64b44f3ebc8715316dd24c4585bdcfbc6cff1def50ac9dd1d'
+    );
+  });
+
   it('covers every component entry and no barrel entries', () => {
     const componentKeys = REGISTRY_ENTRIES.filter(isComponentEntry)
       .map(componentKey)

@@ -19,7 +19,7 @@ import {
   warnMarkdownModeIgnoredConfig,
 } from '../pipeline/common/pipeline-warnings';
 import remarkGenericComponents from '../pipeline/remark/generic-components';
-import { isGenericComponent } from '../../components/registry/queries';
+import { isGenericComponent } from '../../components/internal/component-identity-queries';
 import { escapeHtml } from '../pipeline/transforms/utils';
 import { getLogger } from '../internal/logging';
 
@@ -164,7 +164,16 @@ function remarkStripMdx(options: RemarkStripMdxOptions = {}) {
   } = options;
 
   return (tree: Root) => {
-    const nodesToRemove: Array<{ parent: Parent; index: number }> = [];
+    const nodesToRemove = new Map<Parent, Set<object>>();
+
+    const markForRemoval = (parent: Parent, node: object): void => {
+      const removals = nodesToRemove.get(parent);
+      if (removals) {
+        removals.add(node);
+      } else {
+        nodesToRemove.set(parent, new Set([node]));
+      }
+    };
 
     visit(tree, (node, index, parent) => {
       if (index === undefined || parent === undefined) {
@@ -173,7 +182,7 @@ function remarkStripMdx(options: RemarkStripMdxOptions = {}) {
 
       // remove import/export declarations (mdxjsEsm nodes)
       if (node.type === 'mdxjsEsm') {
-        nodesToRemove.push({ parent: parent as Parent, index });
+        markForRemoval(parent as Parent, node);
         return;
       }
 
@@ -213,7 +222,7 @@ function remarkStripMdx(options: RemarkStripMdxOptions = {}) {
         );
 
         if (replacement === null) {
-          nodesToRemove.push({ parent: parent as Parent, index });
+          markForRemoval(parent as Parent, node);
         } else if (Array.isArray(replacement)) {
           (parent as Parent).children.splice(index, 1, ...replacement);
         } else {
@@ -239,10 +248,9 @@ function remarkStripMdx(options: RemarkStripMdxOptions = {}) {
       }
     });
 
-    // remove collected nodes (in reverse order to preserve indices)
-    for (let i = nodesToRemove.length - 1; i >= 0; i--) {
-      const { parent, index } = nodesToRemove[i];
-      parent.children.splice(index, 1);
+    // compact each affected sibling list once
+    for (const [parent, removals] of nodesToRemove) {
+      parent.children = parent.children.filter((child) => !removals.has(child));
     }
   };
 }
@@ -298,13 +306,32 @@ function createFlowPlaceholder(
 
 // create inline placeholder for unknown JSX text element
 function createInlinePlaceholder(
+  node: MdxJsxElement,
   escapedName: string,
   hint: string
-): RootContent {
-  return {
+): RootContent | RootContent[] {
+  const placeholder = {
     type: 'html',
     value: `<span class="${JSX_PLACEHOLDER}" title="JSX component ${hint}">&lt;${escapedName} /&gt;</span>`,
   } as RootContent;
+
+  if (!node.children || node.children.length === 0) {
+    return placeholder;
+  }
+
+  return [
+    placeholder,
+    {
+      type: 'unknownComponentContent' as RootContent['type'],
+      data: {
+        hName: 'span',
+        hProperties: {
+          className: [UNKNOWN_COMPONENT_CONTENT],
+        },
+      },
+      children: node.children,
+    } as RootContent,
+  ];
 }
 
 // create replacement for JSX element based on unknownBehavior
@@ -335,7 +362,7 @@ function createJsxReplacement(
 
       return isFlowElement
         ? createFlowPlaceholder(node, escapedName, hint)
-        : createInlinePlaceholder(escapedName, hint);
+        : createInlinePlaceholder(node, escapedName, hint);
     }
   }
 }
@@ -352,7 +379,7 @@ export async function compileSafe(
     warnIgnoredSafeModeConfig(config.configFile.config, log);
   }
   // extract frontmatter before compilation
-  const { content, frontmatter } = extractFrontmatter(mdxText);
+  const { content, frontmatter, bodyStartLine } = extractFrontmatter(mdxText);
 
   // get configuration for builtins & unknown behavior settings
   const builtinsEnabled = config.componentsBuiltins ?? true;
@@ -412,7 +439,10 @@ export async function compileSafe(
     allowDangerousHtml: true,
   });
 
-  const result = await processor.process(content);
+  const result = await processor.process({
+    value: content,
+    data: { sourceLineOffset: bodyStartLine - 1 },
+  });
 
   return {
     html: String(result),

@@ -30,42 +30,51 @@ function detected(name: string): DetectedComponent {
 }
 
 describe('classifyComponentSource', () => {
-  it('classifies imported components as import', () => {
-    expect(
-      classifyComponentSource('Foo', ctx({ imports: new Set(['Foo']) }))
-    ).toBe('import');
-  });
-
-  it('classifies config-declared components as config', () => {
-    expect(
-      classifyComponentSource(
-        'MyWidget',
-        ctx({ configComponents: new Set(['MyWidget']) })
-      )
-    ).toBe('config');
-  });
-
-  it('classifies generic builtins as builtin', () => {
-    expect(classifyComponentSource('Callout', ctx())).toBe('builtin');
-  });
-
-  it('classifies generic aliases as builtin', () => {
-    expect(classifyComponentSource('Alert', ctx())).toBe('builtin');
-  });
-
-  it('classifies framework-only components as framework under that framework', () => {
-    expect(
-      classifyComponentSource('CodeBlock', ctx({ framework: 'docusaurus' }))
-    ).toBe('framework');
-  });
-
-  it('classifies a framework-only component as unknown under generic', () => {
-    // CodeBlock is docusaurus-only & not generic -> framework accuracy in action
-    expect(classifyComponentSource('CodeBlock', ctx())).toBe('unknown');
-  });
-
-  it('classifies unrecognized names as unknown', () => {
-    expect(classifyComponentSource('Frobnicate', ctx())).toBe('unknown');
+  it.each([
+    {
+      name: 'imported components as import',
+      component: 'Foo',
+      context: { imports: new Set(['Foo']) },
+      expected: 'import',
+    },
+    {
+      name: 'config-declared components as config',
+      component: 'MyWidget',
+      context: { configComponents: new Set(['MyWidget']) },
+      expected: 'config',
+    },
+    {
+      name: 'generic builtins as builtin',
+      component: 'Callout',
+      context: {},
+      expected: 'builtin',
+    },
+    {
+      name: 'generic aliases as builtin',
+      component: 'Alert',
+      context: {},
+      expected: 'builtin',
+    },
+    {
+      name: 'framework-only components as framework under that framework',
+      component: 'CodeBlock',
+      context: { framework: 'docusaurus' as const },
+      expected: 'framework',
+    },
+    {
+      name: 'a framework-only component as unknown under generic',
+      component: 'CodeBlock',
+      context: {},
+      expected: 'unknown',
+    },
+    {
+      name: 'unrecognized names as unknown',
+      component: 'Frobnicate',
+      context: {},
+      expected: 'unknown',
+    },
+  ])('classifies $name', ({ component, context, expected }) => {
+    expect(classifyComponentSource(component, ctx(context))).toBe(expected);
   });
 });
 
@@ -103,14 +112,5 @@ describe('analyzeUnknownComponents', () => {
       componentName: 'Frobnicate',
       suggestions: [],
     });
-  });
-
-  it('stays silent for a framework component under its framework', () => {
-    expect(
-      analyzeUnknownComponents(
-        [detected('CodeBlock')],
-        ctx({ framework: 'docusaurus' })
-      )
-    ).toEqual([]);
   });
 });

@@ -46,20 +46,23 @@ export const VALID_CALLOUT_TYPE_SET: ReadonlySet<string> = new Set(
   VALID_CALLOUT_TYPES
 );
 
-export const CALLOUT_TYPE_ALIASES: Readonly<Record<string, CalloutType>> = {
-  abstract: 'summary',
-  tldr: 'summary',
-  check: 'success',
-  done: 'success',
-  help: 'question',
-  faq: 'question',
-  fail: 'failure',
-  missing: 'failure',
-  snippet: 'example',
-  cite: 'quote',
-  error: 'danger',
-  warn: 'warning',
-} as const;
+export const CALLOUT_TYPE_ALIASES: Readonly<Record<string, CalloutType>> =
+  Object.freeze(
+    Object.assign(Object.create(null) as Record<string, CalloutType>, {
+      abstract: 'summary',
+      tldr: 'summary',
+      check: 'success',
+      done: 'success',
+      help: 'question',
+      faq: 'question',
+      fail: 'failure',
+      missing: 'failure',
+      snippet: 'example',
+      cite: 'quote',
+      error: 'danger',
+      warn: 'warning',
+    })
+  );
 
 export const CALLOUT_TITLES: Readonly<Record<CalloutType, string>> = {
   note: 'Note',
@@ -94,7 +97,7 @@ export function normalizeCalloutType(type: string | undefined): CalloutType {
   }
 
   const normalized = type.toLowerCase();
-  if (normalized in CALLOUT_TYPE_ALIASES) {
+  if (Object.hasOwn(CALLOUT_TYPE_ALIASES, normalized)) {
     return CALLOUT_TYPE_ALIASES[normalized];
   }
 
@@ -108,7 +111,8 @@ export function normalizeCalloutType(type: string | undefined): CalloutType {
 export function isValidCalloutType(type: string): boolean {
   const normalized = type.toLowerCase();
   return (
-    VALID_CALLOUT_TYPE_SET.has(normalized) || normalized in CALLOUT_TYPE_ALIASES
+    VALID_CALLOUT_TYPE_SET.has(normalized) ||
+    Object.hasOwn(CALLOUT_TYPE_ALIASES, normalized)
   );
 }
 
@@ -117,7 +121,7 @@ export function isValidCalloutType(type: string): boolean {
 export function buildCalloutStyleMap(
   classNameForType: (type: CalloutType) => string
 ): Record<CalloutType, CalloutStyleConfig> {
-  const map = {} as Record<CalloutType, CalloutStyleConfig>;
+  const map = Object.create(null) as Record<CalloutType, CalloutStyleConfig>;
   for (const type of VALID_CALLOUT_TYPES) {
     map[type] = {
       className: classNameForType(type),
@@ -125,5 +129,5 @@ export function buildCalloutStyleMap(
       icon: CALLOUT_ICONS[type],
     };
   }
-  return map;
+  return Object.freeze(map);
 }

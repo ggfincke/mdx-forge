@@ -12,7 +12,7 @@ import {
   type ShikiTransformer,
 } from '@shikijs/core';
 import { createJavaScriptRegexEngine } from '@shikijs/engine-javascript';
-import { LRUCache } from '../../../browser/internal/lru-cache';
+import { LRUCache } from '../../../internal/lru-cache';
 import {
   PREVIEW_CODEBLOCK,
   PREVIEW_CODEBLOCK_TITLE,
@@ -266,9 +266,9 @@ function parseMeta(meta: string | undefined, lineCount: number): CodeMeta {
   }
 
   // title="..." or title='...'
-  const titleMatch = meta.match(/title=["']([^"']+)["']/);
+  const titleMatch = meta.match(/\btitle=(["'])(.*?)\1/);
   if (titleMatch) {
-    result.title = titleMatch[1];
+    result.title = titleMatch[2];
   }
 
   return result;
@@ -372,7 +372,6 @@ function resolveLanguageAlias(lang: string): string {
 export default function rehypeShiki() {
   return async (tree: Root) => {
     const nodesToProcess: Array<{
-      node: Element;
       parent: Element;
       index: number;
       lang: string;
@@ -425,7 +424,6 @@ export default function rehypeShiki() {
           : undefined;
 
       nodesToProcess.push({
-        node,
         parent: parent as Element,
         index,
         lang: lang || 'plaintext',

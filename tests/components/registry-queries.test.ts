@@ -5,8 +5,18 @@ import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 import { describe, it, expect } from 'vitest';
+import * as genericBarrel from '../../src/components/generic/index';
+import * as docusaurusBarrel from '../../src/components/docusaurus/index';
+import * as starlightBarrel from '../../src/components/starlight/index';
+import * as nextraBarrel from '../../src/components/nextra/index';
+import * as nextjsBarrel from '../../src/components/nextjs/index';
 import {
+  COMPONENT_METADATA,
+  COMPONENT_REGISTRY,
+  FRAMEWORK_COMPONENTS,
+  GENERIC_COMPONENTS,
   getComponentMetadata,
+  findComponentEntry,
   getFrameworkComponentEntries,
   getAllGenericComponentNames,
   getGenericComponentSet,
@@ -21,6 +31,14 @@ import {
 } from '../../src/components/registry/index';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+
+const FRAMEWORK_BARRELS = {
+  generic: genericBarrel,
+  docusaurus: docusaurusBarrel,
+  starlight: starlightBarrel,
+  nextra: nextraBarrel,
+  nextjs: nextjsBarrel,
+} as const;
 
 // map shim-barrel outputPath -> framework folder name
 function frameworkFromOutputPath(outputPath: string): string {
@@ -69,6 +87,10 @@ describe('registry queries', () => {
   it('returns defensive copies that cannot mutate canonical state', () => {
     const names = getAllGenericComponentNames();
     const set = getGenericComponentSet();
+    const frameworkNames = getFrameworkComponents('nextra') as string[];
+    const entries = getFrameworkComponentEntries('nextra') as Array<{
+      name: string;
+    }>;
 
     // returned collections are snapshots, not the shared lookup state
     expect(getAllGenericComponentNames()).not.toBe(names);
@@ -76,11 +98,44 @@ describe('registry queries', () => {
 
     names.length = 0;
     set.clear();
+    frameworkNames.length = 0;
+    entries.length = 0;
 
     expect(getAllGenericComponentNames()).toContain('Callout');
     expect(getGenericComponentSet().has('Alert')).toBe(true);
+    expect(getFrameworkComponents('nextra')).toContain('Tabs');
+    expect(getFrameworkComponentEntries('nextra')).toHaveLength(6);
     expect(isGenericComponent('Callout')).toBe(true);
     expect(isGenericComponent('Admonition')).toBe(true);
+  });
+
+  it('freezes canonical registry collections at runtime', () => {
+    const nextraTabs = findComponentEntry('nextra', 'Tabs');
+
+    expect(Object.isFrozen(COMPONENT_METADATA)).toBe(true);
+    expect(Object.isFrozen(COMPONENT_REGISTRY)).toBe(true);
+    expect(Object.isFrozen(GENERIC_COMPONENTS)).toBe(true);
+    expect(Object.isFrozen(GENERIC_COMPONENTS.Callout.aliases)).toBe(true);
+    expect(Object.isFrozen(FRAMEWORK_COMPONENTS)).toBe(true);
+    expect(Object.isFrozen(FRAMEWORK_COMPONENTS.nextra)).toBe(true);
+    expect(Object.isFrozen(nextraTabs)).toBe(true);
+    expect(Object.isFrozen(nextraTabs?.members)).toBe(true);
+    expect(Object.isFrozen(nextraTabs?.metadata.props)).toBe(true);
+  });
+
+  it('records only compound members exposed by each framework runtime', () => {
+    expect(findComponentEntry('nextra', 'Tabs')?.members).toEqual(['Tab']);
+    expect(findComponentEntry('nextra', 'Cards')?.members).toEqual(['Card']);
+    expect(findComponentEntry('nextra', 'FileTree')?.members).toEqual([
+      'Folder',
+      'File',
+    ]);
+    expect(findComponentEntry('generic', 'Tabs')?.members).toBeUndefined();
+    expect(findComponentEntry('docusaurus', 'Tabs')?.members).toBeUndefined();
+    expect(findComponentEntry('starlight', 'Tabs')?.members).toBeUndefined();
+    expect(
+      findComponentEntry('starlight', 'FileTree')?.members
+    ).toBeUndefined();
   });
 
   it('returns primary generic names without aliases', () => {
@@ -95,6 +150,9 @@ describe('registry queries', () => {
     expect(getCanonicalComponentName('Alert')).toBe('Callout');
     expect(getCanonicalComponentName('Callout')).toBe('Callout');
     expect(getCanonicalComponentName('UnknownComponent')).toBeUndefined();
+    expect(getCanonicalComponentName('constructor')).toBeUndefined();
+    expect(getCanonicalComponentName('__proto__')).toBeUndefined();
+    expect(getCanonicalComponentName('toString')).toBeUndefined();
   });
 
   it('detects generic and framework components', () => {
@@ -131,6 +189,37 @@ describe('registry queries', () => {
 
     expect(callout?.summary).toContain('Callout box');
     expect(alert).toBe(callout);
+  });
+
+  it('exports every registry-backed component from its framework barrel', () => {
+    const shimValueExports = new Map(
+      SHIM_BARREL_CONFIG.map((config) => [
+        frameworkFromOutputPath(config.outputPath),
+        new Set(config.exports.flatMap((entry) => entry.values ?? [])),
+      ])
+    );
+    const missingExports: string[] = [];
+
+    for (const entry of COMPONENT_REGISTRY) {
+      const expectedNames =
+        entry.kind === 'barrel'
+          ? entry.exportNames
+          : [
+              entry.name,
+              ...entry.aliases.filter((alias) =>
+                shimValueExports.get(entry.framework)?.has(alias)
+              ),
+            ];
+      const barrel = FRAMEWORK_BARRELS[entry.framework];
+
+      for (const name of expectedNames) {
+        if (!Object.prototype.hasOwnProperty.call(barrel, name)) {
+          missingExports.push(`${entry.framework}:${name}`);
+        }
+      }
+    }
+
+    expect(missingExports).toEqual([]);
   });
 
   it('builds expected shim paths', () => {

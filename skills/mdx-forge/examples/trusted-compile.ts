@@ -1,6 +1,6 @@
 // skills/mdx-forge/examples/trusted-compile.ts
 // minimal compileTrusted end-to-end: MDX text -> executable JavaScript
-//
+
 // the resulting code runs in a browser via mdx-forge/browser
 // (see browser-setup.ts for the browser side)
 
@@ -29,8 +29,9 @@ const { code, frontmatter } = await compileTrusted(source, true, {
 console.log('frontmatter:', frontmatter);
 console.log('code length:', code.length);
 
-// the host is now responsible for:
+// the host is now responsible for
 // 1. shipping `code` to a browser context
 // 2. computing the dependency list (typically by walking imports in `code`)
+
 // 3. providing a setModuleFetcher that resolves each dependency
 // 4. calling evaluateModuleToComponent(code, entryPath, dependencies)
