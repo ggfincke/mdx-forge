@@ -9,6 +9,7 @@ import {
   configureRuntime,
   ensureGenericShimsLoaded,
   evaluateModuleToComponent,
+  invalidateModule,
   loadModule,
   registry,
   setModuleFetcher,
@@ -146,6 +147,58 @@ describe('shim load generations (T3)', () => {
 });
 
 describe('cache generations (T3)', () => {
+  it('starts a fresh fetch after plain invalidation', async () => {
+    const staleGate = deferred<FetchResult | undefined>();
+    const freshGate = deferred<FetchResult | undefined>();
+    const fetcher = vi
+      .fn()
+      .mockImplementationOnce(() => staleGate.promise)
+      .mockImplementationOnce(() => freshGate.promise);
+    const code = 'module.exports = { value: require("./dep").value };';
+
+    const staleLoad = loadModule('/entry.js', code, ['./dep'], fetcher);
+    await flushMicrotasks();
+    registry.set(
+      '/unrelated.js',
+      {
+        id: '/unrelated.js',
+        exports: { retained: true },
+        loaded: true,
+      },
+      1
+    );
+
+    invalidateModule('/dep.js');
+    const freshLoad = loadModule('/entry.js', code, ['./dep'], fetcher);
+    await flushMicrotasks();
+
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(registry.has('/unrelated.js')).toBe(true);
+    const freshPending = registry.getPending('/entry.js');
+    expect(freshPending).toBeDefined();
+
+    staleGate.resolve({
+      fsPath: '/dep.js',
+      code: 'module.exports = { value: "stale" };',
+      dependencies: [],
+    });
+    await expect(staleLoad).rejects.toMatchObject({
+      data: { code: 'STALE_GENERATION' },
+    });
+    expect(registry.getPending('/entry.js')).toBe(freshPending);
+
+    freshGate.resolve({
+      fsPath: '/dep.js',
+      code: 'module.exports = { value: "fresh" };',
+      dependencies: [],
+    });
+    await expect(freshLoad).resolves.toMatchObject({
+      exports: { value: 'fresh' },
+    });
+    expect(registry.get('/dep.js')?.exports).toEqual({ value: 'fresh' });
+    expect(registry.has('/unrelated.js')).toBe(true);
+  });
+
   it('prevents a pre-clear in-flight load from repopulating cleared caches', async () => {
     const gate = deferred<FetchResult | undefined>();
     const fetcher = vi.fn(() => gate.promise);
@@ -302,6 +355,53 @@ describe('preload registration transactions (T3)', () => {
       stable: '/stable.js',
     });
     expect(registry.has('/stable.js')).toBe(true);
+    expect(registry.has('/partial.js')).toBe(false);
+    expect(registry.has('/collision.js')).toBe(false);
+  });
+
+  it('registers prototype-named aliases atomically', async () => {
+    const fetcher = vi.fn(async () => undefined);
+    setModuleFetcher(fetcher);
+    registerPreloadEntries([
+      {
+        id: '/preloaded/prototype-names.js',
+        exports: { value: 'preloaded' },
+        aliases: ['constructor', '__proto__'],
+      },
+    ]);
+
+    const component = await evaluateModuleToComponent(
+      [
+        'const first = require("constructor");',
+        'const second = require("__proto__");',
+        'module.exports = { default: () => first.value + second.value };',
+      ].join('\n'),
+      '/entry.mdx',
+      ['constructor', '__proto__']
+    );
+
+    expect(component()).toBe('preloadedpreloaded');
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(() =>
+      registerPreloadEntries([
+        {
+          id: '/partial.js',
+          exports: { partial: true },
+          aliases: ['partial'],
+        },
+        {
+          id: '/collision.js',
+          exports: { collision: true },
+          aliases: ['constructor'],
+        },
+      ])
+    ).toThrow('Alias collision');
+    expect(getModuleLoaderConfig().preloadAliases.constructor).toBe(
+      '/preloaded/prototype-names.js'
+    );
+    expect(getModuleLoaderConfig().preloadAliases.__proto__).toBe(
+      '/preloaded/prototype-names.js'
+    );
     expect(registry.has('/partial.js')).toBe(false);
     expect(registry.has('/collision.js')).toBe(false);
   });

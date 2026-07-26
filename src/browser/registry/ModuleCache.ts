@@ -218,6 +218,11 @@ export class ModuleCache {
     this.pendingFetches.delete(id);
   }
 
+  // detach every pending handle at a generation boundary
+  clearAllPending(): void {
+    this.pendingFetches.clear();
+  }
+
   // bulk operations
 
   // clear all cached modules except preloaded ones

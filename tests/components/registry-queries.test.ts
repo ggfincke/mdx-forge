@@ -150,6 +150,9 @@ describe('registry queries', () => {
     expect(getCanonicalComponentName('Alert')).toBe('Callout');
     expect(getCanonicalComponentName('Callout')).toBe('Callout');
     expect(getCanonicalComponentName('UnknownComponent')).toBeUndefined();
+    expect(getCanonicalComponentName('constructor')).toBeUndefined();
+    expect(getCanonicalComponentName('__proto__')).toBeUndefined();
+    expect(getCanonicalComponentName('toString')).toBeUndefined();
   });
 
   it('detects generic and framework components', () => {

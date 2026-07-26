@@ -15,9 +15,15 @@ import {
   ensureGenericShims,
 } from './preload';
 import { configureModuleLoader } from './internal/runtime-config';
+import {
+  createImportRuntimeRequest,
+  normalizeModuleDependencies,
+} from './internal/dependency';
 import type {
   FetchResult,
   Framework,
+  ModuleDependencyInput,
+  ModuleDependencyKind,
   ModuleFetcher,
   ModuleLoaderConfig,
 } from './types';
@@ -35,12 +41,16 @@ export type {
   HostPreloadCallbacks,
   MDXRuntime,
   Module,
+  ModuleDependency,
+  ModuleDependencyInput,
+  ModuleDependencyKind,
   ModuleFetcher,
   ModuleLoaderConfig,
   ModuleRuntime,
   PreloadEntry,
 } from './types';
 export { PRELOADED_MODULE_IDS } from './types';
+export { createImportRuntimeRequest };
 export {
   setPreloadEntries,
   registerPreloadEntries,
@@ -89,11 +99,13 @@ export function resetDependencies(): void {
 
 // invalidate a specific module (for hot reload)
 export function invalidateModule(id: string): void {
+  resetModuleLoaderCoordination();
   registry.invalidate(id);
 }
 
 // invalidate a module & all modules that depend on it - return the set of invalidated module IDs
 export function invalidateModuleWithDependents(id: string): Set<string> {
+  resetModuleLoaderCoordination();
   return registry.invalidateWithDependents(id);
 }
 
@@ -152,14 +164,18 @@ async function guardPreloadEpoch(
 async function rpcFetcher(
   request: string,
   isBare: boolean,
-  parentId: string
+  parentId: string,
+  kind?: ModuleDependencyKind
 ): Promise<FetchResult | undefined> {
   if (!activeFetcher) {
     throw new Error(
       'Module fetcher is not configured. Call setModuleFetcher().'
     );
   }
-  return activeFetcher(request, isBare, parentId);
+  if (kind === undefined) {
+    return activeFetcher(request, isBare, parentId);
+  }
+  return activeFetcher(request, isBare, parentId, kind);
 }
 
 // evaluate MDX into a component & preserve dependency cache when possible
@@ -167,8 +183,10 @@ async function rpcFetcher(
 export async function evaluateModuleToComponent(
   code: string,
   entryFilePath: string,
-  dependencies: string[]
+  dependencies: ModuleDependencyInput[]
 ): Promise<(...args: unknown[]) => unknown> {
+  const normalizedDependencies = normalizeModuleDependencies(dependencies);
+
   // ensure preloaded modules are ready
   ensurePreloadedModules();
 
@@ -208,16 +226,17 @@ export async function evaluateModuleToComponent(
     lastEntryPath = entryFilePath;
   } else {
     retainedResolutions = new Map();
-    for (const dependency of dependencies) {
-      const resolvedId = registry.getResolution(entryFilePath, dependency);
+    for (const dependency of normalizedDependencies) {
+      const { runtimeRequest } = dependency;
+      const resolvedId = registry.getResolution(entryFilePath, runtimeRequest);
       if (resolvedId && registry.has(resolvedId)) {
-        retainedResolutions.set(dependency, resolvedId);
+        retainedResolutions.set(runtimeRequest, resolvedId);
       }
     }
 
     // same-entry refresh retains dependency modules, graph edges, & owned styles
     // invalidation still removes the entry's committed metadata before reloading
-    registry.invalidateWithDependents(entryFilePath);
+    invalidateModuleWithDependents(entryFilePath);
   }
 
   // load the entry module & all dependencies
@@ -225,11 +244,11 @@ export async function evaluateModuleToComponent(
     ? await loadModuleWithResolutionHints(
         entryFilePath,
         code,
-        dependencies,
+        normalizedDependencies,
         rpcFetcher,
         retainedResolutions
       )
-    : await loadModule(entryFilePath, code, dependencies, rpcFetcher);
+    : await loadModule(entryFilePath, code, normalizedDependencies, rpcFetcher);
 
   // get the default export (MDX component)
   const moduleExports = module.exports as Record<string, unknown>;

@@ -10,6 +10,10 @@ import {
 } from '../errors';
 import { isBareImport } from '../internal/module-id';
 import { getModuleLoaderConfig } from '../internal/runtime-config';
+import {
+  normalizeModuleDependencies,
+  type NormalizedModuleDependency,
+} from '../internal/dependency';
 import { Semaphore } from '../internal/semaphore';
 import { registry } from '../registry/ModuleRegistry';
 import { createSyncRequire } from '../runtime/require';
@@ -17,6 +21,7 @@ import { injectStyles } from '../styles/injectStyles';
 import type {
   FetchResult,
   Module,
+  ModuleDependencyInput,
   ModuleFetcher,
   ModuleRuntime,
 } from '../types';
@@ -39,12 +44,12 @@ interface ModuleTransaction {
 }
 
 interface ToFetch {
-  dep: string;
+  dependency: NormalizedModuleDependency;
   isBare: boolean;
 }
 
 interface FetchedResult {
-  dep: string;
+  dependency: NormalizedModuleDependency;
   result: FetchResult | undefined;
 }
 
@@ -116,9 +121,17 @@ function makeInFlightKey(
   epoch: number,
   fetcher: ModuleFetcher,
   parentId: string,
-  dep: string
+  dependency: NormalizedModuleDependency
 ): string {
-  return `${epoch}\0${getFetcherId(fetcher)}\0${parentId}\0${dep}`;
+  return [
+    epoch,
+    getFetcherId(fetcher),
+    parentId,
+    dependency.kind,
+    dependency.legacy ? 'legacy' : 'structured',
+    dependency.runtimeRequest,
+    dependency.specifier,
+  ].join('\0');
 }
 
 function makeWaitNode(epoch: number, id: string): string {
@@ -315,12 +328,12 @@ function createTransactionRequire(
 
 async function fetchDependency(
   parentId: string,
-  dep: string,
+  dependency: NormalizedModuleDependency,
   isBare: boolean,
   fetcher: ModuleFetcher,
   epoch: number
 ): Promise<FetchedResult> {
-  const inFlightKey = makeInFlightKey(epoch, fetcher, parentId, dep);
+  const inFlightKey = makeInFlightKey(epoch, fetcher, parentId, dependency);
   let inFlight = inFlightFetches.get(inFlightKey);
 
   if (!inFlight) {
@@ -330,7 +343,15 @@ async function fetchDependency(
     record.promise = (async (): Promise<FetchResult | undefined> => {
       await semaphore.acquire();
       try {
-        return await fetcher(dep, isBare, parentId);
+        if (dependency.legacy) {
+          return await fetcher(dependency.specifier, isBare, parentId);
+        }
+        return await fetcher(
+          dependency.specifier,
+          isBare,
+          parentId,
+          dependency.kind
+        );
       } finally {
         if (inFlightFetches.get(inFlightKey) === record) {
           inFlightFetches.delete(inFlightKey);
@@ -342,20 +363,21 @@ async function fetchDependency(
     inFlightFetches.set(inFlightKey, record);
   }
 
-  return { dep, result: await inFlight.promise };
+  return { dependency, result: await inFlight.promise };
 }
 
 // recursively load one module inside its root graph transaction
 async function loadModuleInGraph(
   id: string,
   code: string,
-  dependencies: string[],
+  dependencies: ModuleDependencyInput[],
   fetcher: ModuleFetcher,
   depth: number,
   importChain: string[],
   graph: GraphTransaction
 ): Promise<Module> {
   const config = getModuleLoaderConfig();
+  const normalizedDependencies = normalizeModuleDependencies(dependencies);
 
   if (depth > config.maxModuleLoadDepth) {
     throw createModuleDepthExceededError(id, depth);
@@ -376,7 +398,7 @@ async function loadModuleInGraph(
   const modulePromise = loadModuleAsync(
     id,
     code,
-    dependencies,
+    normalizedDependencies,
     fetcher,
     depth,
     [...importChain, id],
@@ -395,7 +417,7 @@ async function loadModuleInGraph(
 async function loadModuleAsync(
   id: string,
   code: string,
-  dependencies: string[],
+  dependencies: NormalizedModuleDependency[],
   fetcher: ModuleFetcher,
   depth: number,
   importChain: string[],
@@ -406,39 +428,54 @@ async function loadModuleAsync(
   try {
     const toFetch: ToFetch[] = [];
 
-    for (const dep of dependencies) {
-      if (!dep) {
+    for (const dependency of dependencies) {
+      if (!dependency.specifier || !dependency.runtimeRequest) {
         continue;
       }
 
-      if (registry.has(dep) || graph.getStyleModule(dep)) {
-        stageDependency(transaction, dep);
+      const directId = registry.has(dependency.specifier)
+        ? dependency.specifier
+        : graph.getStyleModule(dependency.specifier)
+          ? dependency.specifier
+          : undefined;
+      if (directId) {
+        stageResolution(transaction, dependency.runtimeRequest, directId);
+        stageDependency(transaction, directId);
         continue;
       }
 
       const priorResolution =
-        graph.getResolutionHint(id, dep) ?? registry.getResolution(id, dep);
+        graph.getResolutionHint(id, dependency.runtimeRequest) ??
+        registry.getResolution(id, dependency.runtimeRequest);
       if (
         priorResolution &&
         (registry.has(priorResolution) || graph.getStyleModule(priorResolution))
       ) {
-        stageResolution(transaction, dep, priorResolution);
+        stageResolution(
+          transaction,
+          dependency.runtimeRequest,
+          priorResolution
+        );
         stageDependency(transaction, priorResolution);
         continue;
       }
 
-      const aliasId = getPreloadAliasMap()[dep];
+      const aliasId = getPreloadAliasMap()[dependency.specifier];
       if (aliasId && registry.has(aliasId)) {
+        stageResolution(transaction, dependency.runtimeRequest, aliasId);
         stageDependency(transaction, aliasId);
         continue;
       }
 
-      toFetch.push({ dep, isBare: isBareImport(dep) });
+      toFetch.push({
+        dependency,
+        isBare: isBareImport(dependency.specifier),
+      });
     }
 
     const fetchResults = await Promise.all(
-      toFetch.map(({ dep, isBare }) =>
-        fetchDependency(id, dep, isBare, fetcher, graph.epoch)
+      toFetch.map(({ dependency, isBare }) =>
+        fetchDependency(id, dependency, isBare, fetcher, graph.epoch)
       )
     );
 
@@ -446,25 +483,25 @@ async function loadModuleAsync(
 
     const failed = fetchResults.find((result) => !result.result);
     if (failed) {
-      throw createModuleNotFoundError(failed.dep, id);
+      throw createModuleNotFoundError(failed.dependency.specifier, id);
     }
 
     const loadPromises: Promise<Module>[] = [];
 
     // stage in dependency-list order so successful CSS keeps cascade order
-    for (const { dep, result } of fetchResults) {
+    for (const { dependency, result } of fetchResults) {
       if (!result) {
         continue;
       }
 
       const preloadId = getPreloadAliasMap()[result.fsPath];
       if (preloadId && registry.has(preloadId)) {
-        stageResolution(transaction, dep, preloadId);
+        stageResolution(transaction, dependency.runtimeRequest, preloadId);
         stageDependency(transaction, preloadId);
         continue;
       }
 
-      stageResolution(transaction, dep, result.fsPath);
+      stageResolution(transaction, dependency.runtimeRequest, result.fsPath);
       stageDependency(transaction, result.fsPath);
 
       if (result.css) {
@@ -516,7 +553,7 @@ async function loadModuleAsync(
 async function loadRootModule(
   id: string,
   code: string,
-  dependencies: string[],
+  dependencies: ModuleDependencyInput[],
   fetcher: ModuleFetcher,
   depth: number,
   importChain: string[],
@@ -542,7 +579,7 @@ async function loadRootModule(
 export function loadModule(
   id: string,
   code: string,
-  dependencies: string[],
+  dependencies: ModuleDependencyInput[],
   fetcher: ModuleFetcher,
   depth: number = 0,
   importChain: string[] = [],
@@ -564,7 +601,7 @@ export function loadModule(
 export function loadModuleWithResolutionHints(
   id: string,
   code: string,
-  dependencies: string[],
+  dependencies: ModuleDependencyInput[],
   fetcher: ModuleFetcher,
   resolutionHints: ReadonlyMap<string, string>
 ): Promise<Module> {

@@ -11,6 +11,8 @@ import {
   configureRuntime,
   resetModules,
   type FetchResult,
+  type ModuleDependencyInput,
+  type ModuleDependencyKind,
   type PreloadEntry,
 } from 'mdx-forge/browser';
 
@@ -35,7 +37,8 @@ setModuleFetcher(
   async (
     request: string,
     isBare: boolean,
-    parentId: string
+    parentId: string,
+    kind?: ModuleDependencyKind
   ): Promise<FetchResult | undefined> => {
     // typical flow: RPC to compileTrusted host -> resolve disk module -> transpile
     // return fsPath, code, dependencies & optional CSS in this shape
@@ -54,7 +57,7 @@ setModuleFetcher(
 async function renderEntry(
   code: string,
   entryFilePath: string,
-  dependencies: string[]
+  dependencies: ModuleDependencyInput[]
 ) {
   const Component = await evaluateModuleToComponent(
     code,

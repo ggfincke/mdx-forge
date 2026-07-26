@@ -18,6 +18,7 @@ export class ModuleRegistry {
   private styleCache = new StyleCache();
   private dependencyTracker = new DependencyTracker();
   private provisionalDependencyPins = new Map<string, Set<symbol>>();
+  private retainedResolutionParents = new Set<string>();
 
   // cache generation; bumped at every clear boundary so in-flight loads
   // from an older generation cannot commit stale state
@@ -28,7 +29,9 @@ export class ModuleRegistry {
     // module removal also removes its owned style (tracking + DOM node)
     this.moduleCache.onEvict = (id: string) => {
       this.dependencyTracker.cleanDependentsFor(id);
-      this.dependencyTracker.cleanResolutionMapFor(id);
+      if (!this.retainedResolutionParents.has(id)) {
+        this.dependencyTracker.cleanResolutionMapFor(id);
+      }
       this.styleCache.untrackStyle(id);
     };
     // dependencies of live cached modules never auto-evict (graph coherence)
@@ -106,9 +109,17 @@ export class ModuleRegistry {
 
   // invalidation (coordinated across subsystems)
 
+  // fence old graph commits while preserving unrelated cached state
+  private beginInvalidation(): void {
+    this.cacheGeneration++;
+    this.provisionalDependencyPins.clear();
+    this.moduleCache.clearAllPending();
+  }
+
   // invalidate cached module (for hot reload)
   // clean up all related metadata to prevent memory leaks
   invalidate(id: string): void {
+    this.beginInvalidation();
     // delete from cache; onEvict removes tracker metadata & owned style
     this.moduleCache.delete(id);
     // clean up dependency tracking
@@ -121,12 +132,21 @@ export class ModuleRegistry {
   // invalidate module & all modules that depend on it (cascade)
   // clean up all related metadata to prevent memory leaks
   invalidateWithDependents(id: string): Set<string> {
-    const invalidated = this.dependencyTracker.invalidateWithDependents(id);
+    this.beginInvalidation();
+    const invalidated = this.dependencyTracker.invalidateWithDependents(
+      id,
+      (targetId) => this.moduleCache.has(targetId)
+    );
 
-    // delete all invalidated modules from cache
-    for (const moduleId of invalidated) {
-      this.moduleCache.delete(moduleId);
-      this.moduleCache.clearPending(moduleId);
+    // preserve stable mappings while coordinated deletes fire eviction hooks
+    this.retainedResolutionParents = invalidated;
+    try {
+      for (const moduleId of invalidated) {
+        this.moduleCache.delete(moduleId);
+        this.moduleCache.clearPending(moduleId);
+      }
+    } finally {
+      this.retainedResolutionParents = new Set();
     }
 
     return invalidated;
@@ -169,9 +189,7 @@ export class ModuleRegistry {
     sourceByteLength: number
   ): void {
     this.moduleCache.set(id, module, sourceByteLength);
-    for (const [request, fsPath] of resolutions) {
-      this.dependencyTracker.setResolution(id, request, fsPath);
-    }
+    this.dependencyTracker.replaceResolutions(id, resolutions);
     for (const dependsOnId of dependencies) {
       this.dependencyTracker.addDependency(id, dependsOnId);
     }

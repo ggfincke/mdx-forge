@@ -38,7 +38,7 @@ export function getPrimaryGenericComponentNames(): GenericComponentName[] {
 export function getCanonicalComponentName(
   nameOrAlias: string
 ): string | undefined {
-  if (nameOrAlias in GENERIC_COMPONENTS) {
+  if (Object.hasOwn(GENERIC_COMPONENTS, nameOrAlias)) {
     return nameOrAlias;
   }
 

@@ -20,7 +20,7 @@ export function setHostPreloadCallbacks(callbacks: HostPreloadCallbacks): void {
   hostCallbacks = callbacks;
 }
 
-let preloadAliases: Record<string, string> = {};
+let preloadAliases = Object.create(null) as Record<string, string>;
 let preloadEntriesById = new Map<string, PreloadEntry>();
 
 function syncRuntimeAliases(): void {
@@ -31,11 +31,11 @@ function syncRuntimeAliases(): void {
 function buildAliases(
   entriesById: ReadonlyMap<string, PreloadEntry>
 ): Record<string, string> {
-  const aliases: Record<string, string> = {};
+  const aliases = Object.create(null) as Record<string, string>;
   for (const entry of entriesById.values()) {
     for (const alias of entry.aliases ?? []) {
       const existing = aliases[alias];
-      if (existing && existing !== entry.id) {
+      if (Object.hasOwn(aliases, alias) && existing !== entry.id) {
         throw new Error(
           `Alias collision for "${alias}": ${existing} vs ${entry.id}`
         );

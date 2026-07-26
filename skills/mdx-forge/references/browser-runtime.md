@@ -8,37 +8,41 @@ This domain is browser-only. The runtime evaluates compiled MDX via
 
 ## Exports
 
-| Symbol                              | Kind     | Brief                                          |
-| ----------------------------------- | -------- | ---------------------------------------------- |
-| `evaluateModuleToComponent`         | function | Top-level: compiled MDX → React component      |
-| `loadModule`                        | function | Lower-level module loader                      |
-| `evaluateModule`                    | function | Lower-level: evaluate a loaded module          |
-| `createSyncRequire`                 | function | Build a sync `require` from registry contents  |
-| `setModuleFetcher`                  | function | Register the host's module resolver            |
-| `configureRuntime`                  | function | Set load depth, concurrency, runtime overrides |
-| `registerPreloadEntries`            | function | Append preload entries (incremental)           |
-| `setPreloadEntries`                 | function | Replace preload entries (overwriting)          |
-| `setHostPreloadCallbacks`           | function | Wire host-specific preload behavior            |
-| `registry`                          | object   | Singleton `ModuleRegistry` instance            |
-| `PRELOADED_MODULE_IDS`              | const    | Canonical ids for expected preloads            |
-| `clearInjectedStyles`               | function | Remove all injected styles                     |
-| `resetModules`                      | function | Clear all non-preloaded modules                |
-| `resetDependencies`                 | function | Clear dependency graph but keep cache          |
-| `invalidateModule`                  | function | Remove a single module from cache              |
-| `invalidateModuleWithDependents`    | function | Remove a module + everything depending on it   |
-| `clearAllCaches`                    | function | Hard reset (modules, styles, dependencies)     |
-| `ensureFrameworkShimsLoaded`        | function | Lazy-load shims for a framework                |
-| `ensureGenericShimsLoaded`          | function | Lazy-load specific generic shims               |
-| `Module`                            | type     | Cached module entry                            |
-| `ModuleRuntime`                     | type     | Runtime values injected into evaluated modules |
-| `MDXRuntime`                        | type     | JSX runtime values (no `require`)              |
-| `ModuleFetcher`                     | type     | `setModuleFetcher` callback signature          |
-| `ModuleLoaderConfig`                | type     | `configureRuntime` argument shape              |
-| `FetchResult`                       | type     | Shape returned by `setModuleFetcher` callback  |
-| `HostPreloadCallbacks`              | type     | Host-specific preload hooks                    |
-| `PreloadEntry`                      | type     | Single preload entry                           |
-| `Framework`                         | type     | Framework union (no `generic`)                 |
-| `FrameworkId`                       | type     | `Framework \| 'generic'`                       |
+| Symbol                           | Kind     | Brief                                          |
+| -------------------------------- | -------- | ---------------------------------------------- |
+| `evaluateModuleToComponent`      | function | Top-level: compiled MDX → React component      |
+| `loadModule`                     | function | Lower-level module loader                      |
+| `evaluateModule`                 | function | Lower-level: evaluate a loaded module          |
+| `createSyncRequire`              | function | Build a sync `require` from registry contents  |
+| `setModuleFetcher`               | function | Register the host's module resolver            |
+| `createImportRuntimeRequest`     | function | Build the canonical ESM runtime request        |
+| `configureRuntime`               | function | Set load depth, concurrency, runtime overrides |
+| `registerPreloadEntries`         | function | Append preload entries (incremental)           |
+| `setPreloadEntries`              | function | Replace preload entries (overwriting)          |
+| `setHostPreloadCallbacks`        | function | Wire host-specific preload behavior            |
+| `registry`                       | object   | Singleton `ModuleRegistry` instance            |
+| `PRELOADED_MODULE_IDS`           | const    | Canonical ids for expected preloads            |
+| `clearInjectedStyles`            | function | Remove all injected styles                     |
+| `resetModules`                   | function | Clear all non-preloaded modules                |
+| `resetDependencies`              | function | Clear dependency graph but keep cache          |
+| `invalidateModule`               | function | Remove a single module from cache              |
+| `invalidateModuleWithDependents` | function | Remove a module + everything depending on it   |
+| `clearAllCaches`                 | function | Hard reset (modules, styles, dependencies)     |
+| `ensureFrameworkShimsLoaded`     | function | Lazy-load shims for a framework                |
+| `ensureGenericShimsLoaded`       | function | Lazy-load specific generic shims               |
+| `Module`                         | type     | Cached module entry                            |
+| `ModuleRuntime`                  | type     | Runtime values injected into evaluated modules |
+| `MDXRuntime`                     | type     | JSX runtime values (no `require`)              |
+| `ModuleFetcher`                  | type     | `setModuleFetcher` callback signature          |
+| `ModuleLoaderConfig`             | type     | `configureRuntime` argument shape              |
+| `FetchResult`                    | type     | Shape returned by `setModuleFetcher` callback  |
+| `ModuleDependency`               | type     | Structured dependency identity                 |
+| `ModuleDependencyInput`          | type     | Structured identity or legacy string           |
+| `ModuleDependencyKind`           | type     | `import` or `require` condition                |
+| `HostPreloadCallbacks`           | type     | Host-specific preload hooks                    |
+| `PreloadEntry`                   | type     | Single preload entry                           |
+| `Framework`                      | type     | Framework union (no `generic`)                 |
+| `FrameworkId`                    | type     | `Framework \| 'generic'`                       |
 
 ## Top-level flow
 
@@ -49,14 +53,14 @@ import {
   evaluateModuleToComponent,
 } from 'mdx-forge/browser';
 
-registerPreloadEntries(preloadManifest);   // 1
-setModuleFetcher(hostFetcher);             // 2
+registerPreloadEntries(preloadManifest); // 1
+setModuleFetcher(hostFetcher); // 2
 
 const Component = await evaluateModuleToComponent(
-  code,                                     // from compileTrusted
-  '/preview.mdx',                           // entry path
-  entryDependencies,                        // the entry's direct import specifiers
-);                                          // 3
+  code, // from compileTrusted
+  '/preview.mdx', // entry path
+  entryDependencies // the entry's direct import specifiers
+); // 3
 
 // render Component in your React tree
 ```
@@ -73,7 +77,7 @@ fails synchronously at evaluation time.
 function evaluateModuleToComponent(
   code: string,
   entryFilePath: string,
-  dependencies: string[],
+  dependencies: ModuleDependencyInput[]
 ): Promise<(...args: unknown[]) => unknown>;
 ```
 
@@ -86,12 +90,32 @@ function evaluateModuleToComponent(
   the entry & all transitive deps
 - Returns the module's `default` export, validated to be a function
 
-`dependencies` must list the entry's direct import specifiers (the host
-typically extracts them by walking `import` statements in `code`). Each
-listed dep is fetched up front in parallel; transitive deps come from the
-`dependencies` array of each `FetchResult`. Passing `[]` is only valid
-when every import of the entry is preloaded — unlisted, non-preloaded
-imports fail synchronously when the module evaluates.
+`dependencies` must list the entry's direct requests. Legacy strings remain
+supported and mean `require`; hosts that preserve conditional exports should
+pass structured identities. Each dep is fetched up front in parallel;
+transitive deps come from each `FetchResult.dependencies`. Passing `[]` is
+only valid when every import of the entry is preloaded.
+
+```ts
+const dependencies: ModuleDependencyInput[] = [
+  {
+    specifier: 'conditional-package',
+    kind: 'import',
+    runtimeRequest: createImportRuntimeRequest('conditional-package'),
+  },
+  {
+    specifier: 'conditional-package',
+    kind: 'require',
+    runtimeRequest: 'conditional-package',
+  },
+];
+```
+
+The transformed code must call `require(dependency.runtimeRequest)`. The
+runtime validates this canonical relation before cache lookup or fetch, rejects
+NUL-bearing raw specifiers and conflicting runtime keys, dedupes by
+`(specifier, kind)`, and prefers a structured identity when the same request is
+also present as a legacy string.
 
 ## `loadModule(entryFilePath, code, dependencies, fetcher)`
 
@@ -99,10 +123,10 @@ imports fail synchronously when the module evaluates.
 function loadModule(
   entryFilePath: string,
   code: string,
-  dependencies: string[],
+  dependencies: ModuleDependencyInput[],
   fetcher: ModuleFetcher,
   depth?: number,
-  importChain?: string[],
+  importChain?: string[]
 ): Promise<Module>;
 
 interface Module {
@@ -125,13 +149,24 @@ type ModuleFetcher = (
   request: string,
   isBare: boolean,
   parentId: string,
+  kind?: ModuleDependencyKind
 ) => Promise<FetchResult | undefined>;
 
+type ModuleDependencyKind = 'import' | 'require';
+
+interface ModuleDependency {
+  specifier: string;
+  kind: ModuleDependencyKind;
+  runtimeRequest: string;
+}
+
+type ModuleDependencyInput = string | ModuleDependency;
+
 interface FetchResult {
-  fsPath: string;          // absolute fs path (or virtual id) of the module
-  code: string;            // transpiled JS source
-  dependencies: string[];  // direct deps of this module (for prefetching)
-  css?: string;            // optional CSS to inject alongside the module
+  fsPath: string; // absolute path or virtual id
+  code: string; // transpiled JS source
+  dependencies: ModuleDependencyInput[]; // direct deps for prefetching
+  css?: string; // optional CSS to inject
 }
 ```
 
@@ -139,6 +174,9 @@ interface FetchResult {
 - `isBare` is true for bare specifiers (`'lodash'`), false for relative
 - `parentId` is the resolved id of the importer — use it to anchor relative
   resolution
+- `kind` is `import` or `require` for structured dependencies; it stays
+  `undefined` for legacy string dependencies so existing three-argument
+  fetchers remain compatible
 - Returning `undefined` signals "module not found" — the runtime will
   surface a load error
 
@@ -154,15 +192,15 @@ function registerPreloadEntries(entries: readonly PreloadEntry[]): void;
 // two-arg form targets a caller-supplied ModuleRegistry instance
 function registerPreloadEntries(
   registry: ModuleRegistry,
-  entries: readonly PreloadEntry[],
+  entries: readonly PreloadEntry[]
 ): void;
 
 function setPreloadEntries(entries: readonly PreloadEntry[]): void;
 
 interface PreloadEntry {
-  id: string;             // canonical id (e.g., 'npm://react@18')
-  exports: unknown;       // the actual module exports object
-  aliases?: string[];     // additional names this preload satisfies
+  id: string; // canonical id (e.g., 'npm://react@18')
+  exports: unknown; // the actual module exports object
+  aliases?: string[]; // additional names this preload satisfies
 }
 ```
 
@@ -176,12 +214,12 @@ modules mdx-forge expects to be preloaded:
 
 ```ts
 const PRELOADED_MODULE_IDS = {
-  react:           'npm://react@18',
-  reactDom:        'npm://react-dom@18',
-  reactDomClient:  'npm://react-dom/client@18',
-  jsxRuntime:      'npm://react/jsx-runtime@18',
-  mdxReact:        'npm://@mdx-js/react@3',
-  vscodeLayout:    'npm://vscode-markdown-layout@0.1.0',
+  react: 'npm://react@18',
+  reactDom: 'npm://react-dom@18',
+  reactDomClient: 'npm://react-dom/client@18',
+  jsxRuntime: 'npm://react/jsx-runtime@18',
+  mdxReact: 'npm://@mdx-js/react@3',
+  vscodeLayout: 'npm://vscode-markdown-layout@0.1.0',
 } as const;
 ```
 
@@ -195,11 +233,11 @@ interface HostPreloadCallbacks {
   initPreloadedModules?: (registry: ModuleRegistry, layout: unknown) => void;
   ensureFrameworkShims?: (
     registry: ModuleRegistry,
-    framework: FrameworkId,
+    framework: FrameworkId
   ) => Promise<void>;
   ensureGenericShims?: (
     registry: ModuleRegistry,
-    components: string[],
+    components: string[]
   ) => Promise<void>;
 }
 ```
@@ -212,8 +250,8 @@ shim bundles.
 
 ```ts
 interface ModuleLoaderConfig {
-  maxModuleLoadDepth?: number;        // default: large
-  maxConcurrentFetches?: number;      // default: small
+  maxModuleLoadDepth?: number; // default: large
+  maxConcurrentFetches?: number; // default: small
   preloadAliases?: Record<string, string>;
   runtime?: Partial<MDXRuntime>;
 }
@@ -232,13 +270,13 @@ import aliases, or inject custom JSX runtime values.
 
 ## Invalidation primitives
 
-| Function                               | Effect                                         |
-| -------------------------------------- | ---------------------------------------------- |
-| `resetModules()`                       | Drop all non-preloaded modules + clear styles  |
-| `resetDependencies()`                  | Drop dependency graph; keep module cache       |
-| `invalidateModule(id)`                 | Drop one module                                |
-| `invalidateModuleWithDependents(id)`   | Drop module + every dependent (returns Set)    |
-| `clearAllCaches()`                     | Hard reset (modules, styles, deps, preloads)   |
+| Function                             | Effect                                        |
+| ------------------------------------ | --------------------------------------------- |
+| `resetModules()`                     | Drop all non-preloaded modules + clear styles |
+| `resetDependencies()`                | Drop dependency graph; keep module cache      |
+| `invalidateModule(id)`               | Drop one module                               |
+| `invalidateModuleWithDependents(id)` | Drop module + every dependent (returns Set)   |
+| `clearAllCaches()`                   | Hard reset (modules, styles, deps, preloads)  |
 
 `evaluateModuleToComponent` does the right thing automatically:
 
@@ -275,7 +313,7 @@ awaits any pending shim load before evaluating. Typical pattern:
 3. Host calls `evaluateModuleToComponent(...)` — shim loads complete first
 
 Race-free: a new shim load started during an in-flight evaluation will be
-awaited by the *next* evaluation.
+awaited by the _next_ evaluation.
 
 ## Security caveats
 
