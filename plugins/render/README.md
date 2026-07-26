@@ -71,17 +71,18 @@ gap is a pending deliberate release step, gated on `check:plugin-compat`.
 
 ## Tool: `render_mdx`
 
-| Param       | Type                                                              | Default       |
-| ----------- | ----------------------------------------------------------------- | ------------- |
-| `source`    | string (MDX)                                                      | required      |
-| `framework` | `'generic' \| 'docusaurus' \| 'starlight' \| 'nextra' \| 'nextjs'` | `'generic'`   |
-| `mode`      | `'safe' \| 'trusted'`                                             | `'safe'`      |
-| `screenshot`| boolean                                                           | `false`       |
-| `theme`     | `'light' \| 'dark'`                                               | `'light'`     |
-| `viewport`  | `{ width?, height? }`                                             | `1024 x 768`  |
-| `inlineHtml`| boolean                                                           | `false`       |
+| Param        | Type                                                               | Default      |
+| ------------ | ------------------------------------------------------------------ | ------------ |
+| `source`     | string (MDX)                                                       | required     |
+| `framework`  | `'generic' \| 'docusaurus' \| 'starlight' \| 'nextra' \| 'nextjs'` | `'generic'`  |
+| `mode`       | `'safe' \| 'trusted'`                                              | `'safe'`     |
+| `screenshot` | boolean                                                            | `false`      |
+| `theme`      | `'light' \| 'dark'`                                                | `'light'`    |
+| `viewport`   | `{ width?, height? }`                                              | `1024 x 768` |
+| `inlineHtml` | boolean                                                            | `false`      |
 
 Returns three content blocks:
+
 1. **Lead-in text** with a live preview URL + `file://` fallback.
 2. **PNG screenshot** (only when `screenshot: true`).
 3. **Trailing text** with a `### Warnings` section (plain-text
@@ -95,21 +96,22 @@ Returns three content blocks:
 Inputs and outputs are bounded in both the MCP schema and the direct
 `renderMdx()` API; oversized requests are rejected before allocation.
 
-| Budget                     | Constant                    | Default   |
-| -------------------------- | --------------------------- | --------- |
-| Max source size            | `MAX_SOURCE_BYTES`          | 1 MiB     |
-| Max viewport width/height  | `MAX_VIEWPORT_DIMENSION`    | 4000 px   |
-| Max per-variant pixels     | `MAX_VARIANT_PIXELS`        | 10 MP     |
-| Max aggregate pixels       | `MAX_AGGREGATE_PIXELS`      | 48 MP     |
-| Max full-page scroll height| `MAX_FULLPAGE_SCROLL_HEIGHT`| 20000 px  |
-| Max PNG size               | `MAX_PNG_BYTES`             | 8 MiB     |
-| Max response size          | `MAX_RESPONSE_BYTES`        | 24 MiB    |
+| Budget                      | Constant                     | Default  |
+| --------------------------- | ---------------------------- | -------- |
+| Max source size             | `MAX_SOURCE_BYTES`           | 1 MiB    |
+| Max viewport width/height   | `MAX_VIEWPORT_DIMENSION`     | 4000 px  |
+| Max per-variant pixels      | `MAX_VARIANT_PIXELS`         | 10 MP    |
+| Max aggregate pixels        | `MAX_AGGREGATE_PIXELS`       | 48 MP    |
+| Max full-page scroll height | `MAX_FULLPAGE_SCROLL_HEIGHT` | 20000 px |
+| Max PNG size                | `MAX_PNG_BYTES`              | 8 MiB    |
+| Max response size           | `MAX_RESPONSE_BYTES`         | 24 MiB   |
 
 Temp preview artifacts are pruned on server start and after each render
 beyond `MAX_PREVIEW_ARTIFACTS` (50) and `PREVIEW_ARTIFACT_TTL_MS` (24h).
 
 When MDX fails to compile or render, the tool returns `isError: true`
 with a structured payload:
+
 ```json
 {
   "error": {
@@ -120,16 +122,16 @@ with a structured payload:
     "column": 1,
     "message": "Component <Tab> is not in the \"generic\" shim registry."
   },
-  "warnings": [ /* any diagnostics accumulated before the failure */ ]
+  "warnings": [/* any diagnostics accumulated before the failure */]
 }
 ```
 
 ## Tool: `list_components`
 
-| Param       | Type                                                              | Default       |
-| ----------- | ----------------------------------------------------------------- | ------------- |
-| `framework` | `'generic' \| 'docusaurus' \| 'starlight' \| 'nextra' \| 'nextjs'` | `'generic'`   |
-| `name`      | string (component name or alias)                                  | all           |
+| Param       | Type                                                               | Default     |
+| ----------- | ------------------------------------------------------------------ | ----------- |
+| `framework` | `'generic' \| 'docusaurus' \| 'starlight' \| 'nextra' \| 'nextjs'` | `'generic'` |
+| `name`      | string (component name or alias)                                   | all         |
 
 Returns the shim registry as JSON. When `name` is supplied, responds
 with the full spec for that one component (props, required flags, enum
@@ -158,15 +160,15 @@ interface Diagnostic {
     | 'missing-frontmatter'
     | 'unknown-frontmatter'
     | 'invalid-frontmatter-type'
-    | 'runtime-error';
-  severity: 'error' | 'warning';
-  message: string;
-  line?: number;
-  column?: number;
-  component?: string;
-  prop?: string;
-  field?: string;
-  suggestion?: string;
+    | 'runtime-error'
+  severity: 'error' | 'warning'
+  message: string
+  line?: number
+  column?: number
+  component?: string
+  prop?: string
+  field?: string
+  suggestion?: string
 }
 ```
 
@@ -182,6 +184,7 @@ Starlight requires `title`, Docusaurus accepts
 `sidebar_position: number`).
 
 Chat-surface compatibility:
+
 - **Claude Code (CLI)**: click the `file://` URL to open in your browser.
 - **Claude desktop**: same, plus the PNG appears inside the collapsed Result panel.
 - **claude.ai web**: ask Claude to read the preview file and convert it
@@ -209,12 +212,14 @@ per-framework harness bundle is inlined (~650 KB) so the artifact renders
 React interactively on its own without reaching the preview server.
 
 **What's supported:**
+
 - JSX tags for components in the selected framework's shim barrel
   (`<Tabs>`, `<TabItem>`, `<Callout>`, etc.) — resolved at render time
   via `MDXProvider`.
 - Frontmatter, GFM, math, Shiki code highlighting — same as Safe Mode.
 
 **What's not supported:**
+
 - `import` statements for user modules. Use JSX tags directly instead of
   `import Tabs from '@theme/Tabs'`.
 - Framework components that aren't in `mdx-forge/components/{framework}`
@@ -222,7 +227,7 @@ React interactively on its own without reaching the preview server.
 
 **Security boundary:** The headless snapshot runs in a Chromium context
 with all non-`file://` / non-`data:` network requests blocked. The live
-preview, by contrast, runs in *your* browser against `127.0.0.1` with no
+preview, by contrast, runs in _your_ browser against `127.0.0.1` with no
 additional sandboxing — same security posture as any page you visit on
 localhost. Only render MDX you author or trust.
 

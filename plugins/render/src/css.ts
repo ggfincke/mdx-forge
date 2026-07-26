@@ -1,34 +1,38 @@
 // plugins/render/src/css.ts
 // resolve mdx-forge component CSS bundles for package & repo runs
 
-import { access, readFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { FRAMEWORK_IDS } from 'mdx-forge/components/registry';
+import { access, readFile } from 'node:fs/promises'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { FRAMEWORK_IDS } from 'mdx-forge/components/registry'
 
 // generic-inclusive framework id, derived from the core registry tuple
-export type FrameworkId = (typeof FRAMEWORK_IDS)[number];
+export type FrameworkId = (typeof FRAMEWORK_IDS)[number]
 
-const fileCache = new Map<string, string>();
-const bundleCache = new Map<string, string>();
-const __filename = fileURLToPath(import.meta.url);
-const REPO_ROOT = resolve(dirname(__filename), '..', '..', '..');
-const CSS_SUBPATH_PREFIX = 'mdx-forge/components/styles/';
-const TOKENS_SUBPATH = 'mdx-forge/components/styles/tokens.css';
+const fileCache = new Map<string, string>()
+const bundleCache = new Map<string, string>()
+const __filename = fileURLToPath(import.meta.url)
+const REPO_ROOT = resolve(dirname(__filename), '..', '..', '..')
+const CSS_SUBPATH_PREFIX = 'mdx-forge/components/styles/'
+const TOKENS_SUBPATH = 'mdx-forge/components/styles/tokens.css'
 const CSS_IMPORT_PATTERN =
-  /@import\s+(?:url\(\s*)?(?:(['"])([^'"]+)\1|([^'")\s]+))(?:\s*\))?\s*([^;]*);/g;
+  /@import\s+(?:url\(\s*)?(?:(['"])([^'"]+)\1|([^'")\s]+))(?:\s*\))?\s*([^;]*);/g
 
-async function resolveCssPath(subpath: string): Promise<string> {
-  const sourcePath = sourceCssPath(subpath);
-  if (sourcePath && (await fileExists(sourcePath))) {
-    return sourcePath;
+async function resolveCssPath(subpath: string): Promise<string>
+{
+  const sourcePath = sourceCssPath(subpath)
+  if (sourcePath && (await fileExists(sourcePath)))
+  {
+    return sourcePath
   }
-  return fileURLToPath(import.meta.resolve(subpath));
+  return fileURLToPath(import.meta.resolve(subpath))
 }
 
-function sourceCssPath(subpath: string): string | undefined {
-  if (!subpath.startsWith(CSS_SUBPATH_PREFIX)) {
-    return undefined;
+function sourceCssPath(subpath: string): string | undefined
+{
+  if (!subpath.startsWith(CSS_SUBPATH_PREFIX))
+  {
+    return undefined
   }
   return resolve(
     REPO_ROOT,
@@ -36,121 +40,143 @@ function sourceCssPath(subpath: string): string | undefined {
     'components',
     'styles',
     subpath.slice(CSS_SUBPATH_PREFIX.length)
-  );
+  )
 }
 
-async function fileExists(filePath: string): Promise<boolean> {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
+async function fileExists(filePath: string): Promise<boolean>
+{
+  try
+  {
+    await access(filePath)
+    return true
+  }
+  catch
+  {
+    return false
   }
 }
 
-async function readCssFile(filePath: string): Promise<string> {
-  const cached = fileCache.get(filePath);
-  if (cached !== undefined) {
-    return cached;
+async function readCssFile(filePath: string): Promise<string>
+{
+  const cached = fileCache.get(filePath)
+  if (cached !== undefined)
+  {
+    return cached
   }
-  const css = await readFile(filePath, 'utf8');
-  fileCache.set(filePath, css);
-  return css;
+  const css = await readFile(filePath, 'utf8')
+  fileCache.set(filePath, css)
+  return css
 }
 
 // inline a resolved file once per bundle; repeats (incl cycles) emit nothing
 async function inlineCssFile(
   filePath: string,
   emitted: Set<string>
-): Promise<string> {
-  if (emitted.has(filePath)) {
-    return '';
+): Promise<string>
+{
+  if (emitted.has(filePath))
+  {
+    return ''
   }
-  emitted.add(filePath);
-  const css = await readCssFile(filePath);
-  return inlineCssImports(css, filePath, emitted);
+  emitted.add(filePath)
+  const css = await readCssFile(filePath)
+  return inlineCssImports(css, filePath, emitted)
 }
 
 async function inlineCssImports(
   css: string,
   importerPath: string,
   emitted: Set<string>
-): Promise<string> {
-  const chunks: string[] = [];
-  let lastIndex = 0;
+): Promise<string>
+{
+  const chunks: string[] = []
+  let lastIndex = 0
 
-  for (const match of css.matchAll(CSS_IMPORT_PATTERN)) {
-    if (match.index === undefined) {
-      continue;
+  for (const match of css.matchAll(CSS_IMPORT_PATTERN))
+  {
+    if (match.index === undefined)
+    {
+      continue
     }
 
-    chunks.push(css.slice(lastIndex, match.index));
+    chunks.push(css.slice(lastIndex, match.index))
 
-    const specifier = match[2] ?? match[3];
-    const modifiers = match[4]?.trim();
+    const specifier = match[2] ?? match[3]
+    const modifiers = match[4]?.trim()
 
-    if (specifier && !modifiers && shouldInlineImport(specifier)) {
+    if (specifier && !modifiers && shouldInlineImport(specifier))
+    {
       const importedCss = await inlineCssFile(
         resolveCssImport(specifier, importerPath),
         emitted
-      );
-      chunks.push(importedCss);
-    } else {
-      chunks.push(match[0]);
+      )
+      chunks.push(importedCss)
+    }
+    else
+    {
+      chunks.push(match[0])
     }
 
-    lastIndex = match.index + match[0].length;
+    lastIndex = match.index + match[0].length
   }
 
-  chunks.push(css.slice(lastIndex));
-  return chunks.join('');
+  chunks.push(css.slice(lastIndex))
+  return chunks.join('')
 }
 
-function shouldInlineImport(specifier: string): boolean {
+function shouldInlineImport(specifier: string): boolean
+{
   return (
     specifier.startsWith('./') ||
     specifier.startsWith('../') ||
     specifier.startsWith('/') ||
     specifier.startsWith('file://')
-  );
+  )
 }
 
-function resolveCssImport(specifier: string, importerPath: string): string {
-  if (specifier.startsWith('file://')) {
-    return fileURLToPath(specifier);
+function resolveCssImport(specifier: string, importerPath: string): string
+{
+  if (specifier.startsWith('file://'))
+  {
+    return fileURLToPath(specifier)
   }
-  return resolve(dirname(importerPath), specifier);
+  return resolve(dirname(importerPath), specifier)
 }
 
-export async function tokensCss(): Promise<string> {
-  const cached = bundleCache.get(TOKENS_SUBPATH);
-  if (cached !== undefined) {
-    return cached;
+export async function tokensCss(): Promise<string>
+{
+  const cached = bundleCache.get(TOKENS_SUBPATH)
+  if (cached !== undefined)
+  {
+    return cached
   }
   const css = await inlineCssFile(
     await resolveCssPath(TOKENS_SUBPATH),
     new Set<string>()
-  );
-  bundleCache.set(TOKENS_SUBPATH, css);
-  return css;
+  )
+  bundleCache.set(TOKENS_SUBPATH, css)
+  return css
 }
 
 // Next.js has no bundled CSS — consumers bring their own
 // token files are pre-seeded as emitted; tokensCss() owns their emission
 export async function resolveFrameworkCss(
   framework: FrameworkId
-): Promise<string> {
-  if (framework === 'nextjs') {
-    return '';
+): Promise<string>
+{
+  if (framework === 'nextjs')
+  {
+    return ''
   }
-  const subpath = `${CSS_SUBPATH_PREFIX}${framework}.css`;
-  const cached = bundleCache.get(subpath);
-  if (cached !== undefined) {
-    return cached;
+  const subpath = `${CSS_SUBPATH_PREFIX}${framework}.css`
+  const cached = bundleCache.get(subpath)
+  if (cached !== undefined)
+  {
+    return cached
   }
-  const emitted = new Set<string>();
-  await inlineCssFile(await resolveCssPath(TOKENS_SUBPATH), emitted);
-  const css = await inlineCssFile(await resolveCssPath(subpath), emitted);
-  bundleCache.set(subpath, css);
-  return css;
+  const emitted = new Set<string>()
+  await inlineCssFile(await resolveCssPath(TOKENS_SUBPATH), emitted)
+  const css = await inlineCssFile(await resolveCssPath(subpath), emitted)
+  bundleCache.set(subpath, css)
+  return css
 }
