@@ -17,6 +17,9 @@ describe('browser constants contract', () =>
       'npm://react-dom/client@18'
     )
     expect(PRELOADED_MODULE_IDS.jsxRuntime).toBe('npm://react/jsx-runtime@18')
+    expect(PRELOADED_MODULE_IDS.jsxDevRuntime).toBe(
+      'npm://react/jsx-dev-runtime@18'
+    )
     expect(PRELOADED_MODULE_IDS.mdxReact).toBe('npm://@mdx-js/react@3')
     expect(PRELOADED_MODULE_IDS.vscodeLayout).toBe(
       'npm://vscode-markdown-layout@0.1.0'

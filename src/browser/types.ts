@@ -30,6 +30,7 @@ export const PRELOADED_MODULE_IDS = {
   reactDom: 'npm://react-dom@18',
   reactDomClient: 'npm://react-dom/client@18',
   jsxRuntime: 'npm://react/jsx-runtime@18',
+  jsxDevRuntime: 'npm://react/jsx-dev-runtime@18',
   mdxReact: 'npm://@mdx-js/react@3',
   vscodeLayout: 'npm://vscode-markdown-layout@0.1.0',
 } as const
