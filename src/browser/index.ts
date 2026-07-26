@@ -3,7 +3,11 @@
 
 import { registry } from './registry/ModuleRegistry';
 import { clearInjectedStyles } from './styles/injectStyles';
-import { loadModule } from './loader/loadModule';
+import {
+  loadModule,
+  loadModuleWithResolutionHints,
+  resetModuleLoaderCoordination,
+} from './loader/loadModule';
 import {
   initPreloadedModules,
   fallbackLayoutModule,
@@ -48,6 +52,7 @@ let preloadedModulesInitialized = false;
 let pendingFrameworkShimLoad: Promise<void> | null = null;
 let pendingGenericShimLoad: Promise<void> | null = null;
 let activeFetcher: ModuleFetcher | null = null;
+let preloadEpoch = 0;
 
 // configure module loader behavior
 export function configureRuntime(config: ModuleLoaderConfig): void {
@@ -72,6 +77,7 @@ let lastEntryPath: string | null = null;
 
 // clear all modules except preloaded ones - called when entry file changes to ensure fresh state
 export function resetModules(): void {
+  resetModuleLoaderCoordination();
   registry.clearNonPreloaded();
   clearInjectedStyles();
 }
@@ -93,6 +99,10 @@ export function invalidateModuleWithDependents(id: string): Set<string> {
 
 // clear all caches (modules, styles, dependencies) - called by manual cache refresh command
 export function clearAllCaches(): void {
+  preloadEpoch++;
+  pendingFrameworkShimLoad = null;
+  pendingGenericShimLoad = null;
+  resetModuleLoaderCoordination();
   registry.clear();
   clearInjectedStyles();
   lastEntryPath = null;
@@ -104,7 +114,11 @@ export function ensureFrameworkShimsLoaded(framework: Framework): void {
   // ensure preloaded modules are ready first
   ensurePreloadedModules();
   // store the promise so evaluateModuleToComponent can await it
-  pendingFrameworkShimLoad = ensureFrameworkShims(registry, framework);
+  const epoch = preloadEpoch;
+  pendingFrameworkShimLoad = guardPreloadEpoch(
+    ensureFrameworkShims(registry, framework),
+    epoch
+  );
 }
 
 // load specific generic shims on demand - called by RPC handler for conditional preloading
@@ -113,7 +127,25 @@ export function ensureGenericShimsLoaded(components: string[]): void {
   ensurePreloadedModules();
   // store the promise so evaluateModuleToComponent can await it
   // this fixes the race condition where setUsedComponents is called right before updatePreview
-  pendingGenericShimLoad = ensureGenericShims(registry, components);
+  const epoch = preloadEpoch;
+  pendingGenericShimLoad = guardPreloadEpoch(
+    ensureGenericShims(registry, components),
+    epoch
+  );
+}
+
+// superseded shim failures cannot leak into the next cache generation
+async function guardPreloadEpoch(
+  load: Promise<void>,
+  epoch: number
+): Promise<void> {
+  try {
+    await load;
+  } catch (error) {
+    if (epoch === preloadEpoch) {
+      throw error;
+    }
+  }
 }
 
 // fetcher that delegates to host-provided implementation
@@ -167,28 +199,37 @@ export async function evaluateModuleToComponent(
     }
   }
 
+  let retainedResolutions: Map<string, string> | undefined;
+
   // determine if we need full reset or incremental invalidation
   if (lastEntryPath !== entryFilePath) {
     // entry file changed - full reset required
     resetModules();
     lastEntryPath = entryFilePath;
   } else {
-    // same entry file - incremental invalidation
-    // invalidate entry & all modules that depend on it
+    retainedResolutions = new Map();
+    for (const dependency of dependencies) {
+      const resolvedId = registry.getResolution(entryFilePath, dependency);
+      if (resolvedId && registry.has(resolvedId)) {
+        retainedResolutions.set(dependency, resolvedId);
+      }
+    }
+
+    // same-entry refresh retains dependency modules, graph edges, & owned styles
+    // invalidation still removes the entry's committed metadata before reloading
     registry.invalidateWithDependents(entryFilePath);
-    // clear dependency graph (will be rebuilt during load)
-    resetDependencies();
-    // clear injected styles (will be re-injected)
-    clearInjectedStyles();
   }
 
   // load the entry module & all dependencies
-  const module = await loadModule(
-    entryFilePath,
-    code,
-    dependencies,
-    rpcFetcher
-  );
+  const module = retainedResolutions
+    ? await loadModuleWithResolutionHints(
+        entryFilePath,
+        code,
+        dependencies,
+        rpcFetcher,
+        retainedResolutions
+      )
+    : await loadModule(entryFilePath, code, dependencies, rpcFetcher);
 
   // get the default export (MDX component)
   const moduleExports = module.exports as Record<string, unknown>;

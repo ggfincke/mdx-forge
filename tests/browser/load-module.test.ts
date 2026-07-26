@@ -111,6 +111,69 @@ describe('loadModule', () => {
     expect(registry.getStats().pending).toBe(0);
   });
 
+  it('rejects cross-branch pending cycles instead of deadlocking', async () => {
+    const fetcher = vi.fn(
+      async (
+        request: string,
+        _isBare: boolean,
+        parentId: string
+      ): Promise<FetchResult | undefined> => {
+        const modules: Record<string, FetchResult> = {
+          '/a.js\0./b': {
+            fsPath: '/b.js',
+            code: 'module.exports = {};',
+            dependencies: ['./c'],
+          },
+          '/a.js\0./c': {
+            fsPath: '/c.js',
+            code: 'module.exports = {};',
+            dependencies: ['./b'],
+          },
+          '/b.js\0./c': {
+            fsPath: '/c.js',
+            code: 'module.exports = {};',
+            dependencies: ['./b'],
+          },
+          '/c.js\0./b': {
+            fsPath: '/b.js',
+            code: 'module.exports = {};',
+            dependencies: ['./c'],
+          },
+        };
+        return modules[`${parentId}\0${request}`];
+      }
+    );
+
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const timeoutGuard = new Promise<never>((_resolve, reject) => {
+      timeout = setTimeout(() => reject(new Error('cycle timed out')), 1_000);
+    });
+
+    try {
+      await expect(
+        Promise.race([
+          loadModule(
+            '/a.js',
+            'module.exports = {};',
+            ['./b', './c'],
+            fetcher
+          ),
+          timeoutGuard,
+        ])
+      ).rejects.toMatchObject({
+        data: {
+          code: 'CIRCULAR_DEPENDENCY',
+        },
+      });
+    } finally {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    }
+
+    expect(registry.getStats().pending).toBe(0);
+  });
+
   it('shares non-circular pending loads across dependency branches', async () => {
     const fetcher = vi.fn(
       async (request: string): Promise<FetchResult | undefined> => {
@@ -134,6 +197,44 @@ describe('loadModule', () => {
     const exports = module.exports as { value: string };
 
     expect(exports.value).toBe('sharedshared');
+  });
+
+  it('discards metadata staged by a parent that fails evaluation', async () => {
+    const fetcher = vi.fn(
+      async (request: string): Promise<FetchResult | undefined> => {
+        if (request === './b') {
+          return {
+            fsPath: '/b.js',
+            code: 'module.exports = { value: "b" };',
+            dependencies: [],
+          };
+        }
+        return undefined;
+      }
+    );
+
+    await expect(
+      loadModule(
+        '/a.js',
+        'require("./b"); throw new Error("parent failed");',
+        ['./b'],
+        fetcher
+      )
+    ).rejects.toMatchObject({
+      data: { code: 'EVALUATION_FAILED' },
+    });
+
+    const retried = await loadModule(
+      '/a.js',
+      'module.exports = { ok: true };',
+      [],
+      fetcher
+    );
+    const invalidated = registry.invalidateWithDependents('/b.js');
+
+    expect(invalidated).toEqual(new Set(['/b.js']));
+    expect(registry.get('/a.js')).toBe(retried);
+    expect(registry.getStats().resolutions).toBe(0);
   });
 
   it('injects full MDX runtime (Fragment/jsx/jsxs/jsxDEV/useMDXComponents) + require', async () => {

@@ -3,7 +3,7 @@
 
 // @vitest-environment jsdom
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   clearAllCaches,
   configureRuntime,
@@ -13,6 +13,8 @@ import {
   registry,
   setModuleFetcher,
   setHostPreloadCallbacks,
+  registerPreloadEntries,
+  setPreloadEntries,
 } from '../../src/browser/index';
 import { getModuleLoaderConfig } from '../../src/browser/internal/runtime-config';
 import type { FetchResult } from '../../src/browser/types';
@@ -53,6 +55,10 @@ beforeEach(() => {
     },
   });
   setModuleFetcher(async () => undefined);
+});
+
+afterEach(() => {
+  setPreloadEntries([]);
 });
 
 describe('shim load generations (T3)', () => {
@@ -112,6 +118,30 @@ describe('shim load generations (T3)', () => {
       []
     );
     expect(typeof component).toBe('function');
+  });
+
+  it('ignores superseded shim commits after a hard cache reset', async () => {
+    const gate = deferred();
+    setHostPreloadCallbacks({
+      ensureGenericShims: async (shimRegistry) => {
+        await gate.promise;
+        shimRegistry.preload('/stale-shim.js', { stale: true });
+      },
+    });
+
+    ensureGenericShimsLoaded(['Stale']);
+    clearAllCaches();
+
+    const component = await evaluateModuleToComponent(
+      COMPONENT_CODE,
+      '/entry.mdx',
+      []
+    );
+    expect(typeof component).toBe('function');
+
+    gate.resolve();
+    await flushMicrotasks();
+    expect(registry.has('/stale-shim.js')).toBe(false);
   });
 });
 
@@ -174,6 +204,86 @@ describe('cache generations (T3)', () => {
     );
     expect((fresh.exports as { ok: boolean }).ok).toBe(true);
     expect(registry.getStats().modules).toBe(1);
+  });
+
+  it('does not reuse a pre-clear fetch in a fresh generation', async () => {
+    const staleGate = deferred<FetchResult | undefined>();
+    const freshGate = deferred<FetchResult | undefined>();
+    const staleFetcher = vi.fn(() => staleGate.promise);
+    const freshFetcher = vi.fn(() => freshGate.promise);
+    const entryCode =
+      'module.exports = { value: require("./dep").value };';
+
+    const staleLoad = loadModule(
+      '/entry.js',
+      entryCode,
+      ['./dep'],
+      staleFetcher
+    );
+    await flushMicrotasks();
+    clearAllCaches();
+
+    const freshLoad = loadModule(
+      '/entry.js',
+      entryCode,
+      ['./dep'],
+      freshFetcher
+    );
+    freshGate.resolve({
+      fsPath: '/dep.js',
+      code: 'module.exports = { value: "fresh" };',
+      dependencies: [],
+    });
+
+    await expect(freshLoad).resolves.toMatchObject({
+      exports: { value: 'fresh' },
+    });
+    expect(staleFetcher).toHaveBeenCalledTimes(1);
+    expect(freshFetcher).toHaveBeenCalledTimes(1);
+
+    staleGate.resolve({
+      fsPath: '/dep.js',
+      code: 'module.exports = { value: "stale" };',
+      dependencies: [],
+    });
+    await expect(staleLoad).rejects.toMatchObject({
+      data: { code: 'STALE_GENERATION' },
+    });
+    expect(registry.get('/dep.js')?.exports).toEqual({ value: 'fresh' });
+  });
+});
+
+describe('preload registration transactions (T3)', () => {
+  it('leaves the prior batch intact when a new alias collides', () => {
+    registerPreloadEntries([
+      {
+        id: '/stable.js',
+        exports: { stable: true },
+        aliases: ['stable'],
+      },
+    ]);
+
+    expect(() =>
+      registerPreloadEntries([
+        {
+          id: '/partial.js',
+          exports: { partial: true },
+          aliases: ['partial'],
+        },
+        {
+          id: '/collision.js',
+          exports: { collision: true },
+          aliases: ['stable'],
+        },
+      ])
+    ).toThrow('Alias collision');
+
+    expect(getModuleLoaderConfig().preloadAliases).toEqual({
+      stable: '/stable.js',
+    });
+    expect(registry.has('/stable.js')).toBe(true);
+    expect(registry.has('/partial.js')).toBe(false);
+    expect(registry.has('/collision.js')).toBe(false);
   });
 });
 

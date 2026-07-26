@@ -20,47 +20,48 @@ export function setHostPreloadCallbacks(callbacks: HostPreloadCallbacks): void {
   hostCallbacks = callbacks;
 }
 
-// request-specifier -> canonical module ID
-const PRELOAD_ALIASES: Record<string, string> = {};
-
-const preloadEntriesById = new Map<string, PreloadEntry>();
-
-function clearObject(target: Record<string, string>): void {
-  for (const key of Object.keys(target)) {
-    delete target[key];
-  }
-}
+let preloadAliases: Record<string, string> = {};
+let preloadEntriesById = new Map<string, PreloadEntry>();
 
 function syncRuntimeAliases(): void {
-  configureModuleLoader({ preloadAliases: { ...PRELOAD_ALIASES } });
+  configureModuleLoader({ preloadAliases });
 }
 
-function addAliasesForEntry(entry: PreloadEntry): void {
-  for (const alias of entry.aliases ?? []) {
-    const existing = PRELOAD_ALIASES[alias];
-    if (existing && existing !== entry.id) {
-      throw new Error(
-        `Alias collision for "${alias}": ${existing} vs ${entry.id}`
-      );
+// derive aliases from the complete candidate so collisions cannot partially install
+function buildAliases(
+  entriesById: ReadonlyMap<string, PreloadEntry>
+): Record<string, string> {
+  const aliases: Record<string, string> = {};
+  for (const entry of entriesById.values()) {
+    for (const alias of entry.aliases ?? []) {
+      const existing = aliases[alias];
+      if (existing && existing !== entry.id) {
+        throw new Error(
+          `Alias collision for "${alias}": ${existing} vs ${entry.id}`
+        );
+      }
+      aliases[alias] = entry.id;
     }
-    PRELOAD_ALIASES[alias] = entry.id;
   }
+  return aliases;
 }
 
-function registerEntry(entry: PreloadEntry): void {
-  preloadEntriesById.set(entry.id, entry);
-  addAliasesForEntry(entry);
+function replacePreloadState(
+  entriesById: Map<string, PreloadEntry>,
+  aliases: Record<string, string>
+): void {
+  preloadEntriesById = entriesById;
+  preloadAliases = aliases;
+  syncRuntimeAliases();
 }
 
 export function setPreloadEntries(entries: readonly PreloadEntry[]): void {
-  preloadEntriesById.clear();
-  clearObject(PRELOAD_ALIASES);
-
+  const candidateEntries = new Map<string, PreloadEntry>();
   for (const entry of entries) {
-    registerEntry(entry);
+    candidateEntries.set(entry.id, entry);
   }
-
-  syncRuntimeAliases();
+  const candidateAliases = buildAliases(candidateEntries);
+  replacePreloadState(candidateEntries, candidateAliases);
 }
 
 // one-arg form targets the singleton registry (typical standalone hosts)
@@ -82,12 +83,15 @@ export function registerPreloadEntries(
     ? (registryOrEntries as readonly PreloadEntry[])
     : (maybeEntries ?? []);
 
+  const candidateEntries = new Map(preloadEntriesById);
   for (const entry of entries) {
-    registerEntry(entry);
-    registry.preload(entry.id, entry.exports);
+    candidateEntries.set(entry.id, entry);
   }
+  const candidateAliases = buildAliases(candidateEntries);
 
-  syncRuntimeAliases();
+  const batchEntries = new Map(entries.map((entry) => [entry.id, entry]));
+  registry.preloadMany(Array.from(batchEntries.values()));
+  replacePreloadState(candidateEntries, candidateAliases);
 }
 
 export function initPreloadedModules(
@@ -115,7 +119,11 @@ export async function ensureFrameworkShims(
   framework: FrameworkId
 ): Promise<void> {
   if (hostCallbacks.ensureFrameworkShims) {
-    return hostCallbacks.ensureFrameworkShims(registry, framework);
+    const generation = registry.generation;
+    return hostCallbacks.ensureFrameworkShims(
+      createGenerationBoundRegistry(registry, generation),
+      framework
+    );
   }
   // no-op in standalone (host integration provides real implementation)
 }
@@ -125,7 +133,41 @@ export async function ensureGenericShims(
   components: string[]
 ): Promise<void> {
   if (hostCallbacks.ensureGenericShims) {
-    return hostCallbacks.ensureGenericShims(registry, components);
+    const generation = registry.generation;
+    return hostCallbacks.ensureGenericShims(
+      createGenerationBoundRegistry(registry, generation),
+      components
+    );
   }
   // no-op in standalone (host integration provides real implementation)
+}
+
+// stale async shim callbacks may observe the registry but cannot preload into it
+function createGenerationBoundRegistry(
+  registry: ModuleRegistry,
+  generation: number
+): ModuleRegistry {
+  return new Proxy(registry, {
+    get(target, property) {
+      if (property === 'preload') {
+        return (id: string, exports: unknown): void => {
+          if (target.generation === generation) {
+            target.preload(id, exports);
+          }
+        };
+      }
+      if (property === 'preloadMany') {
+        return (
+          entries: readonly { id: string; exports: unknown }[]
+        ): void => {
+          if (target.generation === generation) {
+            target.preloadMany(entries);
+          }
+        };
+      }
+
+      const value = Reflect.get(target, property, target);
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+  });
 }

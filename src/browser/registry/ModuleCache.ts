@@ -15,6 +15,8 @@ interface CacheEntry {
   estimatedSize: number;
 }
 
+const MAX_ESTIMATED_EXPORT_VALUES = 1_000;
+
 // lru configuration options
 export interface ModuleCacheConfig {
   maxModules?: number;
@@ -78,12 +80,29 @@ export class ModuleCache {
   // preload module (for built-in modules like React)
   // preloaded modules are protected from eviction & don't count against limits
   preload(id: string, exports: unknown): void {
-    this.preloadedIds.add(id);
     const estimatedSize = this.estimateExportsSize(exports);
+    this.preloadedIds.add(id);
     this.cache.set(id, {
       module: { id, exports, loaded: true },
       estimatedSize,
     });
+  }
+
+  // estimate a preload batch before installing any of it
+  preloadMany(entries: readonly { id: string; exports: unknown }[]): void {
+    const prepared = entries.map(({ id, exports }) => ({
+      id,
+      exports,
+      estimatedSize: this.estimateExportsSize(exports),
+    }));
+
+    for (const entry of prepared) {
+      this.preloadedIds.add(entry.id);
+      this.cache.set(entry.id, {
+        module: { id: entry.id, exports: entry.exports, loaded: true },
+        estimatedSize: entry.estimatedSize,
+      });
+    }
   }
 
   // get cached module (update lru position)
@@ -103,8 +122,15 @@ export class ModuleCache {
   }
 
   // set module in cache w/ automatic lru eviction
-  set(id: string, module: Module): void {
-    const estimatedSize = this.estimateExportsSize(module.exports);
+  set(id: string, module: Module, sourceByteLength: number = 0): void {
+    const sourceFloor =
+      Number.isFinite(sourceByteLength) && sourceByteLength > 0
+        ? sourceByteLength
+        : 0;
+    const estimatedSize = Math.max(
+      sourceFloor,
+      this.estimateExportsSize(module.exports)
+    );
     this.cache.set(id, { module, estimatedSize });
   }
 
@@ -120,52 +146,59 @@ export class ModuleCache {
     return freedSize;
   }
 
-  // estimate memory size of module exports (rough approximation)
-  // used for memory-aware cache eviction
+  // recursively estimate reachable export values w/ a hard work cap
+  // evaluated source bytes provide the floor for opaque function closures
   private estimateExportsSize(exports: unknown): number {
-    if (exports === null || exports === undefined) {
-      return 8;
-    }
+    const pending: unknown[] = [exports];
+    const visited = new Set<object>();
+    let estimatedSize = 0;
+    let visitedValues = 0;
 
-    if (typeof exports === 'string') {
-      // 2 bytes per char (UTF-16) + object overhead
-      return exports.length * 2 + 40;
-    }
+    while (
+      pending.length > 0 &&
+      visitedValues < MAX_ESTIMATED_EXPORT_VALUES
+    ) {
+      const value = pending.pop();
+      visitedValues++;
 
-    if (typeof exports === 'function') {
-      // rough estimate for function size (source code length if available)
-      const funcString = exports.toString();
-      return funcString.length * 2 + 100;
-    }
+      if (value === null || value === undefined) {
+        estimatedSize += 8;
+        continue;
+      }
 
-    if (typeof exports === 'object') {
-      // rough estimate: traverse one level deep
-      // object overhead
-      let size = 40;
-      const obj = exports as Record<string, unknown>;
-      for (const key in obj) {
-        if (Object.prototype.hasOwnProperty.call(obj, key)) {
-          // key & pointer
-          size += key.length * 2 + 8;
-          const value = obj[key];
-          if (typeof value === 'string') {
-            size += value.length * 2;
-          } else if (typeof value === 'function') {
-            size += value.toString().length * 2 + 100;
-          } else if (typeof value === 'object' && value !== null) {
-            // rough estimate for nested objects
-            size += 200;
-          } else {
-            // primitive
-            size += 8;
-          }
+      if (typeof value === 'string') {
+        estimatedSize += value.length * 2 + 40;
+        continue;
+      }
+
+      if (typeof value === 'function') {
+        estimatedSize += 100;
+        continue;
+      }
+
+      if (typeof value !== 'object') {
+        estimatedSize += 8;
+        continue;
+      }
+
+      if (visited.has(value)) {
+        estimatedSize += 8;
+        continue;
+      }
+      visited.add(value);
+      estimatedSize += 40;
+
+      for (const [key, descriptor] of Object.entries(
+        Object.getOwnPropertyDescriptors(value)
+      )) {
+        estimatedSize += key.length * 2 + 8;
+        if ('value' in descriptor) {
+          pending.push(descriptor.value);
         }
       }
-      return size;
     }
 
-    // primitive
-    return 8;
+    return Math.max(estimatedSize, 8);
   }
 
   // pending fetch management (for circular dependency detection)
@@ -181,7 +214,10 @@ export class ModuleCache {
   }
 
   // clear pending fetch
-  clearPending(id: string): void {
+  clearPending(id: string, promise?: Promise<Module>): void {
+    if (promise && this.pendingFetches.get(id) !== promise) {
+      return;
+    }
     this.pendingFetches.delete(id);
   }
 

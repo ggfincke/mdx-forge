@@ -166,6 +166,53 @@ function nodenextTsconfig(skipLibCheck) {
   );
 }
 
+// generate a probe that reports the exact subpath behind any runtime failure
+function buildRuntimeResolutionProbe(jsSubpaths) {
+  return [
+    '// runtime-resolution.mjs',
+    '// dynamically import every public JS export from the packed artifact',
+    '',
+    `const subpaths = ${JSON.stringify(jsSubpaths, null, 2)};`,
+    'const namespaces = [];',
+    '',
+    'for (const subpath of subpaths) {',
+    '  try {',
+    '    namespaces.push(await import(subpath));',
+    '  } catch (error) {',
+    '    throw new Error(`runtime import failed for "${subpath}"`, {',
+    '      cause: error,',
+    '    });',
+    '  }',
+    '}',
+    '',
+    'if (namespaces.length !== subpaths.length) {',
+    '  throw new Error(',
+    '    `expected ${subpaths.length} namespaces, received ${namespaces.length}`',
+    '  );',
+    '}',
+    '',
+    'for (const [index, namespace] of namespaces.entries()) {',
+    "  if (Object.prototype.toString.call(namespace) !== '[object Module]') {",
+    '    throw new Error(',
+    '      `runtime import for "${subpaths[index]}" did not return an ESM namespace`',
+    '    );',
+    '  }',
+    '}',
+    '',
+  ].join('\n');
+}
+
+function runRuntimeResolutionProbe(consumer, jsSubpaths) {
+  fs.writeFileSync(
+    path.join(consumer, 'runtime-resolution.mjs'),
+    buildRuntimeResolutionProbe(jsSubpaths)
+  );
+  run('node', ['runtime-resolution.mjs'], consumer);
+  console.log(
+    `NodeNext runtime resolution passed (${jsSubpaths.length} JS subpaths)`
+  );
+}
+
 function runNodeNextLeg(workDir, tarballPath, jsSubpaths) {
   console.log('\n=== consumer leg: NodeNext strict typecheck ===');
   const consumer = path.join(workDir, 'consumer-nodenext');
@@ -194,6 +241,7 @@ function runNodeNextLeg(workDir, tarballPath, jsSubpaths) {
     ],
     consumer
   );
+  runRuntimeResolutionProbe(consumer, jsSubpaths);
   fs.writeFileSync(
     path.join(consumer, 'imports.ts'),
     buildImportProbe(jsSubpaths)

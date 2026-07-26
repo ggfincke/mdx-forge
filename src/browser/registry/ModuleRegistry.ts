@@ -17,6 +17,7 @@ export class ModuleRegistry {
   private moduleCache = new ModuleCache();
   private styleCache = new StyleCache();
   private dependencyTracker = new DependencyTracker();
+  private provisionalDependencyPins = new Map<string, Set<symbol>>();
 
   // cache generation; bumped at every clear boundary so in-flight loads
   // from an older generation cannot commit stale state
@@ -32,7 +33,8 @@ export class ModuleRegistry {
     };
     // dependencies of live cached modules never auto-evict (graph coherence)
     this.moduleCache.isDependencyProtected = (id: string) =>
-      this.dependencyTracker.hasDependents(id);
+      this.dependencyTracker.hasDependents(id) ||
+      this.provisionalDependencyPins.has(id);
     // style eviction removes the DOM node; live owning module protects style
     this.styleCache.onEvict = (id: string) =>
       getStyleInjector().removeModuleCss(id);
@@ -60,6 +62,11 @@ export class ModuleRegistry {
     this.moduleCache.preload(id, exports);
   }
 
+  // preload a validated batch after all export sizes are known
+  preloadMany(entries: readonly { id: string; exports: unknown }[]): void {
+    this.moduleCache.preloadMany(entries);
+  }
+
   // get cached module (update access time for lru)
   get(id: string): Module | undefined {
     return this.moduleCache.get(id);
@@ -76,8 +83,8 @@ export class ModuleRegistry {
   }
 
   // set module in cache w/ lru eviction (memory-based + count-based)
-  set(id: string, module: Module): void {
-    this.moduleCache.set(id, module);
+  set(id: string, module: Module, sourceByteLength: number = 0): void {
+    this.moduleCache.set(id, module, sourceByteLength);
   }
 
   // pending fetch operations (delegated to ModuleCache)
@@ -93,8 +100,8 @@ export class ModuleRegistry {
   }
 
   // clear pending fetch
-  clearPending(id: string): void {
-    this.moduleCache.clearPending(id);
+  clearPending(id: string, promise?: Promise<Module>): void {
+    this.moduleCache.clearPending(id, promise);
   }
 
   // invalidation (coordinated across subsystems)
@@ -130,6 +137,44 @@ export class ModuleRegistry {
   // record that moduleId depends on dependsOnId
   addDependency(moduleId: string, dependsOnId: string): void {
     this.dependencyTracker.addDependency(moduleId, dependsOnId);
+  }
+
+  // pin a future dependency before its recursive load can trigger eviction
+  protectProvisionalDependency(id: string): symbol {
+    const token = Symbol(id);
+    const pins = this.provisionalDependencyPins.get(id) ?? new Set<symbol>();
+    pins.add(token);
+    this.provisionalDependencyPins.set(id, pins);
+    return token;
+  }
+
+  // release one parent transaction's provisional dependency ownership
+  releaseProvisionalDependency(id: string, token: symbol): void {
+    const pins = this.provisionalDependencyPins.get(id);
+    if (!pins) {
+      return;
+    }
+    pins.delete(token);
+    if (pins.size === 0) {
+      this.provisionalDependencyPins.delete(id);
+    }
+  }
+
+  // commit staged graph metadata & the module without yielding between writes
+  commitModule(
+    id: string,
+    module: Module,
+    dependencies: ReadonlySet<string>,
+    resolutions: ReadonlyMap<string, string>,
+    sourceByteLength: number
+  ): void {
+    this.moduleCache.set(id, module, sourceByteLength);
+    for (const [request, fsPath] of resolutions) {
+      this.dependencyTracker.setResolution(id, request, fsPath);
+    }
+    for (const dependsOnId of dependencies) {
+      this.dependencyTracker.addDependency(id, dependsOnId);
+    }
   }
 
   // clear the dependency graph (but keep module cache)
@@ -168,6 +213,11 @@ export class ModuleRegistry {
 
   // clear injected styles tracking
   clearInjectedStyles(): void {
+    for (const id of this.styleCache.getIds()) {
+      if (this.moduleCache.has(id)) {
+        this.invalidateWithDependents(id);
+      }
+    }
     this.styleCache.clear();
   }
 
@@ -177,6 +227,7 @@ export class ModuleRegistry {
   // clear tracker first so per-module onEvict cleanup runs on empty maps
   clearNonPreloaded(): void {
     this.cacheGeneration++;
+    this.provisionalDependencyPins.clear();
     this.dependencyTracker.clear();
     this.moduleCache.clearNonPreloaded();
   }
@@ -184,6 +235,7 @@ export class ModuleRegistry {
   // clear all cached modules & metadata
   clear(): void {
     this.cacheGeneration++;
+    this.provisionalDependencyPins.clear();
     this.moduleCache.clear();
     this.styleCache.clear();
     this.dependencyTracker.clear();

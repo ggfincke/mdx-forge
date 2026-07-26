@@ -87,6 +87,45 @@ describe('module dependency cache coherence (T2)', () => {
     expect(a2Exports.b.token).toBe('v2');
     expectNoOrphanedDependent();
   });
+
+  it('pins sibling dependencies until the parent commits at maxModules 1', async () => {
+    registry.configureLRU({ maxModules: 1 });
+    const fetcher = vi.fn(
+      async (request: string): Promise<FetchResult | undefined> => {
+        if (request === './b') {
+          return {
+            fsPath: '/b.js',
+            code: 'module.exports = { value: "b" };',
+            dependencies: [],
+          };
+        }
+        if (request === './c') {
+          return {
+            fsPath: '/c.js',
+            code: 'module.exports = { value: "c" };',
+            dependencies: [],
+          };
+        }
+        return undefined;
+      }
+    );
+    const code = [
+      'const b = require("./b");',
+      'const c = require("./c");',
+      'module.exports = { value: b.value + c.value };',
+    ].join('\n');
+
+    const module = await loadModule(
+      '/entry.js',
+      code,
+      ['./b', './c'],
+      fetcher
+    );
+
+    expect(module.exports).toEqual({ value: 'bc' });
+    expect(registry.has('/b.js')).toBe(true);
+    expect(registry.has('/c.js')).toBe(true);
+  });
 });
 
 describe('CSS cache coherence (T2)', () => {
@@ -143,5 +182,45 @@ describe('CSS cache coherence (T2)', () => {
     expect(nodes).toHaveLength(1);
     expect(nodes[0].textContent).toContain('blue');
     expect(nodes[0].textContent).not.toContain('red');
+  });
+
+  it('rolls back staged CSS when a sibling module fails', async () => {
+    const fetcher = vi.fn(
+      async (request: string): Promise<FetchResult | undefined> => {
+        if (request === './theme.css') {
+          return {
+            fsPath: '/theme.css',
+            code: '',
+            dependencies: [],
+            css: 'body { color: red; }',
+          };
+        }
+        if (request === './bad') {
+          return {
+            fsPath: '/bad.js',
+            code: 'throw new Error("bad sibling");',
+            dependencies: [],
+          };
+        }
+        return undefined;
+      }
+    );
+
+    await expect(
+      loadModule(
+        '/entry.js',
+        'module.exports = {};',
+        ['./theme.css', './bad'],
+        fetcher
+      )
+    ).rejects.toMatchObject({
+      data: { code: 'EVALUATION_FAILED' },
+    });
+
+    expect(styleNodes('/theme.css')).toHaveLength(0);
+    expect(registry.has('/theme.css')).toBe(false);
+    expect(registry.hasInjectedStyle('/theme.css')).toBe(false);
+    expect(registry.getStats().resolutions).toBe(0);
+    expect(registry.getStats().dependents).toBe(0);
   });
 });

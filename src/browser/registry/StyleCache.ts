@@ -55,6 +55,11 @@ export class StyleCache {
     return this.cache.size;
   }
 
+  // snapshot tracked IDs before coordinated invalidation mutates the cache
+  getIds(): string[] {
+    return Array.from(this.cache.keys());
+  }
+
   // track injected CSS for module; capacity eviction fires onEvict
   trackStyle(id: string, css: string): void {
     this.cache.set(id, { css });
@@ -65,8 +70,10 @@ export class StyleCache {
     this.cache.delete(id);
   }
 
-  // clear all style tracking w/o firing onEvict (bulk DOM clear is separate)
+  // clear tracking through eviction so registry-only callers also remove DOM
   clear(): void {
-    this.cache.clear();
+    for (const id of this.getIds()) {
+      this.cache.delete(id);
+    }
   }
 }
