@@ -36,7 +36,8 @@ import {
   type SafeDocumentJsonValue,
 } from './types'
 
-const parser = unified().use(remarkParse).use(remarkGfm).use(remarkMdx)
+const markdownParser = unified().use(remarkParse).use(remarkGfm)
+const mdxParser = unified().use(remarkParse).use(remarkGfm).use(remarkMdx)
 const UTF8_ENCODER = new TextEncoder()
 
 export async function compileSafeDocument(
@@ -95,6 +96,8 @@ export async function compileSafeDocument(
   {
     try
     {
+      const parser =
+        normalizedOptions.format === 'md' ? markdownParser : mdxParser
       tree = parser.parse(content) as unknown as SafeDocumentMdastNode
     }
     catch (error)

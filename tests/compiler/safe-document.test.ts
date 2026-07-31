@@ -197,6 +197,51 @@ describe('compileSafeDocument()', () =>
     ).rejects.toThrowError(new TypeError('source must be a string'))
   })
 
+  it('defaults to strict MDX parsing and keeps explicit mdx equivalent', async () =>
+  {
+    const source = 'Onboard a new tester in <1 day.\n'
+    const omitted = await compileSafeDocument(source)
+    const explicit = await compileSafeDocument(source, { format: 'mdx' })
+
+    expect(omitted).toEqual(explicit)
+    expect(omitted.root.children).toEqual([])
+    expect(omitted.diagnostics).toMatchObject([
+      { code: DIAGNOSTIC_CODES.MDX_PARSE_ERROR },
+    ])
+  })
+
+  it('treats CommonMark less-than text literally in Markdown mode', async () =>
+  {
+    const document = await compileSafeDocument(
+      'Onboard a new tester in <1 day.\n',
+      { format: 'md' }
+    )
+
+    expect(document.root.children).toMatchObject([
+      {
+        type: 'element',
+        tag: 'p',
+        children: [{ type: 'text', value: 'Onboard a new tester in <1 day.' }],
+      },
+    ])
+    expect(document.diagnostics).toEqual([])
+  })
+
+  it('keeps Markdown raw HTML fail-closed', async () =>
+  {
+    const document = await compileSafeDocument(
+      '<script>globalThis.__mdxForgeExecuted = true</script>\n\n<div>text</div>',
+      { format: 'md' }
+    )
+
+    expect(document.root.children).toEqual([])
+    expect(document.diagnostics).toMatchObject([
+      { code: DIAGNOSTIC_CODES.UNSUPPORTED_RAW_HTML },
+      { code: DIAGNOSTIC_CODES.UNSUPPORTED_RAW_HTML },
+    ])
+    expect(JSON.stringify(document)).not.toContain('__mdxForgeExecuted')
+  })
+
   it('rejects executable data, schema bypasses & unsafe frontmatter', async () =>
   {
     const sentinel = '__mdxForgeSafeDocumentExecuted'
