@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-07-31
+
+### Added
+
+- **Safe Document Markdown format**: `compileSafeDocument()` accepts an explicit `format: "md" | "mdx"` option so hosts can compile plain Markdown without the MDX parser while retaining GFM, closed JSON output, source ranges, budgets, URL policy, and fail-closed raw HTML handling. Omitting the option preserves the existing strict MDX behavior
+
 ## [0.9.1] - 2026-07-26
 
 ### Added
