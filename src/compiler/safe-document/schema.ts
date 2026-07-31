@@ -28,10 +28,24 @@ export function normalizeSafeDocumentOptions(
   assertKnownKeys(options, [
     'allowUrl',
     'components',
+    'format',
     'rawHtml',
     'unknownComponents',
   ])
   const normalized = safeRecord<SafeDocumentCompileOptions>()
+  const format = ownDataValue(options, 'format', 'options.format')
+  if (format === undefined)
+  {
+    normalized.format = 'mdx'
+  }
+  else if (format === 'md' || format === 'mdx')
+  {
+    normalized.format = format
+  }
+  else
+  {
+    throw new TypeError('format must be md or mdx')
+  }
   const unknownComponents = ownDataValue(
     options,
     'unknownComponents',

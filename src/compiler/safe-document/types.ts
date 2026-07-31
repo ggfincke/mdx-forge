@@ -246,6 +246,7 @@ export interface SafeDocumentUrlContext
 
 export interface SafeDocumentCompileOptions
 {
+  format?: 'md' | 'mdx'
   components?: Readonly<Record<string, SafeDocumentComponentSchema>>
   unknownComponents?: SafeDocumentUnknownComponentPolicy
   rawHtml?: SafeDocumentRawHtmlPolicy
