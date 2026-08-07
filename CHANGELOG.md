@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-08-07
+
+### Changed
+
+- **Dependencies**: Refresh the core Shiki packages to 4.4.2 and current root development tooling, including Vite 8.2.1, Playwright 1.62.1, jsdom 30.0.1, lint-staged 17.3.0, ESLint 10.8.0, and current React/Node types; update the render plugin to `@modelcontextprotocol/sdk` 1.30.0, `mdx-forge` ^0.10.0, Playwright 1.62.1, and current React/Node types
+
+### Fixed
+
+- **Render-plugin browser compatibility**: Keep the root and render-plugin Playwright installations on the same 1.62.1 browser revision so repository tests and plugin screenshot capture resolve the installed Chromium executable consistently
+
+### Security
+
+- **Dependency advisory fixes**: Refresh transitive `brace-expansion`, `js-yaml`, `@hono/node-server`, `fast-uri`, `hono`, and `ip-address` releases so both the root and render-plugin dependency trees report zero npm audit vulnerabilities
+
 ## [0.10.0] - 2026-07-31
 
 ### Added
