@@ -32,6 +32,10 @@ export type FileTreeProps = HTMLAttributes<HTMLUListElement> & {
   children: ReactNode
 }
 
+type NamedComponent<Props> = ((props: Props) => ReactElement) & {
+  displayName: string
+}
+
 function Folder({
   name,
   defaultOpen = false,
@@ -45,14 +49,15 @@ function Folder({
   )
 }
 
-Folder.displayName = 'NextraFileTreeFolder'
+;(Folder as NamedComponent<FileTreeFolderProps>).displayName =
+  'NextraFileTreeFolder'
 
 function File({ name }: FileTreeFileProps): ReactElement
 {
   return <BaseFileTreeFile name={name} />
 }
 
-File.displayName = 'NextraFileTreeFile'
+;(File as NamedComponent<FileTreeFileProps>).displayName = 'NextraFileTreeFile'
 
 function hasCompoundChildren(children: ReactNode): boolean
 {
@@ -81,8 +86,15 @@ function NextraFileTree({
   )
 }
 
-NextraFileTree.displayName = 'NextraFileTree'
+;(NextraFileTree as NamedComponent<FileTreeProps>).displayName =
+  'NextraFileTree'
 
-export const FileTree = Object.assign(NextraFileTree, { Folder, File })
+export const FileTree: NamedComponent<FileTreeProps> & {
+  Folder: NamedComponent<FileTreeFolderProps>
+  File: NamedComponent<FileTreeFileProps>
+} = Object.assign(NextraFileTree as NamedComponent<FileTreeProps>, {
+  Folder: Folder as NamedComponent<FileTreeFolderProps>,
+  File: File as NamedComponent<FileTreeFileProps>,
+})
 
 export default FileTree
