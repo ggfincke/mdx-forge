@@ -1,10 +1,16 @@
 // tests/compiler/trusted-codegen.test.ts
-// t4: Trusted codegen hygiene (F6) & real default-export detection (F7)
+// trusted compiler codegen hygiene & default-export regression tests
 
 import { describe, it, expect } from 'vitest'
 import { build, transform } from 'esbuild'
+import React from 'react'
+import { Fragment, jsx, jsxs } from 'react/jsx-runtime'
+import { renderToStaticMarkup } from 'react-dom/server'
+import type { ComponentType, ReactNode } from 'react'
 import { compileTrusted } from '../../src/compiler/index'
+import { evaluateModule } from '../../src/browser/eval/evaluateModule'
 import type { CompilerConfig } from '../../src/compiler/index'
+import type { ModuleRuntime } from '../../src/browser/types'
 
 // create library-native CompilerConfig
 function createConfig(overrides: Partial<CompilerConfig> = {}): CompilerConfig
@@ -53,6 +59,110 @@ async function bundleModule(code: string): Promise<void>
       },
     ],
   })
+}
+
+// execute emitted code through the browser evaluator w/ deterministic imports
+async function evaluateCompiledModule(
+  code: string
+): Promise<Record<string, unknown>>
+{
+  const transformed = await transform(code, {
+    loader: 'js',
+    format: 'cjs',
+  })
+  const componentContext = React.createContext<Record<string, unknown>>({})
+  const shortcodeLayout = ({ marker }: { marker?: string }) =>
+    React.createElement(
+      'span',
+      { 'data-shortcode-layout': true, 'data-marker': marker },
+      'shortcode'
+    )
+  const runtimeWrapper = ({ children }: { children?: ReactNode }) =>
+    React.createElement('aside', { 'data-runtime-wrapper': true }, children)
+  const pageLayout = ({
+    children,
+    pageMarker,
+  }: {
+    children?: ReactNode
+    pageMarker?: string
+  }) =>
+  {
+    const components = React.useContext(componentContext)
+    return React.createElement(
+      'main',
+      {
+        'data-page-layout': true,
+        'data-page-marker': pageMarker,
+        'data-provider-layout': components.Layout === shortcodeLayout,
+        'data-provider-wrapper': components.wrapper === runtimeWrapper,
+      },
+      children
+    )
+  }
+  const mdxProvider = ({
+    children,
+    components,
+  }: {
+    children?: ReactNode
+    components?: Record<string, unknown>
+  }) =>
+    React.createElement(
+      componentContext.Provider,
+      { value: components ?? {} },
+      children
+    )
+  const useMdxComponents = () => React.useContext(componentContext)
+  const runtime: ModuleRuntime = {
+    Fragment,
+    jsx,
+    jsxs,
+    useMDXComponents: useMdxComponents,
+    require: (specifier) =>
+    {
+      if (specifier === 'react/jsx-runtime')
+      {
+        return {
+          Fragment: runtime.Fragment,
+          jsx: runtime.jsx,
+          jsxs: runtime.jsxs,
+        }
+      }
+      if (specifier === '@mdx-js/react')
+      {
+        return {
+          MDXProvider: mdxProvider,
+          useMDXComponents: runtime.useMDXComponents,
+        }
+      }
+      if (specifier === 'react')
+      {
+        return React
+      }
+      if (specifier === 'vscode-markdown-layout')
+      {
+        return { createLayout: () => pageLayout }
+      }
+      if (specifier === './page-layout.jsx')
+      {
+        return { __esModule: true, default: pageLayout }
+      }
+      if (specifier === './shortcode-layout.jsx')
+      {
+        return { __esModule: true, default: shortcodeLayout }
+      }
+      if (specifier === './runtime-wrapper.jsx')
+      {
+        return { __esModule: true, default: runtimeWrapper }
+      }
+      if (specifier === './authored-bindings.js')
+      {
+        return { value: null }
+      }
+      throw new Error(`Unexpected compiled import: ${specifier}`)
+    },
+  }
+
+  return evaluateModule(transformed.code, 'trusted-codegen.mdx', runtime)
 }
 
 describe('Trusted codegen hygiene (F6)', () =>
@@ -194,5 +304,137 @@ describe('real default-export detection (F7)', () =>
     )
 
     expect(result.code).not.toContain('vscode-markdown-layout')
+  })
+})
+
+describe('layout wrapping hygiene (F14)', () =>
+{
+  const customAuthoredBindings = `---
+title: F14
+---
+import { value as Layout_2 } from './authored-bindings.js'
+export const \\u004cayout = 1
+export const Layout\\u005f1 = 2
+export const { value: Layout_3 = null, ...Layout_4 } = {}
+export function Layout_5() {}
+export class Layout_6 {}
+export const MDXLayout = 10
+export const MDXLayout_1 = 11
+export const authoredLayoutValue = MDXLayout
+
+# Hi
+`
+  const hostAuthoredBindings = `import { value as createLayout_2 } from './authored-bindings.js'
+export const create\\u004cayout = 1
+export const createLayout\\u005f1 = 2
+export const [createLayout_3 = null, ...createLayout_4] = []
+export function createLayout_5() {}
+export class createLayout_6 {}
+export const MDXLayout = 10
+export const MDXLayout_1 = 11
+export const authoredLayoutValue = MDXLayout
+
+# Hi
+`
+
+  it('aliases a custom layout past authored bindings & evaluates', async () =>
+  {
+    const result = await compileTrusted(
+      customAuthoredBindings,
+      true,
+      createConfig({
+        componentsBuiltins: false,
+        customLayoutFilePath: '/workspace/page-layout.jsx',
+        configFile: {
+          config: {
+            components: {
+              wrapper: './runtime-wrapper.jsx',
+            },
+          },
+          configDir: '/workspace',
+          configPath: '/workspace/.mdx-previewrc.json',
+        },
+        useHostMarkdownStyles: false,
+      })
+    )
+
+    expect(result.code).toMatch(
+      /import Layout_7 from ["']\.\/page-layout\.jsx["']/
+    )
+    expect(result.code).toMatch(/createElement\(_createMdxContent, props\)/)
+    expect(result.code).toContain('"data-source-line": "14"')
+    expect(result.frontmatter).toEqual({ title: 'F14' })
+    await bundleModule(result.code)
+    const evaluated = await evaluateCompiledModule(result.code)
+    expect(evaluated.default).toBeTypeOf('function')
+    expect(evaluated.MDXLayout).toBe(10)
+    expect(evaluated.authoredLayoutValue).toBe(10)
+    const rendered = renderToStaticMarkup(
+      React.createElement(evaluated.default as ComponentType, {
+        pageMarker: 'page',
+      })
+    )
+    expect(rendered).toContain('data-page-layout="true"')
+    expect(rendered).toContain('data-page-marker="page"')
+    expect(rendered).toContain('data-provider-wrapper="true"')
+    expect(rendered).not.toContain('data-runtime-wrapper')
+
+    const componentResult = await compileTrusted(
+      '# Hi\n\n<Layout marker="shortcode" />\n',
+      true,
+      createConfig({
+        componentsBuiltins: false,
+        customLayoutFilePath: '/workspace/page-layout.jsx',
+        configFile: {
+          config: {
+            components: {
+              Layout: './shortcode-layout.jsx',
+              wrapper: './runtime-wrapper.jsx',
+            },
+          },
+          configDir: '/workspace',
+          configPath: '/workspace/.mdx-previewrc.json',
+        },
+        useHostMarkdownStyles: false,
+      })
+    )
+
+    expect(componentResult.code).toMatch(
+      /import Layout_1 from ["']\.\/page-layout\.jsx["']/
+    )
+    expect(componentResult.code).toMatch(
+      /createElement\(_createMdxContent, props\)/
+    )
+    await bundleModule(componentResult.code)
+    const componentModule = await evaluateCompiledModule(componentResult.code)
+    const componentMarkup = renderToStaticMarkup(
+      React.createElement(componentModule.default as ComponentType)
+    )
+    expect(componentMarkup).toContain('data-provider-layout="true"')
+    expect(componentMarkup).toContain('data-shortcode-layout="true"')
+    expect(componentMarkup).toContain('data-marker="shortcode"')
+    expect(componentMarkup).not.toContain('data-runtime-wrapper')
+  })
+
+  it('aliases the host layout factory past authored bindings & evaluates', async () =>
+  {
+    const result = await compileTrusted(
+      hostAuthoredBindings,
+      true,
+      createConfig({
+        componentsBuiltins: false,
+        useHostMarkdownStyles: true,
+      })
+    )
+
+    expect(result.code).toMatch(
+      /import\s*\{\s*createLayout as createLayout_7\s*\}\s*from\s*["']vscode-markdown-layout["']/
+    )
+    expect(result.code).toMatch(/createElement\(_createMdxContent, props\)/)
+    await bundleModule(result.code)
+    const evaluated = await evaluateCompiledModule(result.code)
+    expect(evaluated.default).toBeTypeOf('function')
+    expect(evaluated.MDXLayout).toBe(10)
+    expect(evaluated.authoredLayoutValue).toBe(10)
   })
 })
