@@ -107,6 +107,9 @@ console.log(result.root)
 
 ## Build and Test
 
+Repository development uses Node 24.19.0 and npm 11.17.0. The published
+package retains its Node 22+ runtime floor.
+
 ```bash
 npm run build
 npm run typecheck

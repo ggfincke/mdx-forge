@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // scripts/consumer-matrix.mjs
-// t6 gate: prove the packed artifact from clean consumers - NodeNext types
+// consumer gate: prove the packed artifact from clean consumers - NodeNext types
 
 // both skipLibCheck ways, CSS subpaths, shipped examples, dev app & plugin
 
@@ -235,15 +235,27 @@ function runRuntimeResolutionProbe(consumer, jsSubpaths)
   )
 }
 
-function runNodeNextLeg(workDir, tarballPath, jsSubpaths)
+function runNodeNextLeg(
+  workDir,
+  tarballPath,
+  jsSubpaths,
+  compilerMajor,
+  runRuntimeProbes
+)
 {
-  console.log('\n=== consumer leg: NodeNext strict typecheck ===')
-  const consumer = path.join(workDir, 'consumer-nodenext')
+  console.log(
+    `\n=== consumer leg: NodeNext strict typecheck (TypeScript ${compilerMajor}) ===`
+  )
+  const consumer = path.join(workDir, `consumer-nodenext-ts${compilerMajor}`)
   fs.mkdirSync(consumer, { recursive: true })
   fs.writeFileSync(
     path.join(consumer, 'package.json'),
     JSON.stringify(
-      { name: 'consumer-nodenext', private: true, type: 'module' },
+      {
+        name: `consumer-nodenext-ts${compilerMajor}`,
+        private: true,
+        type: 'module',
+      },
       null,
       2
     )
@@ -257,14 +269,17 @@ function runNodeNextLeg(workDir, tarballPath, jsSubpaths)
       tarballPath,
       'react@^19',
       'react-dom@^19',
-      'typescript@^6',
+      `typescript@^${compilerMajor}`,
       '@types/react@^19',
       '@types/react-dom@^19',
-      '@types/node@^26',
+      '@types/node@^22.20.1',
     ],
     consumer
   )
-  runRuntimeResolutionProbe(consumer, jsSubpaths)
+  if (runRuntimeProbes)
+  {
+    runRuntimeResolutionProbe(consumer, jsSubpaths)
+  }
   fs.writeFileSync(
     path.join(consumer, 'imports.ts'),
     buildImportProbe(jsSubpaths)
@@ -278,9 +293,14 @@ function runNodeNextLeg(workDir, tarballPath, jsSubpaths)
       nodenextTsconfig(skipLibCheck)
     )
     run('npx', ['tsc', '-p', configName], consumer)
-    console.log(`NodeNext typecheck passed (skipLibCheck: ${skipLibCheck})`)
+    console.log(
+      `TypeScript ${compilerMajor} NodeNext typecheck passed (skipLibCheck: ${skipLibCheck})`
+    )
   }
-  runStructuredRuntimeProbe(consumer)
+  if (runRuntimeProbes)
+  {
+    runStructuredRuntimeProbe(consumer)
+  }
   return consumer
 }
 
@@ -464,7 +484,8 @@ try
   )
 
   const tarballPath = packRoot(workDir)
-  const nodenextConsumer = runNodeNextLeg(workDir, tarballPath, js)
+  const nodenextConsumer = runNodeNextLeg(workDir, tarballPath, js, 6, true)
+  runNodeNextLeg(workDir, tarballPath, js, 7, false)
   await runCssLeg(workDir, tarballPath, css)
   runExamplesLeg(nodenextConsumer)
   runDevAppLeg(nodenextConsumer)
