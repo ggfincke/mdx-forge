@@ -3,11 +3,14 @@
 
 import type { Diagnostic } from '../../types'
 import { DIAGNOSTIC_CODES } from '../../types'
-import type { ComponentPropSpec } from '../../../components/registry'
+import {
+  isOpenComponentProp,
+  type ComponentOpenPropsPolicy,
+  type ComponentPropSpec,
+} from '../../../components/registry'
 import type { DetectedAttribute, DetectedComponent } from '../parse'
 
-// standard DOM escape hatches allowed on every component even when undeclared
-const UNIVERSAL_ATTRS = new Set([
+const LEGACY_UNIVERSAL_ATTRS = new Set([
   'className',
   'class',
   'style',
@@ -24,17 +27,25 @@ const UNIVERSAL_ATTRS = new Set([
   'contentEditable',
 ])
 
-// real event-prop grammar: on followed by an uppercase letter (onClick),
-// so names like "only" are validated instead of silently accepted
-const EVENT_PROP = /^on[A-Z]/
+const LEGACY_OPEN_PROPS: ComponentOpenPropsPolicy = {
+  dataAttributes: true,
+  ariaAttributes: true,
+  eventHandlers: true,
+}
 
-function isUniversallyAllowedProp(name: string): boolean
+// preserve the original two-argument rule contract w/o weakening explicit metadata
+function isAllowedOpenProp(
+  name: string,
+  policy: ComponentOpenPropsPolicy | undefined
+): boolean
 {
+  if (policy !== undefined)
+  {
+    return isOpenComponentProp(name, policy)
+  }
   return (
-    UNIVERSAL_ATTRS.has(name) ||
-    name.startsWith('data-') ||
-    name.startsWith('aria-') ||
-    EVENT_PROP.test(name)
+    LEGACY_UNIVERSAL_ATTRS.has(name) ||
+    isOpenComponentProp(name, LEGACY_OPEN_PROPS)
   )
 }
 
@@ -195,8 +206,7 @@ function validatePropValue(
     }
     if (attr.kind === 'expression')
     {
-      const expr = (attr.value ?? '').trim()
-      if (expr !== 'true' && expr !== 'false')
+      if (attr.knownNonBoolean)
       {
         return propDiagnostic(
           DIAGNOSTIC_CODES.INVALID_PROP_VALUE,
@@ -228,7 +238,8 @@ function validatePropValue(
 // order per element: unknown props (attr order), missing required, value checks
 export function analyzeComponentProps(
   component: DetectedComponent,
-  props: readonly ComponentPropSpec[]
+  props: readonly ComponentPropSpec[],
+  openProps?: ComponentOpenPropsPolicy
 ): Diagnostic[]
 {
   const out: Diagnostic[] = []
@@ -247,7 +258,7 @@ export function analyzeComponentProps(
       continue
     }
     byName.set(attr.name, attr)
-    if (known.has(attr.name) || isUniversallyAllowedProp(attr.name))
+    if (known.has(attr.name) || isAllowedOpenProp(attr.name, openProps))
     {
       continue
     }

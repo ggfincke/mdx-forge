@@ -32,24 +32,54 @@ describe('Starlight LinkCard (F18)', () =>
 
   it('external links open a new tab w/ safe rel', () =>
   {
-    const anchor = anchorFor(
-      <LinkCard title="Site" href="https://example.com" />
-    )
+    for (const href of [
+      'https://example.com/a b?q=x y',
+      '//cdn.example.com/a b?q=x y',
+    ])
+    {
+      const anchor = anchorFor(<LinkCard title="Site" href={href} />)
 
-    expect(anchor.getAttribute('target')).toBe('_blank')
-    const rel = anchor.getAttribute('rel') ?? ''
-    expect(rel).toContain('noopener')
-    expect(rel).toContain('noreferrer')
+      expect(anchor.getAttribute('target')).toBe('_blank')
+      const rel = anchor.getAttribute('rel') ?? ''
+      expect(rel).toContain('noopener')
+      expect(rel).toContain('noreferrer')
+    }
   })
 
   it('treats non-HTTP URL schemes as external', () =>
   {
-    const anchor = anchorFor(
-      <LinkCard title="Email" href="mailto:docs@example.com" />
-    )
+    for (const href of [
+      'mailto:docs team@example.com?subject=hello world',
+      'tel:+1 212 555 0100',
+    ])
+    {
+      const anchor = anchorFor(<LinkCard title="Contact" href={href} />)
 
-    expect(anchor.getAttribute('target')).toBe('_blank')
-    expect(anchor.getAttribute('rel')).toBe('noopener noreferrer')
+      expect(anchor.getAttribute('target')).toBe('_blank')
+      expect(anchor.getAttribute('rel')).toBe('noopener noreferrer')
+    }
+  })
+
+  it('keeps repaired or control-bearing URLs in the current tab', () =>
+  {
+    for (const href of [
+      'HTTPS:example.com',
+      'https:/example.com',
+      'https:\\example.com',
+      'http:////example.com',
+      'https://example.com\\@evil.test/path',
+      'https://example.com/path\\child',
+      '//example.com\\path',
+      '//\t/path',
+      'mailto:docs\u001f@example.com',
+      'tel:+1\u007f212',
+    ])
+    {
+      const anchor = anchorFor(<LinkCard title="Invalid" href={href} />)
+
+      expect(anchor.getAttribute('target')).toBeNull()
+      expect(anchor.getAttribute('rel')).toBeNull()
+    }
   })
 
   it('explicit target wins & rel stays untouched w/o _blank', () =>

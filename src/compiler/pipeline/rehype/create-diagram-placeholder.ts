@@ -10,6 +10,9 @@ import { getSourceLineOffset } from './source-line'
 export const DIAGRAM_CODE_CLASS = 'mdx-diagram-code'
 export const DIAGRAM_CODE_LABEL_CLASS = 'mdx-diagram-code-label'
 
+const DIAGRAM_HASH_OFFSET_BASIS = 0x811c9dc5
+const DIAGRAM_HASH_PRIME = 0x01000193
+
 // language alias configuration for a diagram type
 interface LanguageAlias
 {
@@ -74,6 +77,26 @@ function matchLanguage(
   return null
 }
 
+// stable content salt keeps IDs bounded while the ordinal owns local uniqueness
+function createDiagramId(
+  name: string,
+  languageId: string,
+  code: string,
+  ordinal: number
+): string
+{
+  const input = `${languageId}\0${code}`
+  let hash = DIAGRAM_HASH_OFFSET_BASIS
+  for (let index = 0; index < input.length; index += 1)
+  {
+    hash ^= input.charCodeAt(index)
+    hash = Math.imul(hash, DIAGRAM_HASH_PRIME)
+  }
+
+  const contentSalt = (hash >>> 0).toString(36).padStart(7, '0')
+  return `${name}-${contentSalt}-${ordinal.toString(36)}`
+}
+
 function getSourceLine(node: Element, sourceLineOffset: number): string | null
 {
   const fromProperty = node.properties?.['data-source-line']
@@ -133,6 +156,7 @@ export function createDiagramPlaceholder(config: DiagramPlaceholderConfig)
     return (tree: Root, file?: { data: object }) =>
     {
       const sourceLineOffset = getSourceLineOffset(file)
+      let diagramOrdinal = 0
 
       visit(tree, 'element', (node: Element, index, parent) =>
       {
@@ -172,8 +196,13 @@ export function createDiagramPlaceholder(config: DiagramPlaceholderConfig)
           return
         }
 
-        // generate unique ID for this diagram
-        const diagramId = `${config.name}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+        diagramOrdinal += 1
+        const diagramId = createDiagramId(
+          config.name,
+          languageId,
+          code,
+          diagramOrdinal
+        )
 
         // build placeholder properties
         const properties: Record<string, string | string[]> = {

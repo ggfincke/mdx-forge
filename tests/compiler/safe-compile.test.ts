@@ -166,6 +166,34 @@ describe('compileSafe()', () =>
     )
   })
 
+  it('emits stable unique IDs for repeated Mermaid diagrams', async () =>
+  {
+    const source = `\`\`\`mermaid
+graph TD
+  A --> B
+\`\`\`
+
+\`\`\`mermaid
+graph TD
+  A --> B
+\`\`\``
+    const [first, second] = await Promise.all([
+      compileSafe(source, createConfig()),
+      compileSafe(source, createConfig()),
+    ])
+    const readIds = (html: string): string[] =>
+      [...html.matchAll(/data-mermaid-id="([^"]+)"/g)].map((match) => match[1])
+    const firstIds = readIds(first.html)
+    const secondIds = readIds(second.html)
+
+    expect(firstIds).toHaveLength(2)
+    expect(secondIds).toEqual(firstIds)
+    expect(new Set(firstIds).size).toBe(2)
+    expect(firstIds.every((id) => /^[A-Za-z][A-Za-z0-9_-]*$/.test(id))).toBe(
+      true
+    )
+  })
+
   it('converts PlantUML code blocks into placeholders', async () =>
   {
     const result = await compileSafe(

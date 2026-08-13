@@ -43,14 +43,42 @@ describe('Next.js Link shim', () =>
     expect(href).toContain('#results')
   })
 
-  it('sets target=_blank for external https links', () =>
+  it('sets target=_blank for valid external HTTP links', () =>
   {
-    const { container } = render(
-      React.createElement(Link, { href: 'https://example.com' }, 'External')
-    )
-    const anchor = container.querySelector('a')
-    expect(anchor?.getAttribute('target')).toBe('_blank')
-    expect(anchor?.getAttribute('rel')).toBe('noopener noreferrer')
+    for (const href of [
+      'https://example.com',
+      'HTTPS://example.com',
+      'https://example.com/a b?q=x y',
+      'https://example.com/path?q=\\value',
+    ])
+    {
+      const { container } = render(
+        React.createElement(Link, { href }, 'External')
+      )
+      const anchor = container.querySelector('a')
+      expect(anchor?.getAttribute('target')).toBe('_blank')
+      expect(anchor?.getAttribute('rel')).toBe('noopener noreferrer')
+    }
+
+    const customRel = render(
+      React.createElement(
+        Link,
+        { href: 'https://example.com', rel: 'external' },
+        'External'
+      )
+    ).container.querySelector('a')
+    expect(customRel?.getAttribute('target')).toBe('_blank')
+    expect(customRel?.getAttribute('rel')).toBe('external noopener noreferrer')
+
+    const callerTarget = render(
+      React.createElement(
+        Link,
+        { href: 'https://example.com', target: '_self', rel: 'external' },
+        'External'
+      )
+    ).container.querySelector('a')
+    expect(callerTarget?.getAttribute('target')).toBe('_self')
+    expect(callerTarget?.getAttribute('rel')).toBe('external')
   })
 
   it('does not set target=_blank for internal links', () =>
@@ -60,15 +88,67 @@ describe('Next.js Link shim', () =>
     )
     const anchor = container.querySelector('a')
     expect(anchor?.getAttribute('target')).toBeNull()
+
+    const explicitBlank = render(
+      React.createElement(
+        Link,
+        { href: '/internal', target: '_blank', rel: 'external' },
+        'Internal'
+      )
+    ).container.querySelector('a')
+    expect(explicitBlank?.getAttribute('target')).toBe('_blank')
+    expect(explicitBlank?.getAttribute('rel')).toBe(
+      'external noopener noreferrer'
+    )
   })
 
   it('sets target=_blank for protocol-relative links', () =>
   {
-    const { container } = render(
-      React.createElement(Link, { href: '//cdn.example.com/file' }, 'CDN')
+    for (const href of [
+      '//cdn.example.com/file',
+      '//cdn.example.com/a b?q=x y',
+      '//cdn.example.com/path?q=\\value',
+    ])
+    {
+      const { container } = render(React.createElement(Link, { href }, 'CDN'))
+      expect(container.querySelector('a')?.getAttribute('target')).toBe(
+        '_blank'
+      )
+    }
+
+    const malformed = render(
+      React.createElement(Link, { href: '///path' }, 'Malformed')
     )
-    const anchor = container.querySelector('a')
-    expect(anchor?.getAttribute('target')).toBe('_blank')
+    expect(
+      malformed.container.querySelector('a')?.getAttribute('target')
+    ).toBeNull()
+
+    const repaired = render(
+      React.createElement(Link, { href: '//\t/path' }, 'Repaired')
+    )
+    expect(
+      repaired.container.querySelector('a')?.getAttribute('target')
+    ).toBeNull()
+
+    for (const href of [
+      'HTTPS:example.com',
+      'https:/example.com',
+      'https:\\example.com',
+      'http:////example.com',
+      'https://example.com\\@evil.test/path',
+      'https://example.com/path\\child',
+      '//example.com\\path',
+      'https://example.com/a\u001fb',
+      'https://example.com/a\u007fb',
+    ])
+    {
+      const repairedHttp = render(
+        React.createElement(Link, { href }, 'Repaired HTTP')
+      )
+      expect(
+        repairedHttp.container.querySelector('a')?.getAttribute('target')
+      ).toBeNull()
+    }
   })
 
   it('keeps non-HTTP URL schemes in the current tab', () =>

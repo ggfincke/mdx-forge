@@ -7,7 +7,20 @@ import {
   analyzeMdx,
   type DetectedComponent,
 } from '../../src/diagnostics/analyze/index'
+import {
+  COMPONENT_REGISTRY,
+  type ComponentDefinition,
+  type ComponentOpenPropsPolicy,
+  type ComponentRegistryEntry,
+} from '../../src/components/registry/index'
 import { DIAGNOSTIC_CODES } from '../../src/diagnostics/index'
+
+function isComponentEntry(
+  entry: ComponentRegistryEntry
+): entry is ComponentDefinition
+{
+  return entry.kind === 'component'
+}
 
 describe('prop validation via analyzeMdx', () =>
 {
@@ -38,6 +51,62 @@ describe('prop validation via analyzeMdx', () =>
     const src =
       '<Collapsible onClick={fn} data-id="y" aria-label="z" className="c">x</Collapsible>\n'
     expect(analyzeMdx(src, { framework: 'generic' })).toEqual([])
+  })
+
+  it('honors every registry openProps policy for forwarded DOM props', () =>
+  {
+    const forwardedProps =
+      'spellCheck accessKey="k" itemProp="name" slot="body" data-track="x" aria-label="label" onClick={handleClick}'
+
+    for (const entry of COMPONENT_REGISTRY.filter(isComponentEntry))
+    {
+      if (!entry.metadata.openProps)
+      {
+        continue
+      }
+      const diagnostics = analyzeMdx(`<${entry.name} ${forwardedProps} />\n`, {
+        framework: entry.framework,
+      })
+
+      expect(
+        diagnostics.filter(
+          (diagnostic) => diagnostic.code === DIAGNOSTIC_CODES.UNKNOWN_PROP
+        ),
+        `${entry.framework}:${entry.name}`
+      ).toEqual([])
+    }
+  })
+
+  it('accepts unknown boolean expressions but rejects known non-booleans', () =>
+  {
+    const cases = [
+      ['true', false],
+      ['false', false],
+      ['1', true],
+      ['[1, 2]', true],
+      ['{ value: true }', true],
+      ['isOpen', false],
+      ['!!value', false],
+      ['computeOpen()', false],
+      ['[true][0]', false],
+      ['[value][0]', false],
+    ] as const
+
+    for (const [expression, shouldWarn] of cases)
+    {
+      const diagnostics = analyzeMdx(
+        `<Collapsible open={${expression}}>x</Collapsible>\n`,
+        { framework: 'generic' }
+      )
+
+      expect(
+        diagnostics.some(
+          (diagnostic) =>
+            diagnostic.code === DIAGNOSTIC_CODES.INVALID_PROP_VALUE
+        ),
+        expression
+      ).toBe(shouldWarn)
+    }
   })
 
   it('flags invalid enum values with the allowed set', () =>
@@ -120,5 +189,62 @@ describe('analyzeComponentProps rule', () =>
     ])
     expect(diag.code).toBe(DIAGNOSTIC_CODES.DEPRECATED_PROP)
     expect(diag.message).toContain('2.0')
+  })
+
+  it('preserves the public two-argument open-prop contract', () =>
+  {
+    const attributes = [
+      { kind: 'string', name: 'className', value: 'widget' },
+      { kind: 'string', name: 'data-track', value: 'x' },
+      { kind: 'string', name: 'aria-label', value: 'label' },
+      { kind: 'expression', name: 'onClick', value: 'handleClick' },
+    ] as const
+
+    expect(
+      analyzeComponentProps({ ...component, attributes: [...attributes] }, [])
+    ).toEqual([])
+  })
+
+  it('keeps explicit open-prop policy flags selective', () =>
+  {
+    const attributes = [
+      { kind: 'string', name: 'className', value: 'widget' },
+      { kind: 'shorthand', name: 'spellCheck' },
+      { kind: 'string', name: 'data-track', value: 'x' },
+      { kind: 'string', name: 'aria-label', value: 'label' },
+      { kind: 'expression', name: 'onClick', value: 'handleClick' },
+      { kind: 'string', name: 'custom', value: 'x' },
+    ] as const
+    const cases: Array<{
+      policy: ComponentOpenPropsPolicy
+      allowed: readonly string[]
+    }> = [
+      { policy: {}, allowed: [] },
+      { policy: { dom: true }, allowed: ['className', 'spellCheck'] },
+      { policy: { dataAttributes: true }, allowed: ['data-track'] },
+      { policy: { ariaAttributes: true }, allowed: ['aria-label'] },
+      { policy: { eventHandlers: true }, allowed: ['onClick'] },
+      {
+        policy: { unknown: true },
+        allowed: attributes.map((attribute) => attribute.name),
+      },
+    ]
+
+    for (const { policy, allowed } of cases)
+    {
+      const diagnostics = analyzeComponentProps(
+        { ...component, attributes: [...attributes] },
+        [],
+        policy
+      )
+      const rejected = diagnostics.map(
+        (diagnostic) => (diagnostic.data as { propName: string }).propName
+      )
+      const expectedRejected = attributes
+        .map((attribute) => attribute.name)
+        .filter((name) => !allowed.includes(name))
+
+      expect(rejected, JSON.stringify(policy)).toEqual(expectedRejected)
+    }
   })
 })

@@ -2,12 +2,12 @@
 // render-plugin registry facade derived from mdx-forge component identity
 
 import * as coreRegistry from 'mdx-forge/components/registry'
-import { getFrontmatterSchema } from './frontmatter.js'
 import type {
   ComponentKey,
   ComponentMetadata,
   ComponentSpec,
   FrameworkId,
+  PropSpec,
   RegistryIdentity,
 } from './registry-types.js'
 
@@ -15,6 +15,7 @@ export type {
   ChildrenKind,
   ComponentKey,
   ComponentMetadata,
+  ComponentOpenPropsPolicy,
   ComponentSpec,
   FrameworkId,
   FrontmatterField,
@@ -35,6 +36,7 @@ interface CoreAuthoringMetadata
   examples: readonly { code: string }[]
   props: ComponentMetadata['props']
   childrenKind?: ComponentMetadata['childrenKind']
+  openProps?: ComponentMetadata['openProps']
 }
 
 interface CoreComponentDefinition
@@ -114,6 +116,58 @@ function specFromMetadata(entry: CoreComponentDefinition): ComponentSpec
     example: metadata.examples[0]?.code ?? '',
     props: metadata.props,
     childrenKind: metadata.childrenKind,
+    openProps: metadata.openProps,
+  }
+}
+
+function describeProp(prop: PropSpec): Record<string, unknown>
+{
+  const out: Record<string, unknown> = {
+    name: prop.name,
+    type: prop.type,
+  }
+  if (prop.required)
+  {
+    out.required = true
+  }
+  if (prop.values)
+  {
+    out.values = prop.values
+  }
+  if (prop.valueAliases)
+  {
+    out.valueAliases = prop.valueAliases
+  }
+  if (prop.description)
+  {
+    out.description = prop.description
+  }
+  if (prop.deprecated)
+  {
+    out.deprecated = true
+    if (prop.deprecatedIn)
+    {
+      out.deprecatedIn = prop.deprecatedIn
+    }
+  }
+  return out
+}
+
+export function describeComponent(
+  spec: ComponentSpec
+): Record<string, unknown>
+{
+  return {
+    framework: spec.framework,
+    name: spec.name,
+    aliases: spec.aliases ?? [],
+    importSpecifier: spec.importSpecifier,
+    importSpecifiers: spec.importSpecifiers,
+    summary: spec.summary,
+    example: spec.example,
+    childrenKind: spec.childrenKind ?? 'block',
+    openProps: spec.openProps,
+    props: spec.props.map(describeProp),
   }
 }
 
@@ -212,16 +266,4 @@ export function allComponentNamesForFramework(
     }
   }
   return Array.from(names)
-}
-
-const INTRINSIC_PATTERN = /^[a-z]/
-
-export function isIntrinsicTag(name: string): boolean
-{
-  return INTRINSIC_PATTERN.test(name) && !name.includes('.')
-}
-
-export function isCompoundChild(name: string): boolean
-{
-  return name.includes('.')
 }

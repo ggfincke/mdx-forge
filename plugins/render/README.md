@@ -20,8 +20,10 @@ structured feedback:
 /plugin install mdx-forge-render@mdx-forge
 ```
 
-After installing, run `npm install` in the plugin directory once — this
-fetches Chromium via Playwright's postinstall (~170MB download):
+After installing, run `npm install` in the plugin directory once. Repository
+development uses Node 24.19.0 and npm 11.17.0, while the plugin retains its
+Node 22+ runtime floor. Installation fetches Chromium via Playwright's
+postinstall (~170MB download):
 
 ```bash
 cd "$(claude plugin path mdx-forge-render)"
@@ -35,7 +37,7 @@ This package is versioned independently from the `mdx-forge` core — the
 plugin version, the core version, and the marketplace metadata version are
 deliberately **not** coupled.
 
-- **Declared range:** the `mdx-forge` entry in `package.json` (`^0.8.0`)
+- **Declared range:** the `mdx-forge` entry in `package.json` (`^0.10.0`)
   is the minimum-supported core line. The lockfile pins the exact minimum
   the plugin is proven against.
 - **Current core:** the repository's `check:plugin-compat` gate also
@@ -66,20 +68,24 @@ such as `FileTree.Nope`.
 
 ## Tool: `render_mdx`
 
-| Param        | Type                                                               | Default      |
-| ------------ | ------------------------------------------------------------------ | ------------ |
-| `source`     | string (MDX)                                                       | required     |
-| `framework`  | `'generic' \| 'docusaurus' \| 'starlight' \| 'nextra' \| 'nextjs'` | `'generic'`  |
-| `mode`       | `'safe' \| 'trusted'`                                              | `'safe'`     |
-| `screenshot` | boolean                                                            | `false`      |
-| `theme`      | `'light' \| 'dark'`                                                | `'light'`    |
-| `viewport`   | `{ width?, height? }`                                              | `1024 x 768` |
-| `inlineHtml` | boolean                                                            | `false`      |
+| Param         | Type                                                               | Default      |
+| ------------- | ------------------------------------------------------------------ | ------------ |
+| `source`      | string (MDX)                                                       | required     |
+| `framework`   | `'generic' \| 'docusaurus' \| 'starlight' \| 'nextra' \| 'nextjs'` | `'generic'`  |
+| `mode`        | `'safe' \| 'trusted'`                                              | `'safe'`     |
+| `screenshot`  | boolean                                                            | `false`      |
+| `screenshots` | `{ themes?, viewports?, fullPage? }`                               | unset        |
+| `theme`       | `'light' \| 'dark'`                                                | `'light'`    |
+| `viewport`    | `{ width?, height? }`                                              | `1024 x 768` |
+| `inlineHtml`  | boolean                                                            | `false`      |
+| `autoOpen`    | boolean                                                            | `false`      |
 
-Returns three content blocks:
+Returns a variable-length content sequence:
 
 1. **Lead-in text** with a live preview URL + `file://` fallback.
-2. **PNG screenshot** (only when `screenshot: true`).
+2. **Zero or more labeled PNG image blocks**. `screenshot: true` requests one;
+   `screenshots` requests the themes × viewports matrix and takes precedence
+   when both inputs are present.
 3. **Trailing text** with a `### Warnings` section (plain-text
    diagnostics), the frontmatter (JSON), and a `### Summary` of body /
    full-HTML byte sizes. The full self-contained HTML for claude.ai

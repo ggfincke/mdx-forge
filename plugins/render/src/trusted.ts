@@ -58,7 +58,6 @@ function uniqueEntryId(): string
 }
 
 // no diagram runtime in the harness either: request visible code fallbacks
-// (F34); older cores w/o the option ignore the key (graceful pass-through)
 const TRUSTED_COMPILE_CONFIG = {
   documentPath: '/virtual/render.mdx',
   componentsBuiltins: false,

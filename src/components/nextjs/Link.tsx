@@ -63,6 +63,8 @@ export function Link({
   locale: _locale,
   legacyBehavior: _legacyBehavior,
   className,
+  target,
+  rel,
   ...rest
 }: LinkProps)
 {
@@ -70,14 +72,14 @@ export function Link({
 
   const hrefKind = classifyExternalHref(resolvedHref)
   const isExternal = hrefKind === 'http' || hrefKind === 'protocol-relative'
-  const target = isExternal ? '_blank' : undefined
+  const effectiveTarget = target ?? (isExternal ? '_blank' : undefined)
 
   return (
     <a
       href={resolvedHref}
       className={className}
-      target={target}
-      rel={mergeBlankTargetRel(target, undefined)}
+      target={effectiveTarget}
+      rel={mergeBlankTargetRel(effectiveTarget, rel)}
       {...rest}
     >
       {children}

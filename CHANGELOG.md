@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Build toolchain**: Pin repository, CI, and publish builds to Node 24.19.0 and npm 11.17.0 while retaining the published Node 22+ runtime contract and a Node 22.23.2 clean-consumer lane; adopt the TypeScript 7 CLI with the TypeScript 6 API bridge, verify packed declarations under both compiler lines, and refresh the coordinated Shiki and vetted development dependencies
+
 ## [0.10.1] - 2026-08-07
 
 ### Changed

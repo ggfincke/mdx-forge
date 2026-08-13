@@ -1,9 +1,6 @@
 // plugins/render/src/frontmatter-bounds.ts
-// local defense-in-depth bounds for frontmatter graphs
+// bounded frontmatter response serialization for the MCP transport
 
-// ! duplicates core src/internal/frontmatter.ts; plugin uses published 0.6.2 & can't import it - consolidate in Group B/E
-
-// bounds mirror the core normalizer; keep them in sync until consolidation
 export const MAX_FRONTMATTER_DEPTH = 8
 export const MAX_FRONTMATTER_NODES = 5000
 export const MAX_FRONTMATTER_SERIALIZED_BYTES = 256 * 1024
@@ -110,7 +107,7 @@ function cloneBounded(
   return result
 }
 
-// normalize gray-matter data into bounded acyclic plain data
+// normalize frontmatter data into bounded acyclic plain data
 export function normalizeFrontmatterData(
   data: Record<string, unknown>
 ): Record<string, unknown>

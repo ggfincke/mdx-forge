@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: '22.14.0'
+          node-version: '24.19.0'
           cache: 'npm'
           registry-url: 'https://registry.npmjs.org'
       - name: Get version from tag
@@ -25,7 +25,6 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.VERSION }}
         run: node scripts/check-publish-version.mjs
-      - run: npm i -g npm@^11.5.1
       - run: npm ci
       - run: npm run lint
       - run: npm run format:check
