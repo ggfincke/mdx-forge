@@ -84,7 +84,7 @@ function analyzeComponent(
   {
     return []
   }
-  return analyzeComponentProps(component, metadata.props)
+  return analyzeComponentProps(component, metadata.props, metadata.openProps)
 }
 
 function applyRuleOptions(

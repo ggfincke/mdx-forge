@@ -320,8 +320,7 @@ check(
 )
 
 // --- §1.5 unified core diagnostics engine -----------------------------------
-// gated: plugin-compat's current-core leg sets the env var; the locked
-// minimum core (0.6.2) lacks the analyze subpath & keeps legacy behavior
+// the packed-current leg covers policies added after the locked 0.10.0 core
 
 if (process.env.MDX_FORGE_EXPECT_UNIFIED_DIAGNOSTICS === '1')
 {

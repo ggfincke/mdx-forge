@@ -23,13 +23,12 @@ import {
 } from './render.js'
 import { boundedStringify } from './frontmatter-bounds.js'
 import {
+  describeComponent,
   findComponent,
   getFrontmatterSchema,
   listComponentsForFramework,
   listFrameworks,
-  type ComponentSpec,
   type FrameworkId,
-  type PropSpec,
 } from './registry.js'
 import { startPreviewServer, stopPreviewServer } from './preview-server.js'
 import { VIEWPORT_PRESET_NAMES } from './viewports.js'
@@ -322,54 +321,6 @@ server.tool(
 )
 
 // --- helpers ----------------------------------------------------------------
-
-function describeProp(prop: PropSpec): Record<string, unknown>
-{
-  const out: Record<string, unknown> = {
-    name: prop.name,
-    type: prop.type,
-  }
-  if (prop.required)
-  {
-    out.required = true
-  }
-  if (prop.values)
-  {
-    out.values = prop.values
-  }
-  if (prop.valueAliases)
-  {
-    out.valueAliases = prop.valueAliases
-  }
-  if (prop.description)
-  {
-    out.description = prop.description
-  }
-  if (prop.deprecated)
-  {
-    out.deprecated = true
-    if (prop.deprecatedIn)
-    {
-      out.deprecatedIn = prop.deprecatedIn
-    }
-  }
-  return out
-}
-
-function describeComponent(spec: ComponentSpec): Record<string, unknown>
-{
-  return {
-    framework: spec.framework,
-    name: spec.name,
-    aliases: spec.aliases ?? [],
-    importSpecifier: spec.importSpecifier,
-    importSpecifiers: spec.importSpecifiers,
-    summary: spec.summary,
-    example: spec.example,
-    childrenKind: spec.childrenKind ?? 'block',
-    props: spec.props.map(describeProp),
-  }
-}
 
 type ContentBlock =
   | { type: 'text'; text: string }

@@ -1,87 +1,53 @@
 // plugins/render/src/core-engine.ts
-// feature-detected bridge to the unified mdx-forge diagnostics engine w/
+// adapts canonical mdx-forge diagnostics to the MCP transport shape
 
-// MCP-schema adaptation; older cores (0.6.x) fall back to the legacy lint
-
+import {
+  DIAGNOSTIC_CODES,
+  type Diagnostic as CoreDiagnostic,
+} from 'mdx-forge/diagnostics'
 import type { Diagnostic, DiagnosticKind, Severity } from './diagnostics.js'
 import { suggestMatch } from './diagnostics.js'
 import { allComponentNamesForFramework, type FrameworkId } from './registry.js'
 
-// structural view of the extended core analyze API; resolved dynamically
-// because the locked minimum core (0.6.2) does not export the subpath
-interface CorePoint
-{
-  line: number
-  column: number
-}
-
-interface CoreDiagnostic
-{
-  code: string
-  ruleId: string
-  severity: string
-  message: string
-  range?: { start: CorePoint; end: CorePoint }
-  data?: Record<string, unknown>
-}
-
-export interface CoreAnalyzeResult
-{
-  diagnostics: CoreDiagnostic[]
-  frontmatter: Record<string, unknown>
-  content: string
-  bodyStartLine: number
-  bodyStartColumn: number
-  parseError?: { phase: 'frontmatter' | 'mdx'; error: unknown }
-}
-
-export interface CoreAnalyzeEngine
-{
-  analyzeMdxDocument: (
-    source: string,
-    ctx: { framework: string }
-  ) => CoreAnalyzeResult
-}
-
-let enginePromise: Promise<CoreAnalyzeEngine | null> | undefined
-
-async function resolveEngine(): Promise<CoreAnalyzeEngine | null>
-{
-  // dynamic specifier keeps NodeNext typecheck green against 0.6.2 typings
-  const specifier = 'mdx-forge/diagnostics/analyze'
-  try
-  {
-    const mod = (await import(specifier)) as Partial<CoreAnalyzeEngine>
-    return typeof mod.analyzeMdxDocument === 'function'
-      ? (mod as CoreAnalyzeEngine)
-      : null
-  }
-  catch
-  {
-    return null
-  }
-}
-
-// memoized: the installed core cannot change within one server process
-export function loadCoreEngine(): Promise<CoreAnalyzeEngine | null>
-{
-  enginePromise ??= resolveEngine()
-  return enginePromise
-}
-
 // stable MDXF codes -> legacy MCP diagnostic kinds; unknown-component keeps
 // its historical error severity, everything else stays a warning
 const KIND_BY_CODE: Readonly<
-  Record<string, { kind: DiagnosticKind; severity: Severity }>
+  Partial<
+    Record<CoreDiagnostic['code'], { kind: DiagnosticKind; severity: Severity }>
+  >
 > = {
-  MDXF001: { kind: 'unknown-component', severity: 'error' },
-  MDXF002: { kind: 'invalid-prop', severity: 'warning' },
-  MDXF003: { kind: 'invalid-prop-value', severity: 'warning' },
-  MDXF004: { kind: 'deprecated-alias', severity: 'warning' },
-  MDXF005: { kind: 'deprecated-alias', severity: 'warning' },
-  MDXF006: { kind: 'missing-required-prop', severity: 'warning' },
-  MDXF007: { kind: 'invalid-prop-value', severity: 'warning' },
-  MDXF008: { kind: 'unknown-component', severity: 'error' },
+  [DIAGNOSTIC_CODES.UNKNOWN_COMPONENT]: {
+    kind: 'unknown-component',
+    severity: 'error',
+  },
+  [DIAGNOSTIC_CODES.UNKNOWN_PROP]: {
+    kind: 'invalid-prop',
+    severity: 'warning',
+  },
+  [DIAGNOSTIC_CODES.INVALID_ENUM_VALUE]: {
+    kind: 'invalid-prop-value',
+    severity: 'warning',
+  },
+  [DIAGNOSTIC_CODES.DEPRECATED_PROP]: {
+    kind: 'deprecated-alias',
+    severity: 'warning',
+  },
+  [DIAGNOSTIC_CODES.DEPRECATED_ALIAS]: {
+    kind: 'deprecated-alias',
+    severity: 'warning',
+  },
+  [DIAGNOSTIC_CODES.MISSING_REQUIRED_PROP]: {
+    kind: 'missing-required-prop',
+    severity: 'warning',
+  },
+  [DIAGNOSTIC_CODES.INVALID_PROP_VALUE]: {
+    kind: 'invalid-prop-value',
+    severity: 'warning',
+  },
+  [DIAGNOSTIC_CODES.UNKNOWN_COMPOUND_MEMBER]: {
+    kind: 'unknown-component',
+    severity: 'error',
+  },
 }
 
 function str(value: unknown): string | undefined
@@ -101,10 +67,10 @@ function suggestionFor(
   framework: FrameworkId
 ): string | undefined
 {
-  const data = diag.data ?? {}
+  const data = (diag.data ?? {}) as Record<string, unknown>
   switch (diag.code)
   {
-    case 'MDXF001':
+    case DIAGNOSTIC_CODES.UNKNOWN_COMPONENT:
     {
       const semantic = strings(data.suggestions)[0]
       const name = str(data.componentName)
@@ -115,21 +81,21 @@ function suggestionFor(
           : undefined)
       )
     }
-    case 'MDXF002':
+    case DIAGNOSTIC_CODES.UNKNOWN_PROP:
     {
       const prop = str(data.propName)
       return prop ? suggestMatch(prop, strings(data.knownProps)) : undefined
     }
-    case 'MDXF003':
+    case DIAGNOSTIC_CODES.INVALID_ENUM_VALUE:
     {
       const values = strings(data.values)
       const value = str(data.value)
       return (value ? suggestMatch(value, values) : undefined) ?? values[0]
     }
-    case 'MDXF004':
-    case 'MDXF005':
+    case DIAGNOSTIC_CODES.DEPRECATED_PROP:
+    case DIAGNOSTIC_CODES.DEPRECATED_ALIAS:
       return str(data.canonical)
-    case 'MDXF008':
+    case DIAGNOSTIC_CODES.UNKNOWN_COMPOUND_MEMBER:
     {
       const member = str(data.memberName)
       return member
@@ -153,10 +119,10 @@ export function fromCoreDiagnostic(
   {
     return undefined
   }
-  const data = diag.data ?? {}
+  const data = (diag.data ?? {}) as Record<string, unknown>
   const componentName = str(data.componentName)
   const message =
-    diag.code === 'MDXF001' && componentName
+    diag.code === DIAGNOSTIC_CODES.UNKNOWN_COMPONENT && componentName
       ? `Component <${componentName}> is not in the "${framework}" shim registry.`
       : diag.message
   return {

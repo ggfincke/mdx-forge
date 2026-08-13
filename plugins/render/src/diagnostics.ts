@@ -1,11 +1,7 @@
 // plugins/render/src/diagnostics.ts
 // structured diagnostics for lint, compile & runtime failures
 
-import type {
-  FrameworkId,
-  ComponentSpec,
-  FrontmatterSchema,
-} from './registry.js'
+import type { FrameworkId, FrontmatterSchema } from './registry.js'
 import {
   allComponentNamesForFramework,
   getFrontmatterSchema,
@@ -132,17 +128,6 @@ function suggestComponent(
 ): string | undefined
 {
   return suggestMatch(name, allComponentNamesForFramework(framework))
-}
-
-export function suggestProp(
-  name: string,
-  component: ComponentSpec
-): string | undefined
-{
-  return suggestMatch(
-    name,
-    component.props.map((p) => p.name)
-  )
 }
 
 function suggestFrontmatterField(
@@ -274,25 +259,6 @@ export function formatDiagnostic(d: Diagnostic): string
   const scope = d.component ? ` <${d.component}>` : d.field ? ` ${d.field}` : ''
   const suggestion = d.suggestion ? ` — did you mean "${d.suggestion}"?` : ''
   return `[${d.severity} ${d.kind}]${scope}${where} ${d.message}${suggestion}`
-}
-
-// --- exported for consumers that want to build diagnostics directly --------
-
-export function buildUnknownComponentDiagnostic(
-  name: string,
-  framework: FrameworkId,
-  position?: { line?: number; column?: number }
-): Diagnostic
-{
-  return {
-    kind: 'unknown-component',
-    severity: 'error',
-    message: `Component <${name}> is not in the "${framework}" shim registry.`,
-    component: name,
-    suggestion: suggestComponent(name, framework),
-    line: position?.line,
-    column: position?.column,
-  }
 }
 
 // warn on missing required frontmatter fields without blocking render

@@ -9,6 +9,7 @@ import type { Root } from 'mdast'
 import type { Position } from 'unist'
 import type {
   ClassDeclaration,
+  Expression,
   ExportDefaultDeclaration,
   ExportNamedDeclaration,
   FunctionDeclaration,
@@ -36,6 +37,8 @@ export interface DetectedAttribute
   value?: string
   // statically-resolved string expression value
   staticValue?: string
+  // true only when syntax guarantees a non-boolean result
+  knownNonBoolean?: boolean
 }
 
 export interface DetectedComponent
@@ -88,16 +91,11 @@ function staticStringExpression(
   value: MdxJsxAttributeValueExpression
 ): string | undefined
 {
-  const statements = value.data?.estree?.body
-  if (
-    statements?.length !== 1 ||
-    statements[0].type !== 'ExpressionStatement'
-  )
+  const expression = getAttributeExpression(value)
+  if (!expression)
   {
     return undefined
   }
-
-  const expression = statements[0].expression
   if (expression.type === 'Literal' && typeof expression.value === 'string')
   {
     return expression.value
@@ -111,6 +109,49 @@ function staticStringExpression(
     return expression.quasis[0].value.cooked ?? expression.quasis[0].value.raw
   }
   return undefined
+}
+
+// recover the parsed expression instead of inferring syntax from raw text
+function getAttributeExpression(
+  value: MdxJsxAttributeValueExpression
+): Expression | undefined
+{
+  const statements = value.data?.estree?.body
+  if (
+    statements?.length !== 1 ||
+    statements[0].type !== 'ExpressionStatement'
+  )
+  {
+    return undefined
+  }
+  return statements[0].expression
+}
+
+// keep diagnostics conservative when the runtime result could be boolean
+function isKnownNonBooleanExpression(
+  value: MdxJsxAttributeValueExpression
+): boolean
+{
+  const expression = getAttributeExpression(value)
+  if (!expression)
+  {
+    return false
+  }
+  if (expression.type === 'Literal')
+  {
+    return typeof expression.value !== 'boolean'
+  }
+  return (
+    expression.type === 'TemplateLiteral' ||
+    expression.type === 'ArrayExpression' ||
+    expression.type === 'ObjectExpression' ||
+    expression.type === 'FunctionExpression' ||
+    expression.type === 'ArrowFunctionExpression' ||
+    expression.type === 'ClassExpression' ||
+    (expression.type === 'UnaryExpression' &&
+      ['typeof', 'void', '+', '-', '~'].includes(expression.operator)) ||
+    expression.type === 'UpdateExpression'
+  )
 }
 
 // JSX name semantics: lowercase-start & dashed single identifiers are
@@ -158,6 +199,7 @@ function collectAttributes(node: MdxJsxNode): DetectedAttribute[]
       name: attr.name,
       value: attr.value.value,
       staticValue: staticStringExpression(attr.value),
+      knownNonBoolean: isKnownNonBooleanExpression(attr.value),
     })
   }
   return out

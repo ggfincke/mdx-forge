@@ -105,8 +105,6 @@ export async function shutdownBrowser(): Promise<void>
 }
 
 // this plugin has no diagram runtime, so ask the core for visible code
-// fallbacks (F34); cores w/o the option (<= 0.6.x) ignore the extra key
-// & keep emitting empty placeholders — a documented minimum-core gap
 const SAFE_COMPILE_CONFIG = {
   documentPath: '/virtual/render.mdx',
   diagramBehavior: 'code',

@@ -9,6 +9,7 @@ import {
 } from '../../src/components/registry/index'
 import { VALID_CALLOUT_TYPES } from '../../src/internal/callout'
 import {
+  describeComponent,
   findComponent,
   listComponentsForFramework,
   listFrameworks,
@@ -87,6 +88,25 @@ describe('render plugin registry parity', () =>
     expect(findComponent('generic', 'Details')).toBe(collapsible)
     expect(collapsible?.aliases).toEqual(['Accordion', 'Details'])
     expect(findComponent('generic', 'Tab')?.name).toBe('TabItem')
+  })
+
+  it('projects canonical openProps metadata into component descriptions', () =>
+  {
+    for (const framework of listFrameworks())
+    {
+      for (const coreEntry of coreComponentsForFramework(framework))
+      {
+        const spec = findComponent(framework, coreEntry.name)
+
+        expect(spec?.openProps).toEqual(coreEntry.metadata.openProps)
+        if (spec)
+        {
+          expect(describeComponent(spec).openProps).toEqual(
+            coreEntry.metadata.openProps
+          )
+        }
+      }
+    }
   })
 
   it('keeps barrel identities in parity without linting them as components', () =>

@@ -1,7 +1,10 @@
 // plugins/render/src/registry-types.ts
 // shared registry types for component metadata & render-plugin lookups
 
+import type { ComponentOpenPropsPolicy } from 'mdx-forge/components/registry'
 import type { FrameworkId as CssFrameworkId } from './css.js'
+
+export type { ComponentOpenPropsPolicy }
 
 export type FrameworkId = CssFrameworkId
 
@@ -37,6 +40,7 @@ export interface ComponentMetadata
   example: string
   props: readonly PropSpec[]
   childrenKind?: ChildrenKind
+  openProps?: ComponentOpenPropsPolicy
 }
 
 export interface ComponentSpec extends ComponentMetadata
