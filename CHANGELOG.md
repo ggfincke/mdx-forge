@@ -7,9 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.2] - 2026-08-18
+
 ### Changed
 
+- **Trusted compilation**: Harden default-export discovery, identifier handling, and generated output while preserving deterministic compiler behavior
+- **Render-plugin diagnostics**: Delegate body analysis to the shared mdx-forge analyzer while retaining plugin-specific frontmatter validation and original-document source bounds
+- **Component contracts**: Centralize open-prop metadata and align shared links, Next.js shims, and Nextra FileTree behavior with their public contracts
 - **Build toolchain**: Pin repository, CI, and publish builds to Node 24.19.0 and npm 11.17.0 while retaining the published Node 22+ runtime contract and a Node 22.23.2 clean-consumer lane; adopt the TypeScript 7 CLI with the TypeScript 6 API bridge, verify packed declarations under both compiler lines, and refresh the coordinated Shiki and vetted development dependencies
+
+### Fixed
+
+- **Compiler and render output**: Preserve deterministic diagram fallback behavior and harden trusted compiler, component, and render-plugin contracts across the packed consumer and compatibility paths
 
 ## [0.10.1] - 2026-08-07
 
