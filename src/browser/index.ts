@@ -21,7 +21,7 @@ import {
 } from './internal/dependency'
 import type {
   FetchResult,
-  Framework,
+  FrameworkId,
   ModuleDependencyInput,
   ModuleDependencyKind,
   ModuleFetcher,
@@ -131,7 +131,9 @@ export function clearAllCaches(): void
 }
 
 // load framework-specific shims on demand - called by RPC handler when extension sends framework info
-export function ensureFrameworkShimsLoaded(framework: Framework): void
+export function ensureFrameworkShimsLoaded(
+  framework: FrameworkId
+): Promise<void>
 {
   // ensure preloaded modules are ready first
   ensurePreloadedModules()
@@ -141,6 +143,7 @@ export function ensureFrameworkShimsLoaded(framework: Framework): void
     ensureFrameworkShims(registry, framework),
     epoch
   )
+  return pendingFrameworkShimLoad
 }
 
 // load specific generic shims on demand - called by RPC handler for conditional preloading

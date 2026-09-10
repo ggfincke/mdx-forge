@@ -4,6 +4,8 @@
 import { registry } from '../registry/ModuleRegistry'
 import { getStyleInjector } from '../internal/style-injector'
 
+export { reorderStyles } from '../internal/style-injector'
+
 // inject CSS into the document for a module
 // identical bytes dedup; changed bytes under the same ID replace the DOM node
 export function injectStyles(id: string, css: string): void

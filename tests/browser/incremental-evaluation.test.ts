@@ -9,6 +9,7 @@ import {
   configureRuntime,
   evaluateModuleToComponent,
   invalidateModuleWithDependents,
+  loadModule,
   registry,
   setHostPreloadCallbacks,
   setModuleFetcher,
@@ -117,6 +118,139 @@ beforeEach(() =>
 
 describe('same-entry evaluation transactions', () =>
 {
+  it('recovers styled cached children after a failed same-entry evaluation', async () =>
+  {
+    const fetcher = vi.fn(
+      async (request: string): Promise<FetchResult | undefined> =>
+      {
+        if (request === './styled')
+        {
+          return {
+            fsPath: '/styled.js',
+            code: [
+              'globalThis.__mdxForgeDependencyEvaluations.styled = (globalThis.__mdxForgeDependencyEvaluations.styled ?? 0) + 1;',
+              'require("./child.css"); module.exports = { value: "styled child" };',
+            ].join('\n'),
+            dependencies: ['./child.css'],
+          }
+        }
+        if (request === './child.css')
+        {
+          return {
+            fsPath: '/child.css',
+            code: '',
+            dependencies: [],
+            css: '.recovered-child { color: rgb(12, 34, 56); }',
+          }
+        }
+        return undefined
+      }
+    )
+    setModuleFetcher(fetcher)
+    const entry = '/styled-retry.mdx'
+    await expect(
+      evaluateModuleToComponent(
+        'require("./styled"); throw new Error("failed parent");',
+        entry,
+        ['./styled']
+      )
+    ).rejects.toThrow('Failed to evaluate module')
+    expect(getDependencyEvaluations().styled).toBe(1)
+    expect(styleNodes('/child.css')).toHaveLength(0)
+
+    const component = await evaluateModuleToComponent(
+      'module.exports = { default: () => require("./styled").value };',
+      entry,
+      ['./styled']
+    )
+    expect(component()).toBe('styled child')
+    expect(getDependencyEvaluations().styled).toBe(1)
+    expect(
+      fetcher.mock.calls.filter(([request]) => request === './child.css')
+    ).toHaveLength(1)
+    expect(styleNodes('/child.css')).toHaveLength(1)
+    const rendered = document.createElement('span')
+    rendered.className = 'recovered-child'
+    document.body.appendChild(rendered)
+    expect(getComputedStyle(rendered).color).toBe('rgb(12, 34, 56)')
+    rendered.remove()
+    expect(invalidateModuleWithDependents('/child.css')).toEqual(
+      new Set(['/child.css', '/styled.js', entry])
+    )
+  })
+
+  it('replays authored nested CSS order through refresh and cached root loads', async () =>
+  {
+    const fetcher = vi.fn(
+      async (request: string): Promise<FetchResult | undefined> =>
+      {
+        if (request === './a.js')
+        {
+          return {
+            fsPath: '/a.js',
+            code: 'require("./a.css"); module.exports = {};',
+            dependencies: ['./a.css'],
+          }
+        }
+        if (request === './a.css' || request === './b.css')
+        {
+          return {
+            fsPath: request.slice(1),
+            code: '',
+            dependencies: [],
+            css: `.ordered-child { color: ${request === './a.css' ? 'red' : 'blue'}; }`,
+          }
+        }
+        return undefined
+      }
+    )
+    setModuleFetcher(fetcher)
+    const entry = '/ordered-entry.mdx'
+    const code =
+      'require("./a.js"); require("./b.css"); module.exports = { default: () => "ordered" };'
+    const dependencies = ['./a.js', './b.css']
+    await evaluateModuleToComponent(code, entry, dependencies)
+    const a = styleNodes('/a.css')[0]
+    const b = styleNodes('/b.css')[0]
+    expect(a).toBeDefined()
+    expect(b).toBeDefined()
+    expect(
+      a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+    const unrelated = document.createElement('style')
+    unrelated.textContent = '.unrelated { display: block; }'
+    b.before(unrelated)
+    const orderedSlots = Array.from(document.head.childNodes)
+    const reverseGraphStyles = () =>
+    {
+      const slot = document.createComment('graph style slot')
+      a.replaceWith(slot)
+      b.replaceWith(a)
+      slot.replaceWith(b)
+    }
+    try
+    {
+      reverseGraphStyles()
+      const component = await evaluateModuleToComponent(
+        code,
+        entry,
+        dependencies
+      )
+      expect(component()).toBe('ordered')
+      expect(Array.from(document.head.childNodes)).toEqual(orderedSlots)
+      reverseGraphStyles()
+      await loadModule(entry, code, dependencies, fetcher)
+      expect(Array.from(document.head.childNodes)).toEqual(orderedSlots)
+      expect(styleNodes('/a.css')).toEqual([a])
+      expect(styleNodes('/b.css')).toEqual([b])
+      expect(fetcher).toHaveBeenCalledTimes(3)
+    }
+    finally
+    {
+      unrelated.remove()
+    }
+  })
+
   it('keeps legacy fetchers on the three-argument callback ABI', async () =>
   {
     const fetcher = vi.fn(

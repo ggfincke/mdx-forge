@@ -11,6 +11,12 @@ import { DependencyTracker } from './DependencyTracker'
 export interface LRUConfig extends ModuleCacheConfig, StyleCacheConfig
 {}
 
+export interface ModuleLoadMetadata
+{
+  dependencies: readonly string[]
+  styles: ReadonlyMap<string, { module: Module; css: string }>
+}
+
 // coordinate module cache, style cache & dependency tracker
 // ModuleCache owns modules; a cached CSS module owns its injected style
 // DependencyTracker owns dependency graph & resolution map
@@ -21,6 +27,7 @@ export class ModuleRegistry
   private dependencyTracker = new DependencyTracker()
   private provisionalDependencyPins = new Map<string, Set<symbol>>()
   private retainedResolutionParents = new Set<string>()
+  private loadMetadata = new WeakMap<Module, ModuleLoadMetadata>()
 
   // cache generation; bumped at every clear boundary so in-flight loads
   // from an older generation cannot commit stale state
@@ -100,7 +107,22 @@ export class ModuleRegistry
   // set module in cache w/ lru eviction (memory-based + count-based)
   set(id: string, module: Module, sourceByteLength: number = 0): void
   {
-    this.moduleCache.set(id, module, sourceByteLength)
+    let retainedByteLength = 0
+    const metadata = this.loadMetadata.get(module)
+    if (metadata)
+    {
+      const encoder = new TextEncoder()
+      for (const style of metadata.styles.values())
+      {
+        retainedByteLength += encoder.encode(style.css).byteLength
+      }
+    }
+    this.moduleCache.set(id, module, sourceByteLength, retainedByteLength)
+  }
+
+  getLoadMetadata(module: Module): ModuleLoadMetadata | undefined
+  {
+    return this.loadMetadata.get(module)
   }
 
   // pending fetch operations (delegated to ModuleCache)
@@ -214,10 +236,23 @@ export class ModuleRegistry
     module: Module,
     dependencies: ReadonlySet<string>,
     resolutions: ReadonlyMap<string, string>,
-    sourceByteLength: number
+    sourceByteLength: number,
+    metadata?: ModuleLoadMetadata
   ): void
   {
-    this.moduleCache.set(id, module, sourceByteLength)
+    if (metadata)
+    {
+      this.loadMetadata.set(module, {
+        dependencies: [...metadata.dependencies],
+        styles: new Map(
+          [...metadata.styles].map(([styleId, style]) => [
+            styleId,
+            { ...style },
+          ])
+        ),
+      })
+    }
+    this.set(id, module, sourceByteLength)
     this.dependencyTracker.replaceResolutions(id, resolutions)
     for (const dependsOnId of dependencies)
     {

@@ -293,19 +293,26 @@ function clearInjectedStyles(): void
 
 CSS injection is automatic: when a fetcher returns `FetchResult.css`, the
 loader injects it into the document scoped to the module id (there is no
-public `injectStyles` export). `clearInjectedStyles` removes everything
-injected — called automatically by `resetModules`, `clearAllCaches`, &
-between `evaluateModuleToComponent` calls on the same entry.
+public `injectStyles` export). Successful loads replay styles depth-first in
+authored dependency order, including cached roots and children retained after a
+failed parent. Existing graph styles retain their DOM identity and occupied
+slots; unrelated styles stay in place. Same-entry refreshes retain valid
+dependency styles. `clearInjectedStyles` removes injected module styles and
+invalidates their CSS modules and dependents; `resetModules` and `clearAllCaches`
+also clear styles.
 
 ## Framework shim lazy-loading
 
 ```ts
-function ensureFrameworkShimsLoaded(framework: Framework): void
+function ensureFrameworkShimsLoaded(framework: FrameworkId): Promise<void>
 function ensureGenericShimsLoaded(components: string[]): void
 ```
 
-Both are fire-and-forget. The next call to `evaluateModuleToComponent`
-awaits any pending shim load before evaluating. Typical pattern:
+The framework call returns the same guarded promise retained by the runtime.
+Await it when the host must finish preloading before publishing content. Passing
+`generic` replaces a previous framework request through the same path. Generic
+component loading remains fire-and-forget. The next call to
+`evaluateModuleToComponent` also awaits pending shim loads. Typical pattern:
 
 1. Host detects framework + used components from MDX source
 2. Host calls `ensureFrameworkShimsLoaded('docusaurus')` &

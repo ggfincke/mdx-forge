@@ -138,16 +138,24 @@ export class ModuleCache
   }
 
   // set module in cache w/ automatic lru eviction
-  set(id: string, module: Module, sourceByteLength: number = 0): void
+  set(
+    id: string,
+    module: Module,
+    sourceByteLength: number = 0,
+    retainedByteLength: number = 0
+  ): void
   {
     const sourceFloor =
       Number.isFinite(sourceByteLength) && sourceByteLength > 0
         ? sourceByteLength
         : 0
-    const estimatedSize = Math.max(
-      sourceFloor,
-      this.estimateExportsSize(module.exports)
-    )
+    const retainedBytes =
+      Number.isFinite(retainedByteLength) && retainedByteLength > 0
+        ? retainedByteLength
+        : 0
+    const estimatedSize =
+      Math.max(sourceFloor, this.estimateExportsSize(module.exports)) +
+      retainedBytes
     this.cache.set(id, { module, estimatedSize })
   }
 

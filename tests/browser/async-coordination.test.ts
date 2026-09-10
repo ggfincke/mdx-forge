@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clearAllCaches,
   configureRuntime,
+  ensureFrameworkShimsLoaded,
   ensureGenericShimsLoaded,
   evaluateModuleToComponent,
   invalidateModule,
@@ -129,6 +130,39 @@ describe('shim load generations (T3)', () =>
       []
     )
     expect(typeof component).toBe('function')
+
+    const genericLoad = deferred()
+    const frameworkLoad = vi.fn((_registry, framework) =>
+      framework === 'docusaurus'
+        ? Promise.reject(new Error('framework load failed'))
+        : genericLoad.promise
+    )
+    setHostPreloadCallbacks({ ensureFrameworkShims: frameworkLoad })
+    await expect(ensureFrameworkShimsLoaded('docusaurus')).rejects.toThrow(
+      'framework load failed'
+    )
+    await flushMicrotasks()
+
+    const genericReady = ensureFrameworkShimsLoaded('generic')
+    let recovered = false
+    const recovery = evaluateModuleToComponent(
+      COMPONENT_CODE,
+      '/entry.mdx',
+      []
+    ).then((result) =>
+    {
+      recovered = true
+      return result
+    })
+    await flushMicrotasks()
+    expect(recovered).toBe(false)
+    genericLoad.resolve()
+    await genericReady
+    expect(typeof (await recovery)).toBe('function')
+    expect(frameworkLoad.mock.calls.map(([, framework]) => framework)).toEqual([
+      'docusaurus',
+      'generic',
+    ])
   })
 
   it('ignores superseded shim commits after a hard cache reset', async () =>

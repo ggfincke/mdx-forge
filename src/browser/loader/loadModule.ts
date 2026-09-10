@@ -15,9 +15,9 @@ import {
   type NormalizedModuleDependency,
 } from '../internal/dependency'
 import { Semaphore } from '../internal/semaphore'
-import { registry } from '../registry/ModuleRegistry'
+import { registry, type ModuleLoadMetadata } from '../registry/ModuleRegistry'
 import { createSyncRequire } from '../runtime/require'
-import { injectStyles } from '../styles/injectStyles'
+import { injectStyles, reorderStyles } from '../styles/injectStyles'
 import type {
   FetchResult,
   Module,
@@ -42,18 +42,22 @@ interface ModuleTransaction
 {
   id: string
   dependencies: Set<string>
+  orderedDependencies: string[]
+  styles: Map<string, { module: Module; css: string }>
   resolutions: Map<string, string>
   pins: Map<string, symbol>
 }
 
 interface ToFetch
 {
+  index: number
   dependency: NormalizedModuleDependency
   isBare: boolean
 }
 
 interface FetchedResult
 {
+  index: number
   dependency: NormalizedModuleDependency
   result: FetchResult | undefined
 }
@@ -69,8 +73,7 @@ let semaphoreConcurrency = getModuleLoaderConfig().maxConcurrentFetches
 // stage CSS for one root graph so sibling failure leaves no DOM/cache residue
 class GraphTransaction
 {
-  private styles: StagedStyle[] = []
-  private styleModules = new Map<string, Module>()
+  private styles = new Map<string, StagedStyle>()
 
   constructor(
     readonly epoch: number,
@@ -86,30 +89,71 @@ class GraphTransaction
   stageStyle(id: string, css: string): Module
   {
     const module =
-      this.styleModules.get(id) ??
+      this.styles.get(id)?.module ??
       ({
         id,
         exports: {},
         loaded: true,
       } satisfies Module)
-    this.styleModules.set(id, module)
-    this.styles.push({ id, css, module })
+    this.styles.set(id, { id, css, module })
     return module
   }
 
   getStyleModule(id: string): Module | undefined
   {
-    return this.styleModules.get(id)
+    return this.styles.get(id)?.module
   }
 
-  commitStyles(): void
+  getStyle(id: string): StagedStyle | undefined
   {
-    for (const style of this.styles)
+    return this.styles.get(id)
+  }
+
+  commitStyles(root: Module): void
+  {
+    const ordered: StagedStyle[] = []
+    const seenStyles = new Set<string>()
+    const seenModules = new Set<Module>()
+    const visitModule = (module: Module): void =>
+    {
+      if (seenModules.has(module))
+      {
+        return
+      }
+      seenModules.add(module)
+      const metadata = registry.getLoadMetadata(module)
+      if (!metadata)
+      {
+        return
+      }
+      for (const id of metadata.dependencies)
+      {
+        const style = metadata.styles.get(id)
+        if (style)
+        {
+          if (!seenStyles.has(id))
+          {
+            seenStyles.add(id)
+            ordered.push({ id, ...style })
+          }
+          continue
+        }
+        const dependency = registry.get(id)
+        if (dependency)
+        {
+          visitModule(dependency)
+        }
+      }
+    }
+    visitModule(root)
+
+    for (const style of ordered)
     {
       assertCurrentGeneration(this.epoch, style.id)
       registry.set(style.id, style.module, getSourceByteLength(style.css))
       injectStyles(style.id, style.css)
     }
+    reorderStyles(ordered.map((style) => style.id))
   }
 }
 
@@ -305,6 +349,8 @@ function createModuleTransaction(id: string): ModuleTransaction
   return {
     id,
     dependencies: new Set(),
+    orderedDependencies: [],
+    styles: new Map(),
     resolutions: new Map(),
     pins: new Map(),
   }
@@ -313,9 +359,21 @@ function createModuleTransaction(id: string): ModuleTransaction
 // pin each child before starting work that can commit it into the LRU
 function stageDependency(
   transaction: ModuleTransaction,
-  dependsOnId: string
+  dependsOnId: string,
+  index: number,
+  graph: GraphTransaction
 ): void
 {
+  transaction.orderedDependencies[index] = dependsOnId
+  const stagedStyle = graph.getStyle(dependsOnId)
+  const css = stagedStyle?.css ?? registry.getInjectedCss(dependsOnId)
+  const module =
+    stagedStyle?.module ??
+    (css !== undefined ? registry.get(dependsOnId) : undefined)
+  if (css !== undefined && module)
+  {
+    transaction.styles.set(dependsOnId, { module, css })
+  }
   if (transaction.dependencies.has(dependsOnId))
   {
     return
@@ -387,7 +445,8 @@ async function fetchDependency(
   dependency: NormalizedModuleDependency,
   isBare: boolean,
   fetcher: ModuleFetcher,
-  epoch: number
+  epoch: number,
+  index: number
 ): Promise<FetchedResult>
 {
   const inFlightKey = makeInFlightKey(epoch, fetcher, parentId, dependency)
@@ -427,7 +486,7 @@ async function fetchDependency(
     inFlightFetches.set(inFlightKey, record)
   }
 
-  return { dependency, result: await inFlight.promise }
+  return { index, dependency, result: await inFlight.promise }
 }
 
 // recursively load one module inside its root graph transaction
@@ -501,7 +560,7 @@ async function loadModuleAsync(
   {
     const toFetch: ToFetch[] = []
 
-    for (const dependency of dependencies)
+    for (const [index, dependency] of dependencies.entries())
     {
       if (!dependency.specifier || !dependency.runtimeRequest)
       {
@@ -516,7 +575,7 @@ async function loadModuleAsync(
       if (directId)
       {
         stageResolution(transaction, dependency.runtimeRequest, directId)
-        stageDependency(transaction, directId)
+        stageDependency(transaction, directId, index, graph)
         continue
       }
 
@@ -529,7 +588,7 @@ async function loadModuleAsync(
       )
       {
         stageResolution(transaction, dependency.runtimeRequest, priorResolution)
-        stageDependency(transaction, priorResolution)
+        stageDependency(transaction, priorResolution, index, graph)
         continue
       }
 
@@ -537,19 +596,20 @@ async function loadModuleAsync(
       if (aliasId && registry.has(aliasId))
       {
         stageResolution(transaction, dependency.runtimeRequest, aliasId)
-        stageDependency(transaction, aliasId)
+        stageDependency(transaction, aliasId, index, graph)
         continue
       }
 
       toFetch.push({
+        index,
         dependency,
         isBare: isBareImport(dependency.specifier),
       })
     }
 
     const fetchResults = await Promise.all(
-      toFetch.map(({ dependency, isBare }) =>
-        fetchDependency(id, dependency, isBare, fetcher, graph.epoch)
+      toFetch.map(({ dependency, isBare, index }) =>
+        fetchDependency(id, dependency, isBare, fetcher, graph.epoch, index)
       )
     )
 
@@ -563,8 +623,8 @@ async function loadModuleAsync(
 
     const loadPromises: Promise<Module>[] = []
 
-    // stage in dependency-list order so successful CSS keeps cascade order
-    for (const { dependency, result } of fetchResults)
+    // retain authored indices across cached & fetched dependency paths
+    for (const { index, dependency, result } of fetchResults)
     {
       if (!result)
       {
@@ -575,18 +635,18 @@ async function loadModuleAsync(
       if (preloadId && registry.has(preloadId))
       {
         stageResolution(transaction, dependency.runtimeRequest, preloadId)
-        stageDependency(transaction, preloadId)
+        stageDependency(transaction, preloadId, index, graph)
         continue
       }
 
       stageResolution(transaction, dependency.runtimeRequest, result.fsPath)
-      stageDependency(transaction, result.fsPath)
-
-      if (result.css)
+      if (result.css !== undefined)
       {
         graph.stageStyle(result.fsPath, result.css)
+        stageDependency(transaction, result.fsPath, index, graph)
         continue
       }
+      stageDependency(transaction, result.fsPath, index, graph)
 
       loadPromises.push(
         loadModuleInGraph(
@@ -616,12 +676,19 @@ async function loadModuleAsync(
       loaded: true,
     }
 
+    const metadata: ModuleLoadMetadata = {
+      dependencies: [
+        ...new Set(transaction.orderedDependencies.filter(Boolean)),
+      ],
+      styles: transaction.styles,
+    }
     registry.commitModule(
       id,
       module,
       transaction.dependencies,
       transaction.resolutions,
-      getSourceByteLength(code)
+      getSourceByteLength(code),
+      metadata
     )
     return module
   }
@@ -653,7 +720,7 @@ async function loadRootModule(
     graph
   )
   assertCurrentGeneration(epoch, id)
-  graph.commitStyles()
+  graph.commitStyles(module)
   return module
 }
 
