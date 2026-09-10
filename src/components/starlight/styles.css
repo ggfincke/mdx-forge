@@ -3,6 +3,41 @@
 
 @import '../shared/code-block-structure.css';
 
+.mdx-preview-starlight-link-button
+{
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.6em 1.1em;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.mdx-preview-starlight-link-button-primary
+{
+  color: var(--vscode-button-foreground, white);
+  background: var(--vscode-button-background, #4438ca);
+}
+
+.mdx-preview-starlight-link-button-secondary
+{
+  color: var(--vscode-foreground, inherit);
+  border-color: currentColor;
+}
+
+.mdx-preview-starlight-link-button-minimal
+{
+  color: var(--vscode-textLink-foreground, #6366f1);
+}
+
+.mdx-preview-starlight-link-button:focus-visible
+{
+  outline: 2px solid var(--vscode-focusBorder, currentColor);
+  outline-offset: 3px;
+}
+
 /* Tokens are imported once by the styles/ framework entry */
 
 /* ==================== Card ==================== */

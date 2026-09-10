@@ -664,6 +664,56 @@ const COMPONENT_AUTHORING_METADATA = deepFreeze([
     openProps: DOM_OPEN_PROPS,
   },
   {
+    summary: 'Starlight SVG icon with an optional accessible label.',
+    childrenKind: 'none',
+    safeMode: {
+      support: 'unsupported',
+      fallback: 'Renders as an unknown component placeholder.',
+    },
+    cssDeps: ['starlight'],
+    examples: [{ code: '<Icon name="star" label="Favorite" />' }],
+    props: [
+      { name: 'name', type: 'string', required: true },
+      { name: 'label', type: 'string' },
+      { name: 'size', type: 'string' },
+      { name: 'color', type: 'string' },
+      { name: 'class', type: 'string' },
+    ],
+    openProps: DOM_OPEN_PROPS,
+  },
+  {
+    summary: 'Starlight call-to-action link with an optional icon.',
+    childrenKind: 'text',
+    safeMode: {
+      support: 'unsupported',
+      fallback: 'Renders as an unknown component placeholder.',
+    },
+    cssDeps: ['starlight'],
+    examples: [
+      {
+        code: '<LinkButton href="/guide" icon="right-arrow">Guide</LinkButton>',
+      },
+    ],
+    props: [
+      { name: 'href', type: 'string', required: true },
+      {
+        name: 'variant',
+        type: 'enum',
+        values: ['primary', 'secondary', 'minimal'],
+        defaultValue: 'primary',
+      },
+      { name: 'icon', type: 'string' },
+      {
+        name: 'iconPlacement',
+        type: 'enum',
+        values: ['start', 'end'],
+        defaultValue: 'end',
+      },
+      { name: 'class', type: 'string' },
+    ],
+    openProps: DOM_OPEN_PROPS,
+  },
+  {
     summary: 'Next.js image; preview falls back to <img> (no optimization).',
     childrenKind: 'none',
     safeMode: {

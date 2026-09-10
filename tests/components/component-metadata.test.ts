@@ -94,10 +94,10 @@ describe('component authoring metadata', () =>
       .digest('hex')
 
     expect(metadataHash).toBe(
-      'd416af81080be3e299f0f095c647eee6cba262dc54b6368edd4a1230c63b7ba2'
+      '640500ebfd8888d8afc3058003824035b91867eaff74b6d6a14ab5a4a46c4f6b'
     )
     expect(registryHash).toBe(
-      '1218c3ebfc8a96d64b44f3ebc8715316dd24c4585bdcfbc6cff1def50ac9dd1d'
+      '1cf50e05473dec83b907f5495f8e0d3686dc9c96ec337d294f4dc49c0fdb441d'
     )
   })
 

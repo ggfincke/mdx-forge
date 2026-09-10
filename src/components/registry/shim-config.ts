@@ -104,6 +104,8 @@ export const SHIM_BARREL_CONFIG: readonly ShimBarrelConfig[] = [
   {
     outputPath: 'generated/shim-barrels/starlight/index.ts',
     exports: [
+      { values: ['Icon'], types: ['StarlightIconProps'] },
+      { values: ['LinkButton'], types: ['LinkButtonProps'] },
       {
         values: ['Card'],
         types: ['CardProps'],

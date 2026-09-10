@@ -1,8 +1,8 @@
 {
   "name": "mdx-forge",
-  "version": "0.10.2",
+  "version": "0.11.0",
   "packageManager": "npm@11.17.0",
-  "description": "Unified MDX runtime toolkit — compiler, browser module loader & framework component shims",
+  "description": "Unified MDX runtime toolkit \u2014 compiler, browser module loader & framework component shims",
   "type": "module",
   "license": "MIT",
   "author": "Garrett Fincke",
@@ -30,7 +30,8 @@
   "files": [
     "dist/",
     "LICENSE",
-    "README.md"
+    "README.md",
+    "THIRD_PARTY.md"
   ],
   "sideEffects": [
     "**/*.css"

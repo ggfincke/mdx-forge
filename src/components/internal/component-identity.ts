@@ -142,6 +142,8 @@ export const COMPONENT_IDENTITY_DEFINITIONS = deepFreeze([
       'TabItem',
       'FileTree',
       'Code',
+      'Icon',
+      'LinkButton',
     ],
   },
   {
@@ -227,6 +229,22 @@ export const COMPONENT_IDENTITY_DEFINITIONS = deepFreeze([
     framework: 'starlight',
     importSpecifiers: ['@astrojs/starlight/components/Code'],
     shimPath: `${SHIM_PREFIX}/starlight/Code`,
+  },
+  {
+    kind: 'component',
+    name: 'Icon',
+    aliases: [],
+    framework: 'starlight',
+    importSpecifiers: ['@astrojs/starlight/components/Icon'],
+    shimPath: `${SHIM_PREFIX}/starlight/Icon`,
+  },
+  {
+    kind: 'component',
+    name: 'LinkButton',
+    aliases: [],
+    framework: 'starlight',
+    importSpecifiers: ['@astrojs/starlight/components/LinkButton'],
+    shimPath: `${SHIM_PREFIX}/starlight/LinkButton`,
   },
   {
     kind: 'component',

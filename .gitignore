@@ -41,3 +41,5 @@ AGENTS.md
 CLAUDE.md
 # cartographer artifacts
 .cartographer/
+
+.release-candidates/

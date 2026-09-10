@@ -17,6 +17,8 @@ import {
 
 // starlight
 import {
+  Icon as StarlightIcon,
+  LinkButton as StarlightLinkButton,
   Card as StarlightCard,
   CardGrid as StarlightCardGrid,
   Badge as StarlightBadge,
@@ -25,6 +27,8 @@ import {
   Tabs as StarlightTabs,
   TabItem as StarlightTabItem,
 } from '../../src/components/starlight/index'
+
+import { COMPONENT_REGISTRY } from '../../src/components/registry'
 
 // nextra
 import {
@@ -94,6 +98,50 @@ describe('Docusaurus shims [smoke]', () =>
 
 describe('Starlight shims [smoke]', () =>
 {
+  it('exports and renders accessible Starlight icons and link buttons', () =>
+  {
+    const { container, getByRole } = render(
+      <>
+        <StarlightIcon name="star" label="Favorite" size="2rem" color="gold" />
+        <StarlightIcon name="not-a-real-icon" />
+        <StarlightLinkButton
+          href="https://example.com"
+          icon="external"
+          iconPlacement="start"
+          variant="secondary"
+        >
+          Docs
+        </StarlightLinkButton>
+        <StarlightLinkButton href="/guide" target="_self">
+          Local
+        </StarlightLinkButton>
+      </>
+    )
+    expect(getByRole('img', { name: 'Favorite' }).getAttribute('width')).toBe(
+      '2rem'
+    )
+    expect(
+      container.querySelectorAll('svg path').length
+    ).toBeGreaterThanOrEqual(3)
+    const external = getByRole('link', { name: 'Docs' })
+    expect(external.getAttribute('target')).toBe('_blank')
+    expect(external.getAttribute('rel')).toContain('noopener')
+    expect(external.firstElementChild?.tagName.toLowerCase()).toBe('svg')
+    expect(getByRole('link', { name: 'Local' }).getAttribute('target')).toBe(
+      '_self'
+    )
+    for (const name of ['Icon', 'LinkButton'])
+    {
+      const entry = COMPONENT_REGISTRY.find(
+        (item) => item.framework === 'starlight' && item.name === name
+      )
+      expect(entry?.metadata.props.some((prop) => prop.required)).toBe(true)
+      expect(entry?.importSpecifiers).toContain(
+        `@astrojs/starlight/components/${name}`
+      )
+    }
+  })
+
   it('Card renders', () =>
   {
     const { container } = render(
