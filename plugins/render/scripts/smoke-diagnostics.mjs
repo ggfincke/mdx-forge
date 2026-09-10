@@ -173,6 +173,27 @@ catch (err)
   )
 }
 
+for (const [body, expectedLine] of [
+  ['<Broken', 4],
+  ['\n<Broken', 5],
+])
+{
+  const malformed = await lintMdxSource(
+    `---\ntitle: Retained\n---\n${body}`,
+    'generic'
+  )
+  check(
+    `fatal MDX body position restored to ${expectedLine}:8`,
+    malformed.fatal?.kind === 'mdx-syntax' &&
+      malformed.fatal.line === expectedLine &&
+      malformed.fatal.column === 8
+  )
+  check(
+    'fatal body parsing retains frontmatter',
+    malformed.frontmatter.title === 'Retained'
+  )
+}
+
 // position is captured when available
 const posLint = await lintMdxSource(
   ['# Title', '', 'paragraph', '', '<BadComponent />'].join('\n'),

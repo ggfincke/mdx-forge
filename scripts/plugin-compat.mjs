@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 // scripts/plugin-compat.mjs
-// prove the nested render plugin against its locked minimum core & the
-
-// current packed core: clean install, typecheck, build, bounded smokes
+// verify render plugin against minimum & packed core artifacts
 
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
@@ -31,7 +29,7 @@ function run(command, commandArgs, cwd, env = {})
   })
 }
 
-// bounded smoke set: diagnostics (no browser), safe render & diagram fences
+// bounded smoke set: diagnostics, safe/trusted rendering & diagram fences
 // currentCore additionally asserts the unified diagnostics engine behaviors
 function runBoundedSmokes(pluginCopy, currentCore)
 {
@@ -42,6 +40,7 @@ function runBoundedSmokes(pluginCopy, currentCore)
     currentCore ? { MDX_FORGE_EXPECT_UNIFIED_DIAGNOSTICS: '1' } : {}
   )
   run('node', ['scripts/smoke.mjs'], pluginCopy)
+  run('node', ['scripts/smoke-trusted.mjs'], pluginCopy)
   run(
     'node',
     ['scripts/smoke-diagrams.mjs'],

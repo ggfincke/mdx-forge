@@ -1,7 +1,11 @@
 // plugins/render/src/registry-types.ts
 // shared registry types for component metadata & render-plugin lookups
 
-import type { ComponentOpenPropsPolicy } from 'mdx-forge/components/registry'
+import type {
+  ComponentAuthoringMetadata,
+  ComponentOpenPropsPolicy,
+  ComponentPropSpec,
+} from 'mdx-forge/components/registry'
 import type { FrameworkId as CssFrameworkId } from './css.js'
 
 export type { ComponentOpenPropsPolicy }
@@ -10,29 +14,13 @@ export type FrameworkId = CssFrameworkId
 
 export type ComponentKey = `${FrameworkId}:${string}`
 
-export type PropType =
-  | 'string'
-  | 'number'
-  | 'boolean'
-  | 'array'
-  | 'object'
-  | 'node'
-  | 'enum'
-  | 'union'
+export type PropType = ComponentPropSpec['type']
 
-export interface PropSpec
-{
-  name: string
-  type: PropType
-  required?: boolean
-  values?: readonly string[]
-  description?: string
-  valueAliases?: Readonly<Record<string, string>>
-  deprecated?: boolean
-  deprecatedIn?: string
-}
+export type PropSpec = ComponentPropSpec
 
-export type ChildrenKind = 'none' | 'text' | 'block' | 'tabitems' | 'steps'
+export type ChildrenKind = NonNullable<
+  ComponentAuthoringMetadata['childrenKind']
+>
 
 export interface ComponentMetadata
 {

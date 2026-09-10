@@ -69,7 +69,7 @@ export const SHIM_BARREL_CONFIG: readonly ShimBarrelConfig[] = [
         values: ['Callout', 'Alert', 'Admonition'],
       },
       {
-        values: ['Collapsible', 'Accordion'],
+        values: ['Collapsible', 'Details', 'Accordion'],
       },
       {
         values: ['Tabs', 'useGenericTabsContext'],

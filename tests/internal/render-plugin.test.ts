@@ -1,11 +1,12 @@
 // tests/internal/render-plugin.test.ts
 // screenshot render regressions for HTML sanitization & CSS bundle inlining
 
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it, vi } from 'vitest'
 import { resolveFrameworkCss, tokensCss } from '../../plugins/render/src/css'
 import { sanitizeScreenshotHtml } from '../../plugins/render/src/html'
 import { renderMdx, shutdownBrowser } from '../../plugins/render/src/render'
 import { stopPreviewServer } from '../../plugins/render/src/preview-server'
+import { configureHarnessBrowserLauncher } from '../../plugins/render/src/harness-page'
 import {
   DEFAULT_VIEWPORT,
   resolveViewport,
@@ -160,4 +161,145 @@ describe('render_mdx matrix screenshots', () =>
       )
     ).toBe(true)
   }, 30_000)
+
+  it('checks each measured theme and aggregate before allocating captures', async () =>
+  {
+    await shutdownBrowser()
+    let measure = (_theme: string) => ({ width: 1600, height: 2000 })
+    const captures: Array<Record<string, unknown>> = []
+    const newContext = vi.fn(async () =>
+    {
+      const dataset = { theme: 'light' }
+      const dimensions = {
+        get scrollWidth()
+        {
+          return measure(dataset.theme).width
+        },
+        get offsetWidth()
+        {
+          return measure(dataset.theme).width
+        },
+        get clientWidth()
+        {
+          return measure(dataset.theme).width
+        },
+        get scrollHeight()
+        {
+          return measure(dataset.theme).height
+        },
+        get offsetHeight()
+        {
+          return measure(dataset.theme).height
+        },
+        get clientHeight()
+        {
+          return measure(dataset.theme).height
+        },
+      }
+      vi.stubGlobal('document', {
+        body: dimensions,
+        documentElement: Object.defineProperties(
+          { dataset },
+          Object.getOwnPropertyDescriptors(dimensions)
+        ),
+      })
+      const page = {
+        setContent: vi.fn().mockResolvedValue(undefined),
+        emulateMedia: vi.fn().mockResolvedValue(undefined),
+        evaluate: async (fn: (arg?: unknown) => unknown, arg?: unknown) =>
+          fn(arg),
+        screenshot: vi.fn(async (options: Record<string, unknown>) =>
+        {
+          captures.push(options)
+          return Buffer.from('captured')
+        }),
+      }
+      return {
+        route: vi.fn().mockResolvedValue(undefined),
+        newPage: async () => page,
+        close: vi.fn().mockResolvedValue(undefined),
+      }
+    })
+    configureHarnessBrowserLauncher(
+      async () =>
+        ({
+          newContext,
+          close: vi.fn().mockResolvedValue(undefined),
+        }) as never
+    )
+    vi.stubGlobal('requestAnimationFrame', (callback: () => void) => callback())
+    const capture = () =>
+      renderMdx({
+        source: MATRIX_SOURCE,
+        screenshots: { themes: ['light', 'dark'], viewports: ['desktop'] },
+      })
+
+    try
+    {
+      measure = (theme) => ({
+        width: 1600,
+        height: theme === 'light' ? 2000 : 3000,
+      })
+      const valid = await capture()
+      expect(valid.screenshots).toHaveLength(2)
+      expect(captures.map((options) => options.clip)).toEqual([
+        { x: 0, y: 0, width: 1600, height: 2000 },
+        { x: 0, y: 0, width: 1600, height: 3000 },
+      ])
+      expect(
+        captures.every(
+          (options) => options.scale === 'css' && options.fullPage === true
+        )
+      ).toBe(true)
+
+      captures.length = 0
+      measure = (theme) => ({
+        width: 4000,
+        height: theme === 'light' ? 1000 : 3000,
+      })
+      await expect(capture()).rejects.toThrow('per-variant cap')
+      expect(captures).toHaveLength(1)
+
+      captures.length = 0
+      measure = (theme) => ({
+        width: 400,
+        height: theme === 'light' ? 1000 : 20001,
+      })
+      await expect(capture()).rejects.toThrow('full-page height')
+      expect(captures).toHaveLength(1)
+
+      captures.length = 0
+      newContext.mockClear()
+      measure = () => ({ width: 3000, height: 3000 })
+      await expect(
+        renderMdx({
+          source: MATRIX_SOURCE,
+          screenshots: {
+            themes: ['light', 'dark'],
+            viewports: ['mobile', 'tablet', 'desktop', 'wide'],
+          },
+        })
+      ).rejects.toThrow('aggregate is 54000000 px')
+      expect(captures).toHaveLength(5)
+      expect(newContext).toHaveBeenCalledTimes(3)
+
+      captures.length = 0
+      measure = () => ({ width: 20000, height: 20000 })
+      await renderMdx({
+        source: MATRIX_SOURCE,
+        screenshots: { fullPage: false, viewports: ['mobile'] },
+      })
+      expect(captures[0]).toMatchObject({
+        fullPage: false,
+        clip: { x: 0, y: 0, width: 375, height: 667 },
+        scale: 'css',
+      })
+    }
+    finally
+    {
+      await shutdownBrowser()
+      configureHarnessBrowserLauncher()
+      vi.unstubAllGlobals()
+    }
+  })
 })

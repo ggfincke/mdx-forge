@@ -19,6 +19,10 @@ Paragraph with **bold** and *italic*.
   This callout is rendered by the generic shim via React.
 </Callout>
 
+<Details title="Generic details">
+  Generic alias content.
+</Details>
+
 <Tabs>
   <TabItem label="first" value="first">
     First tab content.
@@ -77,6 +81,12 @@ check(
 )
 check('snapshot callout title rendered', out.html.includes('Hello'))
 check('snapshot tabs class', out.html.includes('mdx-preview-generic-tabs'))
+check(
+  'generic Details alias rendered',
+  out.html.includes('<details') &&
+    out.html.includes('Generic details') &&
+    out.html.includes('Generic alias content.')
+)
 check(
   'snapshot code block shiki',
   out.html.includes('shiki') && out.html.includes('console.log')

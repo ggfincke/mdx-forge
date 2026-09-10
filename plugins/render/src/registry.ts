@@ -1,10 +1,14 @@
 // plugins/render/src/registry.ts
 // render-plugin registry facade derived from mdx-forge component identity
 
-import * as coreRegistry from 'mdx-forge/components/registry'
+import {
+  COMPONENT_REGISTRY,
+  FRAMEWORK_IDS,
+  type ComponentDefinition,
+  type ComponentRegistryEntry,
+} from 'mdx-forge/components/registry'
 import type {
   ComponentKey,
-  ComponentMetadata,
   ComponentSpec,
   FrameworkId,
   PropSpec,
@@ -27,54 +31,12 @@ export type {
 } from './registry-types.js'
 export { getFrontmatterSchema } from './frontmatter.js'
 
-// minimal structural view of the core registry used only for the import cast
-// barrel d.ts export* does not surface core types under NodeNext, so the
-// entry shape is mirrored here until the published package fixes that
-interface CoreAuthoringMetadata
-{
-  summary: string
-  examples: readonly { code: string }[]
-  props: ComponentMetadata['props']
-  childrenKind?: ComponentMetadata['childrenKind']
-  openProps?: ComponentMetadata['openProps']
-}
-
-interface CoreComponentDefinition
-{
-  kind: 'component'
-  framework: FrameworkId
-  name: string
-  aliases: readonly string[]
-  importSpecifiers: readonly string[]
-  shimPath: string
-  metadata: CoreAuthoringMetadata
-}
-
-interface CoreBarrelDefinition
-{
-  kind: 'barrel'
-  framework: FrameworkId
-  name: string
-  importSpecifiers: readonly string[]
-  shimPath: string
-  exportNames: readonly string[]
-}
-
-type CoreRegistryEntry = CoreComponentDefinition | CoreBarrelDefinition
-
-// the dist build infers COMPONENT_REGISTRY/FRAMEWORK_IDS as deeply-const
-// readonly tuples, so a structural cast is required at this import boundary
-const core = coreRegistry as unknown as {
-  COMPONENT_REGISTRY: readonly CoreRegistryEntry[]
-  FRAMEWORK_IDS: readonly FrameworkId[]
-}
-
-const CORE_REGISTRY = core.COMPONENT_REGISTRY
-const FRAMEWORKS: readonly FrameworkId[] = core.FRAMEWORK_IDS
+const CORE_REGISTRY: readonly ComponentRegistryEntry[] = COMPONENT_REGISTRY
+const FRAMEWORKS: readonly FrameworkId[] = FRAMEWORK_IDS
 
 function isComponentEntry(
-  entry: CoreRegistryEntry
-): entry is CoreComponentDefinition
+  entry: ComponentRegistryEntry
+): entry is ComponentDefinition
 {
   return entry.kind === 'component'
 }
@@ -84,7 +46,7 @@ function componentKey(framework: FrameworkId, name: string): ComponentKey
   return `${framework}:${name}`
 }
 
-function toIdentity(entry: CoreRegistryEntry): RegistryIdentity
+function toIdentity(entry: ComponentRegistryEntry): RegistryIdentity
 {
   const identity: RegistryIdentity = {
     kind: entry.kind,
@@ -103,7 +65,7 @@ function toIdentity(entry: CoreRegistryEntry): RegistryIdentity
   return identity
 }
 
-function specFromMetadata(entry: CoreComponentDefinition): ComponentSpec
+function specFromMetadata(entry: ComponentDefinition): ComponentSpec
 {
   const metadata = entry.metadata
   return {
@@ -172,7 +134,7 @@ export function describeComponent(
 }
 
 function buildComponentSpecs(
-  entries: readonly CoreRegistryEntry[]
+  entries: readonly ComponentRegistryEntry[]
 ): ComponentSpec[]
 {
   const specs: ComponentSpec[] = []

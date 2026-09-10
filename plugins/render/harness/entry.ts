@@ -21,7 +21,18 @@ import {
 // @ts-expect-error virtual module resolved by the bundler
 import * as FRAMEWORK_SHIMS from 'virtual:mdx-forge-shims'
 
-const SHIM_EXPORTS = FRAMEWORK_SHIMS as unknown as Record<string, unknown>
+declare const __MDX_FORGE_COMPONENT_ALIASES__: Readonly<Record<string, string>>
+
+const SHIM_EXPORTS: Record<string, unknown> = { ...FRAMEWORK_SHIMS }
+for (const [alias, canonical] of Object.entries(
+  __MDX_FORGE_COMPONENT_ALIASES__
+))
+{
+  if (!(alias in SHIM_EXPORTS) && canonical in SHIM_EXPORTS)
+  {
+    SHIM_EXPORTS[alias] = SHIM_EXPORTS[canonical]
+  }
+}
 
 interface HarnessWindow extends Window
 {

@@ -6,7 +6,10 @@ import { build } from 'esbuild'
 import { copyFile, mkdir, rm } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { FRAMEWORK_IDS } from 'mdx-forge/components/registry'
+import {
+  COMPONENT_REGISTRY,
+  FRAMEWORK_IDS,
+} from 'mdx-forge/components/registry'
 
 const __filename = fileURLToPath(import.meta.url)
 const ROOT = resolve(dirname(__filename), '..')
@@ -22,6 +25,12 @@ async function bundleFramework(framework)
   const outDir = resolve(OUT_DIR, framework)
   await mkdir(outDir, { recursive: true })
 
+  const aliases = Object.fromEntries(
+    COMPONENT_REGISTRY.filter(
+      (entry) => entry.kind === 'component' && entry.framework === framework
+    ).flatMap((entry) => entry.aliases.map((alias) => [alias, entry.name]))
+  )
+
   await build({
     entryPoints: [HARNESS_ENTRY],
     bundle: true,
@@ -35,6 +44,7 @@ async function bundleFramework(framework)
     sourcemap: 'linked',
     define: {
       'process.env.NODE_ENV': '"production"',
+      __MDX_FORGE_COMPONENT_ALIASES__: JSON.stringify(aliases),
     },
     // alias the virtual shim module to the per-framework barrel
     alias: {

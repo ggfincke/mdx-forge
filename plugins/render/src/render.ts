@@ -741,6 +741,7 @@ async function captureVariants(
   }
 
   const results: CaptureVariant[] = []
+  const measuredVariants: CapturePlanVariant[] = []
   for (const bucket of byViewport.values())
   {
     const viewport = bucket[0].viewport
@@ -755,26 +756,6 @@ async function captureVariants(
     {
       const page = await context.newPage()
       await page.setContent(screenshotDoc, { waitUntil: 'load' })
-      await waitForCaptureReadiness(page)
-      if (plan.fullPage)
-      {
-        // reject tall pages before allocating a full-page surface
-        const scrollHeight = await page.evaluate(
-          () => document.documentElement.scrollHeight
-        )
-        if (scrollHeight > MAX_FULLPAGE_SCROLL_HEIGHT)
-        {
-          throw new RenderDiagnosticError(
-            {
-              kind: 'invalid-prop-value',
-              severity: 'error',
-              message: `full-page height ${scrollHeight}px exceeds cap ${MAX_FULLPAGE_SCROLL_HEIGHT}px.`,
-              prop: 'screenshots',
-            },
-            []
-          )
-        }
-      }
       for (const variant of bucket)
       {
         await page.emulateMedia({ colorScheme: variant.theme })
@@ -782,9 +763,57 @@ async function captureVariants(
         {
           document.documentElement.dataset.theme = t
         }, variant.theme)
+        await waitForCaptureReadiness(page)
+        const rectangle = plan.fullPage
+          ? await page.evaluate(() =>
+            {
+              const { body, documentElement } = document
+              return {
+                x: 0,
+                y: 0,
+                width: Math.max(
+                  body.scrollWidth,
+                  body.offsetWidth,
+                  body.clientWidth,
+                  documentElement.scrollWidth,
+                  documentElement.offsetWidth,
+                  documentElement.clientWidth
+                ),
+                height: Math.max(
+                  body.scrollHeight,
+                  body.offsetHeight,
+                  body.clientHeight,
+                  documentElement.scrollHeight,
+                  documentElement.offsetHeight,
+                  documentElement.clientHeight
+                ),
+              }
+            })
+          : { x: 0, y: 0, width: viewport.width, height: viewport.height }
+        if (plan.fullPage && rectangle.height > MAX_FULLPAGE_SCROLL_HEIGHT)
+        {
+          throw new RenderDiagnosticError(
+            {
+              kind: 'invalid-prop-value',
+              severity: 'error',
+              message: `full-page height ${rectangle.height}px exceeds cap ${MAX_FULLPAGE_SCROLL_HEIGHT}px.`,
+              prop: 'screenshots',
+            },
+            []
+          )
+        }
+        measuredVariants.push({ theme: variant.theme, viewport: rectangle })
+        validatePixelBudgets({
+          variants: measuredVariants,
+          fullPage: plan.fullPage,
+        })
+
+        // the checked CSS-pixel rectangle bounds this measured snapshot
         const png = await page.screenshot({
           type: 'png',
           fullPage: plan.fullPage,
+          clip: rectangle,
+          scale: 'css',
         })
         if (png.length > MAX_PNG_BYTES)
         {

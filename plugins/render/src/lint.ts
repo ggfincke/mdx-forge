@@ -147,6 +147,10 @@ export async function lintMdxSource(
       fatal: normalizeCompileError(result.parseError.error, {
         source,
         framework,
+        bodyOrigin: {
+          line: result.bodyStartLine,
+          column: result.bodyStartColumn,
+        },
       }),
     }
   }

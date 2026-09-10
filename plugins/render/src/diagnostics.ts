@@ -198,6 +198,7 @@ export interface CompileErrorContext
 {
   source: string
   framework: FrameworkId
+  bodyOrigin?: { line: number; column: number }
 }
 
 export function normalizeCompileError(
@@ -206,7 +207,16 @@ export function normalizeCompileError(
 ): Diagnostic
 {
   const msg = errorMessage(err)
-  const { line, column } = extractPosition(err)
+  const position = extractPosition(err)
+  const line =
+    position.line === undefined
+      ? undefined
+      : position.line + (ctx.bodyOrigin?.line ?? 1) - 1
+  const column =
+    position.column === undefined
+      ? undefined
+      : position.column +
+        (position.line === 1 ? (ctx.bodyOrigin?.column ?? 1) - 1 : 0)
 
   // map Trusted Mode missing components to unknown-component diagnostics
   const componentMatch = EXPECTED_COMPONENT_PATTERN.exec(msg)

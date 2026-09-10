@@ -72,11 +72,17 @@ function parseBarrelExports(framework: string): {
       }
       if (name.startsWith('type '))
       {
-        types.add(name.slice(5).trim())
+        types.add(
+          name
+            .slice(5)
+            .trim()
+            .split(/\s+as\s+/)
+            .at(-1)!
+        )
       }
       else
       {
-        values.add(name)
+        values.add(name.split(/\s+as\s+/).at(-1)!)
       }
     }
   }

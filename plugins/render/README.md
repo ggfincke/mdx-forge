@@ -107,6 +107,13 @@ Inputs and outputs are bounded in both the MCP schema and the direct
 | Max PNG size                | `MAX_PNG_BYTES`              | 8 MiB    |
 | Max response size           | `MAX_RESPONSE_BYTES`         | 24 MiB   |
 
+Each theme settles before its rendered dimensions are measured. Full-page
+captures apply the height and pixel budgets to that measured rectangle, with
+aggregate pixels counted across all viewport groups. Screenshots use CSS-pixel
+scaling and a fixed clip: they represent the measured snapshot, so subsequent
+layout growth does not enlarge the image allocation. PNG byte limits still
+apply after capture.
+
 Temp preview artifacts are pruned on server start and after each render
 beyond `MAX_PREVIEW_ARTIFACTS` (50) and `PREVIEW_ARTIFACT_TTL_MS` (24h).
 
@@ -176,9 +183,9 @@ interface Diagnostic {
 The lint pass analyzes the MDX before compiling, so unknown components
 and malformed props are caught cheaply and reported with positions.
 With a core that ships the unified diagnostics engine (see “Unified
-diagnostics engine” above), positions are original-file line numbers
-even below frontmatter, string values on boolean props
-(`open="false"`) and non-event `on*` names (`only=`) are flagged, and
+diagnostics engine” above), positions are original-file line and column numbers,
+including fatal MDX body parse failures after frontmatter. String values on
+boolean props (`open="false"`) and non-event `on*` names (`only=`) are flagged, and
 dotted members are validated against the known compound components.
 Frontmatter is validated against per-framework schemas (e.g.,
 Starlight requires `title`, Docusaurus accepts
