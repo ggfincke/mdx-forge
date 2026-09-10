@@ -79,12 +79,21 @@ console.log(result.root)
 - `loadModule()` recursively loads modules and their dependencies
 - module evaluation uses `new Function()` and requires a host that intentionally allows that execution model
 - the registry layer coordinates module cache, style cache, and dependency tracking
+- `ensureFrameworkShimsLoaded(framework)` accepts every `FrameworkId`, including
+  `generic`, and returns the preload promise; await it before publishing content
+  when the host needs preload completion or failure directly
 
 ### Diagnostics
 
 - zero-dependency `Diagnostic` contract with stable `MDXF###` codes
 - `analyzeMdx()` safely parses frontmatter and emits render-free diagnostics
 - framework-aware unknown-component classification shared by hosts
+- `mdx-forge/diagnostics/analyze` exposes `collectMdxBindings(program)` for an
+  already parsed ESTree program; its `imports` and `locals` sets distinguish
+  imported bindings from local declarations without another parse
+- `getComponentNameInfo(name)` returns a component's root identifier and member
+  segments, or `null` for intrinsic tag names, so editor adapters can share the
+  analyzer's naming rules while retaining their own source ranges
 
 ### Components
 

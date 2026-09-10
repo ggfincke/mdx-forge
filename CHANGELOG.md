@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Expose parsed-module binding collection and component-name classification through `mdx-forge/diagnostics/analyze` for editor adapters.
+
+### Fixed
+
+- Enforce screenshot budgets against each theme's rendered dimensions before capture, and bound images to the measured CSS-pixel rectangle.
+- Recover imported CSS when a failed parent retries through cached JavaScript children, and preserve authored nested stylesheet order across cached loads without moving unrelated styles.
+- Reserve authored and generated component-import identifiers together, and expose injected imports to custom remark transforms without shifting document positions.
+- Export generic `Details` as the `Collapsible` alias and derive render-plugin provider aliases from registry metadata, including minimum-core compatibility.
+- Rebase fatal MDX body parse diagnostics to original-document coordinates while retaining frontmatter.
+- Await framework preload completion through the browser runtime API, including a return to generic after a failed framework load.
+- Convert resolved reference-link children once, preventing duplicate structured diagnostics.
+
+### Performance
+
+- Avoid repeated full-source location scans during stock Trusted HTML normalization while preserving normalized trees and source positions; Safe compilation and custom-plugin pipelines retain the original raw plugin.
+
+## [0.11.0] - Unreleased
+
+### Changed
+
+- Refresh reviewed tooling and render-plugin dependencies and resolve transitive audit findings.
+
+### Added
+
+- Starlight `Icon` and `LinkButton` shims with pinned offline SVG assets, accessible labels, registry metadata, and shared link navigation policy.
+
 ## [0.10.2] - 2026-08-18
 
 ### Changed
