@@ -7,18 +7,8 @@ import remarkMdx from 'remark-mdx'
 import { visit } from 'unist-util-visit'
 import type { Root } from 'mdast'
 import type { Position } from 'unist'
-import type {
-  ClassDeclaration,
-  Expression,
-  ExportDefaultDeclaration,
-  ExportNamedDeclaration,
-  FunctionDeclaration,
-  Identifier,
-  ImportDeclaration,
-  Pattern,
-  Program,
-  VariableDeclaration,
-} from 'estree'
+import type { Expression, Program } from 'estree'
+import { collectMdxBindings } from '../../internal/esm-bindings'
 import {
   rebasePosition,
   type SourceOrigin,
@@ -157,7 +147,7 @@ function isKnownNonBooleanExpression(
 // JSX name semantics: lowercase-start & dashed single identifiers are
 // intrinsic tags, namespace names (svg:path) compile to literal tags &
 // everything else (capitalized/_/$ roots & member expressions) is a component
-function componentNameInfo(
+export function getComponentNameInfo(
   name: string
 ): { root: string; members: string[] } | null
 {
@@ -220,7 +210,11 @@ export function parseMdxForAnalysis(
     {
       return
     }
-    collectLocalBindings(estree, imports)
+    const bindings = collectMdxBindings(estree)
+    for (const name of [...bindings.imports, ...bindings.locals])
+    {
+      imports.add(name)
+    }
   })
 
   const components: DetectedComponent[] = []
@@ -238,7 +232,7 @@ export function parseMdxForAnalysis(
     {
       return
     }
-    const info = componentNameInfo(jsx.name)
+    const info = getComponentNameInfo(jsx.name)
     if (!info)
     {
       return
@@ -253,165 +247,6 @@ export function parseMdxForAnalysis(
   })
 
   return { imports, components }
-}
-
-function collectLocalBindings(program: Program, bindings: Set<string>): void
-{
-  for (const stmt of program.body)
-  {
-    if (stmt.type === 'ImportDeclaration')
-    {
-      collectImportBindings(stmt, bindings)
-      continue
-    }
-    if (stmt.type === 'ExportNamedDeclaration')
-    {
-      collectExportBindings(stmt, bindings)
-      continue
-    }
-    if (stmt.type === 'ExportDefaultDeclaration')
-    {
-      collectDefaultExportBinding(stmt, bindings)
-    }
-  }
-}
-
-function collectImportBindings(
-  stmt: ImportDeclaration,
-  bindings: Set<string>
-): void
-{
-  for (const spec of stmt.specifiers)
-  {
-    bindings.add(spec.local.name)
-  }
-}
-
-function collectExportBindings(
-  stmt: ExportNamedDeclaration,
-  bindings: Set<string>
-): void
-{
-  if (stmt.declaration)
-  {
-    collectDeclarationBindings(stmt.declaration, bindings)
-    return
-  }
-  if (stmt.source)
-  {
-    return
-  }
-  for (const spec of stmt.specifiers)
-  {
-    if (isIdentifier(spec.local))
-    {
-      bindings.add(spec.local.name)
-    }
-  }
-}
-
-function collectDefaultExportBinding(
-  stmt: ExportDefaultDeclaration,
-  bindings: Set<string>
-): void
-{
-  const declaration = stmt.declaration
-  if (
-    (declaration.type === 'FunctionDeclaration' ||
-      declaration.type === 'ClassDeclaration') &&
-    isIdentifier(declaration.id)
-  )
-  {
-    bindings.add(declaration.id.name)
-  }
-}
-
-function collectDeclarationBindings(
-  declaration: ExportNamedDeclaration['declaration'],
-  bindings: Set<string>
-): void
-{
-  if (!declaration)
-  {
-    return
-  }
-  if (declaration.type === 'VariableDeclaration')
-  {
-    collectVariableBindings(declaration, bindings)
-    return
-  }
-  if (isNamedDeclaration(declaration))
-  {
-    bindings.add(declaration.id.name)
-  }
-}
-
-function collectVariableBindings(
-  declaration: VariableDeclaration,
-  bindings: Set<string>
-): void
-{
-  for (const variable of declaration.declarations)
-  {
-    collectPatternBindings(variable.id, bindings)
-  }
-}
-
-function collectPatternBindings(pattern: Pattern, bindings: Set<string>): void
-{
-  switch (pattern.type)
-  {
-    case 'Identifier':
-      bindings.add(pattern.name)
-      break
-    case 'ObjectPattern':
-      for (const property of pattern.properties)
-      {
-        collectPatternBindings(
-          property.type === 'RestElement' ? property.argument : property.value,
-          bindings
-        )
-      }
-      break
-    case 'ArrayPattern':
-      for (const element of pattern.elements)
-      {
-        if (element)
-        {
-          collectPatternBindings(element, bindings)
-        }
-      }
-      break
-    case 'RestElement':
-      collectPatternBindings(pattern.argument, bindings)
-      break
-    case 'AssignmentPattern':
-      collectPatternBindings(pattern.left, bindings)
-      break
-  }
-}
-
-function isNamedDeclaration(
-  declaration: ExportNamedDeclaration['declaration']
-): declaration is FunctionDeclaration | ClassDeclaration
-{
-  return (
-    (declaration?.type === 'FunctionDeclaration' ||
-      declaration?.type === 'ClassDeclaration') &&
-    isIdentifier(declaration.id)
-  )
-}
-
-function isIdentifier(node: unknown): node is Identifier
-{
-  return (
-    typeof node === 'object' &&
-    node !== null &&
-    'type' in node &&
-    node.type === 'Identifier' &&
-    'name' in node &&
-    typeof node.name === 'string'
-  )
 }
 
 function toRange(

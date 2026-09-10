@@ -4,6 +4,7 @@
 import type { Pluggable } from 'unified'
 import rehypeRawPkg from 'rehype-raw'
 import rehypeFenceMeta from '../pipeline/rehype/fence-meta'
+import rehypeRawWithSourceView from '../pipeline/rehype/raw'
 import {
   sharedRemarkPlugins,
   getSharedRehypePluginsPreMath,
@@ -28,10 +29,15 @@ export function buildTrustedRehypePlugins(
   diagramBehavior?: DiagramBehavior
 ): Pluggable[]
 {
+  const rawPlugin =
+    customPlugins.remarkPlugins.length === 0 &&
+    customPlugins.rehypePlugins.length === 0
+      ? rehypeRawWithSourceView
+      : rehypeRawPkg
   const basePlugins: Pluggable[] = [
     // fence meta must be captured before rehype-raw drops hast data fields
     rehypeFenceMeta,
-    [rehypeRawPkg, REHYPE_RAW_CONFIG],
+    [rawPlugin, REHYPE_RAW_CONFIG],
     ...getSharedRehypePluginsPreMath(diagramBehavior),
     rehypeKatex,
     ...sharedRehypePluginsPostMath,

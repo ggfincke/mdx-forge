@@ -307,11 +307,10 @@ function convertLinkReference(
   context: SafeDocumentCompileContext
 ): SafeDocumentNode[]
 {
-  const children = convertSafeDocumentChildren(node.children ?? [], context)
   const definition = findDefinition(node, context)
   if (!definition)
   {
-    return children
+    return convertSafeDocumentChildren(node.children ?? [], context)
   }
   const linked: SafeDocumentMdastNode = {
     ...node,

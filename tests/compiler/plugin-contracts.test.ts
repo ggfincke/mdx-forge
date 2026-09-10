@@ -1,10 +1,18 @@
 // tests/compiler/plugin-contracts.test.ts
 // plugin list isolation, cached loading, & load error classification
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { createProcessor } from '@mdx-js/mdx'
+import rehypeRaw from 'rehype-raw'
+import { VFile } from 'vfile'
+import type { Root } from 'hast'
+import rehypeRawWithSourceView from '../../src/compiler/pipeline/rehype/raw'
+import { REHYPE_RAW_CONFIG } from '../../src/compiler/pipeline/common/pipeline-config'
+import { pointAtOffset, SOURCE_START } from '../../src/internal/source-position'
 import { compileSafe, compileTrusted } from '../../src/compiler'
 import {
   buildTrustedRemarkPlugins,
+  buildTrustedPluginPipeline,
   getSafeRehypePluginSets,
   getSafeRemarkPlugins,
 } from '../../src/compiler/plugins/builder'
@@ -20,7 +28,7 @@ import type {
   PluginLoader,
   ResolvedConfig,
 } from '../../src/compiler/types'
-import type { Pluggable } from 'unified'
+import type { Pluggable, Processor } from 'unified'
 
 function compilerConfig(
   overrides: Partial<CompilerConfig> = {}
@@ -244,5 +252,170 @@ describe('plugin load cache', () =>
     {
       clearPluginLoadCache()
     }
+  })
+})
+
+describe('trusted raw normalization adapter', () =>
+{
+  it('matches stock normalized trees & positions without changing the original VFile', () =>
+  {
+    const rawRoot = (source: string): Root => ({
+      type: 'root',
+      children: [
+        {
+          type: 'raw',
+          value: source,
+          position: {
+            start: { ...SOURCE_START },
+            end: pointAtOffset(source, source.length),
+          },
+        },
+      ],
+    })
+    const synthetic = { start: { ...SOURCE_START }, end: { ...SOURCE_START } }
+    const mdxSource = '<Widget>content</Widget>\r\nnext'
+    const fixtures: { source: string; tree: Root }[] = [
+      ...[
+        '',
+        '<!doctype html><html><head><title>Doc</title></head><body><p>a<div>b</div>c</p></body></html>',
+        '<table>before<tr><td>A</td></tr>after</table><!-- comment -->',
+        '<template><p>bounded</p><template>nested</template></template>',
+        '<template><div>unclosed',
+        '<div>one\r\ntwo\rthree\nfour</div>',
+      ].map((source) => ({ source, tree: rawRoot(source) })),
+      {
+        source: mdxSource,
+        tree: {
+          type: 'root',
+          children: [
+            {
+              type: 'mdxJsxFlowElement',
+              name: 'Widget',
+              attributes: [],
+              children: rawRoot('<template>inner').children,
+              data: {
+                preserved: {
+                  type: 'root',
+                  children: [],
+                  position: structuredClone(synthetic),
+                },
+                bounded: {
+                  type: 'root',
+                  children: [],
+                  position: {
+                    start: { line: 3, column: 2, offset: 5 },
+                    end: { line: 3, column: 8, offset: 11 },
+                  },
+                },
+                unpositioned: { type: 'root', children: [] },
+              },
+            },
+          ],
+        },
+      },
+    ]
+    const stock = rehypeRaw(REHYPE_RAW_CONFIG)
+    const adapted = rehypeRawWithSourceView(REHYPE_RAW_CONFIG)
+    for (const { source, tree } of fixtures)
+    {
+      const file = new VFile({
+        value: source,
+        path: '/workspace/raw.mdx',
+        data: { marker: { keep: true } },
+      })
+      file.message('existing message')
+      const stringify = vi.spyOn(file, 'toString')
+      const descriptors = Object.getOwnPropertyDescriptors(file)
+      const data = structuredClone(file.data)
+      const history = [...file.history]
+      const messages = [...file.messages]
+      const expected = stock(
+        structuredClone(tree),
+        new VFile({ value: source })
+      )
+      const actual = adapted(structuredClone(tree), file)
+
+      expect(actual).toEqual(expected)
+      expect(stringify.mock.calls.length).toBeLessThanOrEqual(1)
+      expect(Object.getOwnPropertyDescriptors(file)).toEqual(descriptors)
+      expect(file.value).toBe(source)
+      expect(file.data).toEqual(data)
+      expect(file.history).toEqual(history)
+      expect(file.messages).toEqual(messages)
+      stringify.mockRestore()
+    }
+
+    const unsupported = {
+      type: 'root',
+      children: [{ type: 'unknown-node' }],
+    } as unknown as Root
+    const failedFile = new VFile({
+      value: 'unchanged source',
+      path: '/workspace/failure.mdx',
+    })
+    const before = Object.getOwnPropertyDescriptors(failedFile)
+    expect(() =>
+      stock(structuredClone(unsupported), new VFile('unchanged source'))
+    ).toThrow(/unknown-node/)
+    expect(() => adapted(structuredClone(unsupported), failedFile)).toThrow(
+      /unknown-node/
+    )
+    expect(Object.getOwnPropertyDescriptors(failedFile)).toEqual(before)
+  })
+
+  it('keeps the original raw plugin registration when custom remark or rehype plugins use it', async () =>
+  {
+    const empty: LoadedPlugins = {
+      remarkPlugins: [],
+      rehypePlugins: [],
+      errorCount: 0,
+    }
+    const optimized = buildTrustedPluginPipeline(empty)
+    expect(optimized.rehypePlugins[1]).toEqual([
+      rehypeRawWithSourceView,
+      REHYPE_RAW_CONFIG,
+    ])
+    expect(getSafeRehypePluginSets().raw).toEqual([
+      rehypeRaw,
+      REHYPE_RAW_CONFIG,
+    ])
+    const source = '# Heading\n\n<div><p>text<div>block</div>tail</p></div>\n'
+    const expected = await createProcessor({
+      format: 'md',
+      ...optimized,
+    }).process(source)
+    const observedValues: unknown[] = []
+    let registrations = 0
+    function reuseRaw(this: Processor)
+    {
+      registrations++
+      this.use(rehypeRaw, REHYPE_RAW_CONFIG)
+      return (_tree: unknown, file: VFile) =>
+      {
+        observedValues.push(file.value)
+      }
+    }
+
+    for (const custom of [
+      { ...empty, remarkPlugins: [reuseRaw] },
+      { ...empty, rehypePlugins: [reuseRaw] },
+    ])
+    {
+      const pipeline = buildTrustedPluginPipeline(custom)
+      expect(pipeline.rehypePlugins[1]).toEqual([rehypeRaw, REHYPE_RAW_CONFIG])
+      const processor = createProcessor({ format: 'md', ...pipeline })
+      const actual = await processor.process(source)
+      expect(
+        processor.attachers.filter(([plugin]) => plugin === rehypeRaw)
+      ).toHaveLength(1)
+      expect(
+        processor.attachers.some(
+          ([plugin]) => plugin === rehypeRawWithSourceView
+        )
+      ).toBe(false)
+      expect(String(actual)).toBe(String(expected))
+    }
+    expect(registrations).toBe(2)
+    expect(observedValues).toEqual([source, source])
   })
 })

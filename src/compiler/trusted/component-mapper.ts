@@ -11,11 +11,18 @@ import {
   emitWarning,
 } from '../pipeline/common/pipeline-warnings'
 
-// result of generating component imports
+interface ComponentImport
+{
+  componentName: string
+  identifierBase: string
+  source: string
+}
+
+// validated imports awaiting authored binding allocation
 export interface ComponentImportsResult
 {
-  // import statements to prepend to MDX
-  imports: string
+  // import descriptors inserted by the early remark transform
+  imports: ComponentImport[]
   // component object literal for MDX provider
   componentsObject: string
   // has components
@@ -35,7 +42,7 @@ const BUILTIN_GENERIC_COMPONENTS = getAllGenericComponentNames()
 // supported component keys: plain JS identifiers usable as MDX shortcodes
 const VALID_COMPONENT_KEY = /^[A-Za-z_$][A-Za-z0-9_$]*$/
 
-// generate import statements & components object for custom component mapping (only generates in Trusted Mode)
+// validate & resolve component import descriptors in Trusted Mode
 export function generateComponentImports(
   config: ResolvedConfig | undefined,
   documentDir: string,
@@ -53,7 +60,7 @@ export function generateComponentImports(
   log.debug(`builtinsEnabled: ${builtinsEnabled}`)
 
   const result: ComponentImportsResult = {
-    imports: '',
+    imports: [],
     componentsObject: '{}',
     hasComponents: false,
   }
@@ -79,8 +86,7 @@ export function generateComponentImports(
     return result
   }
 
-  const importStatements: string[] = []
-  const componentEntries: string[] = []
+  const imports: ComponentImport[] = []
 
   // track which component names are defined by user config (these take precedence)
   const userDefinedComponents = new Set<string>()
@@ -114,16 +120,11 @@ export function generateComponentImports(
       // convert to relative import path from document directory
       const relativePath = toRelativeImportPath(absolutePath, documentDir)
 
-      // validated keys are identifiers, so prefixed var names cannot collide
-      // quote the specifier via JSON.stringify so literal-sensitive paths
-      // (apostrophes, backslashes) cannot break the generated import
-      const safeVarName = `_component_${componentName}`
-      importStatements.push(
-        `import ${safeVarName} from ${JSON.stringify(relativePath)};`
-      )
-      componentEntries.push(
-        `  ${JSON.stringify(componentName)}: ${safeVarName}`
-      )
+      imports.push({
+        componentName,
+        identifierBase: `_component_${componentName}`,
+        source: relativePath,
+      })
     }
   }
 
@@ -138,25 +139,21 @@ export function generateComponentImports(
         continue
       }
 
-      // generate import from the component name (resolved via preload aliases in webview)
-      const safeVarName = `_builtin_${componentName}`
-      importStatements.push(
-        `import ${safeVarName} from ${JSON.stringify(componentName)};`
-      )
-      componentEntries.push(
-        `  ${JSON.stringify(componentName)}: ${safeVarName}`
-      )
+      imports.push({
+        componentName,
+        identifierBase: `_builtin_${componentName}`,
+        source: componentName,
+      })
     }
   }
 
-  if (importStatements.length > 0)
+  if (imports.length > 0)
   {
-    result.imports = importStatements.join('\n')
-    result.componentsObject = `{\n${componentEntries.join(',\n')}\n}`
+    result.imports = imports
     result.hasComponents = true
 
     const userCount = userDefinedComponents.size
-    const builtinCount = importStatements.length - userCount
+    const builtinCount = imports.length - userCount
 
     if (userCount > 0 && builtinCount > 0)
     {
@@ -172,9 +169,6 @@ export function generateComponentImports(
     {
       log.debug(`Injected ${builtinCount} built-in generic shim(s)`)
     }
-
-    log.debug('Generated imports:\n' + result.imports)
-    log.debug('Components object: ' + result.componentsObject)
   }
   else
   {

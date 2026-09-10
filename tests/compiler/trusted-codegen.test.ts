@@ -7,7 +7,12 @@ import React from 'react'
 import { Fragment, jsx, jsxs } from 'react/jsx-runtime'
 import { renderToStaticMarkup } from 'react-dom/server'
 import type { ComponentType, ReactNode } from 'react'
-import { compileTrusted } from '../../src/compiler/index'
+import {
+  compileTrusted,
+  KNOWN_GENERIC_COMPONENTS,
+} from '../../src/compiler/index'
+import type { Root } from 'mdast'
+import type { MdxjsEsm } from 'mdast-util-mdxjs-esm'
 import { evaluateModule } from '../../src/browser/eval/evaluateModule'
 import type { CompilerConfig } from '../../src/compiler/index'
 import type { ModuleRuntime } from '../../src/browser/types'
@@ -154,6 +159,21 @@ async function evaluateCompiledModule(
       {
         return { __esModule: true, default: runtimeWrapper }
       }
+      if (
+        specifier === './mapped.jsx' ||
+        KNOWN_GENERIC_COMPONENTS.has(specifier)
+      )
+      {
+        return {
+          __esModule: true,
+          default: ({ children }: { children?: ReactNode }) =>
+            React.createElement(
+              'aside',
+              { 'data-codegen-component': specifier },
+              children
+            ),
+        }
+      }
       if (specifier === './authored-bindings.js')
       {
         return { value: null }
@@ -184,10 +204,47 @@ describe('Trusted codegen hygiene (F6)', () =>
     await bundleModule(result.code)
   })
 
-  it('authored wrapper-name collisions parse & bundle', async () =>
+  it('authored & generated binding collisions preserve exports & rendering', async () =>
   {
+    let observedImports = false
+    const inspectImports = () => (tree: Root) =>
+    {
+      const imports = tree.children.filter(
+        (node) => node.type === 'mdxjsEsm'
+      ) as MdxjsEsm[]
+      const authored = imports.filter((node) => node.position)
+      expect(authored[0].position?.start).toMatchObject({
+        line: 1,
+        column: 1,
+        offset: 0,
+      })
+      expect(authored[0].value).toContain("import React from 'react'")
+      expect(authored[0].value).toContain(
+        'import { value as _builtin_Callout_2 }'
+      )
+      const generated = imports.filter((node) => !node.position)
+      expect(generated.length).toBeGreaterThan(3)
+      const names = new Set<string>()
+      for (const node of generated)
+      {
+        const declaration = node.data?.estree?.body[0]
+        expect(declaration?.type).toBe('ImportDeclaration')
+        if (declaration?.type !== 'ImportDeclaration')
+        {
+          continue
+        }
+        const name = declaration.specifiers[0].local.name
+        expect(names.has(name)).toBe(false)
+        names.add(name)
+        expect(node.value).toBe(
+          `import ${name} from ${JSON.stringify(declaration.source.value)};`
+        )
+      }
+      observedImports = true
+    }
     const result = await compileTrusted(
       `import React from 'react'
+import { value as _builtin_Callout_2 } from './authored-bindings.js'
 
 export function MDXProvider() { return null }
 
@@ -197,17 +254,68 @@ export const _OriginalDefault = 2
 
 export const MDXContentWithComponents = 3
 
+export const _builtin_Cal\\u006cout = 7
+export const _builtin_Callout_1 = 8
+export const { value: _component_Box = 9 } = {}
+export const [_component_Box_1 = 10] = []
+export const _component_$Widget = 11
+
 # Hello
+
+<Callout>Built-in content</Callout>
+
+<Box>Configured content</Box>
+
+<$Widget>Dollar content</$Widget>
+
+<Box_2>Generated collision content</Box_2>
 `,
       true,
-      createConfig()
+      createConfig({
+        useHostMarkdownStyles: false,
+        configFile: {
+          config: {
+            components: {
+              Box: './mapped.jsx',
+              $Widget: './mapped.jsx',
+              Box_2: './mapped.jsx',
+            },
+            remarkPlugins: ['inspect-generated-imports'],
+          },
+          configDir: '/workspace',
+          configPath: '/workspace/.mdx-previewrc.json',
+        },
+        pluginLoader: {
+          resolve: () => '/workspace/inspect-generated-imports.js',
+          load: () => ({ default: inspectImports }),
+        },
+      })
     )
 
+    expect(observedImports).toBe(true)
     await parseModule(result.code)
     await bundleModule(result.code)
-    // exactly one module-level default export survives the wrapping
     const defaults = result.code.match(/^export default/gm) ?? []
     expect(defaults.length).toBe(1)
+    const evaluated = await evaluateCompiledModule(result.code)
+    expect(evaluated).toMatchObject({
+      _MDXComponents: 1,
+      _OriginalDefault: 2,
+      MDXContentWithComponents: 3,
+      _builtin_Callout: 7,
+      _builtin_Callout_1: 8,
+      _component_Box: 9,
+      _component_Box_1: 10,
+      _component_$Widget: 11,
+    })
+    const rendered = renderToStaticMarkup(
+      React.createElement(evaluated.default as ComponentType)
+    )
+    expect(rendered).toContain('data-codegen-component="Callout"')
+    expect(rendered).toContain('Built-in content')
+    expect(rendered).toContain('Configured content')
+    expect(rendered).toContain('Dollar content')
+    expect(rendered).toContain('Generated collision content')
   })
 
   it('literal-sensitive component paths (apostrophes) stay quoted & parseable', async () =>

@@ -40,6 +40,8 @@ describe('diagnostics analyze exports', () =>
   {
     expect(typeof analyze.analyzeMdx).toBe('function')
     expect(typeof analyze.analyzeMdxDocument).toBe('function')
+    expect(typeof analyze.collectMdxBindings).toBe('function')
+    expect(typeof analyze.getComponentNameInfo).toBe('function')
     expect(typeof analyze.classifyComponentSource).toBe('function')
     expect(typeof analyze.analyzeUnknownComponents).toBe('function')
     expect(typeof analyze.analyzeCompoundMember).toBe('function')

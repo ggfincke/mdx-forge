@@ -26,6 +26,9 @@ export type {
   ComponentSource,
 } from './rules/unknown-component'
 export type { DetectedAttribute, DetectedComponent } from './parse'
+export { getComponentNameInfo } from './parse'
+export { collectMdxBindings } from '../../internal/esm-bindings'
+export type { MdxBindings } from '../../internal/esm-bindings'
 
 export interface AnalyzeContext
 {

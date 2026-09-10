@@ -1,17 +1,25 @@
 // src/compiler/trusted/identifier.ts
 // shared unique-identifier policy for trusted compiler output
 
-// pick an identifier absent from generated source w/ the shared suffix policy
+// pick an unused identifier w/ the shared suffix policy & reserve binding sets
 export const createUniqueIdentifier = (
-  source: string,
+  source: string | Set<string>,
   base: string
 ): string =>
 {
   let name = base
   let counter = 1
-  while (new RegExp(`\\b${name}\\b`).test(source))
+  while (
+    typeof source === 'string'
+      ? new RegExp(`\\b${name}\\b`).test(source)
+      : source.has(name)
+  )
   {
     name = `${base}_${counter++}`
+  }
+  if (typeof source !== 'string')
+  {
+    source.add(name)
   }
   return name
 }

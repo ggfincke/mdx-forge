@@ -310,7 +310,9 @@ interface MdxTranspileResult {
 - If the source has no `export default`, a layout wrapper is injected (one
   of: `customLayoutFilePath`, `useHostMarkdownStyles`, or none)
 - Component imports configured via `config.configFile.components` are
-  prepended to the source before compilation
+  injected into the parsed MDX tree before custom remark transforms. Authored
+  bindings reserve their identifiers, and generated imports do not shift source
+  positions
 - Custom remark/rehype plugins from `config.configFile` **are loaded** in
   Trusted Mode (gated by `config.trustValidator` if provided)
 

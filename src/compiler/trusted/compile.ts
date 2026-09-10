@@ -8,6 +8,7 @@ import { extractFrontmatter } from '../pipeline/common/mdx-common'
 import { buildTrustedPluginPipeline } from '../plugins/builder'
 import { loadPluginsFromConfig } from '../plugins/loader'
 import { generateComponentImports } from './component-mapper'
+import { remarkComponentImports } from './component-imports'
 import { createUniqueIdentifier } from './identifier'
 import { getLogger } from '../internal/logging'
 import { getDocumentDir, toImportSpecifierLiteral } from '../internal/path'
@@ -34,12 +35,6 @@ const stripDefaultMdxExport = (compiledMDX: string): string =>
   compiledMDX
     .replace(/^export default function MDXContent/m, 'function MDXContent')
     .replace(/^export default MDXContent;?$/m, '')
-
-// derive offsets from the exact prefix so generated import counts can vary
-const prependMdxSource = (mdxText: string, prefix: string) => ({
-  mdxText: prefix + mdxText,
-  prependedLineCount: prefix.split('\n').length - 1,
-})
 
 // resolve which layout applies from config (custom file vs host styles)
 // centralizes the customLayoutFilePath try/catch/warn & useHostMarkdownStyles
@@ -302,8 +297,7 @@ export async function compileTrusted(
     )
   }
 
-  let mdxTextToCompile = content
-  let sourceLineOffset = bodyStartLine - 1
+  const sourceLineOffset = bodyStartLine - 1
 
   // load custom plugins from config
   const customPlugins = await loadPluginsFromConfig(
@@ -340,22 +334,9 @@ export async function compileTrusted(
           builtinsEnabled,
         }
       )
-    : { hasComponents: false, imports: '', componentsObject: '{}' }
+    : { hasComponents: false, imports: [], componentsObject: '{}' }
 
   log.debug(`componentImports.hasComponents: ${componentImports.hasComponents}`)
-
-  // prepend component imports to MDX source (before compilation)
-  if (componentImports.hasComponents)
-  {
-    log.debug('Prepending component imports to MDX source')
-    const componentPrefix = componentImports.imports + '\n\n'
-    const componentInjection = prependMdxSource(
-      mdxTextToCompile,
-      componentPrefix
-    )
-    mdxTextToCompile = componentInjection.mdxText
-    sourceLineOffset -= componentInjection.prependedLineCount
-  }
 
   // build plugin pipeline (merges built-in & custom plugins)
   const { remarkPlugins, rehypePlugins } = buildTrustedPluginPipeline(
@@ -364,12 +345,15 @@ export async function compileTrusted(
   )
   if (isMdx)
   {
-    remarkPlugins.unshift(remarkDetectDefaultExport as Pluggable)
+    remarkPlugins.unshift(
+      [remarkComponentImports, componentImports],
+      remarkDetectDefaultExport as Pluggable
+    )
   }
 
   const compiled = await compile(
     {
-      value: mdxTextToCompile,
+      value: content,
       data: { sourceLineOffset },
     },
     {
