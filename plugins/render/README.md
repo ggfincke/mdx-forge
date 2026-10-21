@@ -1,7 +1,7 @@
 # mdx-forge-render
 
-Claude Code plugin that exposes two MCP tools for authoring MDX with
-structured feedback:
+MCP plugin for authoring MDX with structured feedback and viewing files in
+compatible desktop hosts:
 
 - `render_mdx` — compile MDX to HTML (Safe or Trusted Mode), publish a
   live-reloading preview, optionally screenshot, and return structured
@@ -9,6 +9,63 @@ structured feedback:
   line numbers and did-you-mean suggestions.
 - `list_components` — look up the framework's component registry (names,
   required/optional props, enum values, examples) before writing MDX.
+- `open_mdx_file` — desktop file entrypoint for `.md` and `.mdx` resources.
+- `render_file_preview` — app-only compilation used by the file viewer.
+
+## File-viewer prototype
+
+Build and open the included sample in a local prototype host:
+
+```bash
+cd plugins/render
+npm ci
+npm run build
+npm run viewer:demo -- prototype/showcase.mdx
+```
+
+Open the printed loopback URL. Save edits to the selected file to refresh the
+preview automatically, including editors that replace the file on save. The
+host reads only that file and never writes it. `Refresh` also works manually.
+The host banner identifies this as a local simulator; native ChatGPT plugin
+registration and beside-conversation placement are still unverified.
+
+Markdown uses Forge's CommonMark pipeline. MDX starts in Safe mode, with
+sanitized HTML and JavaScript disabled. Enable `Interactive` for working
+framework shims such as Tabs and Collapsible, or inline MDX components and
+hooks. Interactive code runs in a separate iframe with an opaque origin,
+network access blocked, and no host tool bridge. Selecting a new file or
+turning Interactive off removes the running frame. `.md` files stay in Safe
+mode. Local component imports, remote assets, and custom plugins are outside
+this prototype's scope.
+
+Syntax errors retain the last successful preview and display an error.
+Top-level JavaScript and React render failures display a runtime diagnostic
+inside the interactive preview. Fixing the file triggers another render.
+Framework, theme, source inspection, and diagnostics controls are included.
+Edits rebuild the document and reset component state.
+
+### Desktop integration
+
+The server advertises a file entrypoint with
+`_meta['openai/ui'].entrypoints` and an MCP Apps resource at
+`ui://mdx-forge/file-viewer.html`. The viewer uses
+`@openai/mcp-extensions` to read the supplied opaque resource URI as text,
+subscribe to resource updates, and reread after each notification. The
+compiler receives source through the app-only tool; it does not resolve
+arbitrary host paths or execute authored JavaScript on the server.
+
+This follows the official [file-viewer extensions](https://developers.openai.com/plugins/build/extensions)
+and [MCP Apps UI](https://developers.openai.com/plugins/build/chatgpt-ui)
+contracts. `plugin.json` and `mcp.json` provide a portable stdio package using
+the current [plugin packaging format](https://developers.openai.com/plugins/build/plugins).
+The existing Claude manifest and MCP configuration remain available.
+Registering it in a native host is a separate acceptance step; this source
+package has not been installed or published.
+
+The extension SDK currently requires MCP Apps 1.x, so its two UI dependencies
+are pinned together. The viewer bundles executable browser code ahead of
+time, avoiding a runtime `new Function()` under the host's default CSP.
+Both source and output size budgets apply to the viewer tools.
 
 ## Install
 

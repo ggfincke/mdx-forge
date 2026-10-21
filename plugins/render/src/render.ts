@@ -200,7 +200,7 @@ const SAFE_CSP =
   "default-src 'none'; img-src data:; style-src 'unsafe-inline'; " +
   "font-src data:; base-uri 'none'; form-action 'none'"
 
-function documentHead(
+export function documentHead(
   tokens: string,
   frameworkCss: string,
   includeCsp: boolean
@@ -221,7 +221,7 @@ function documentHead(
 
 // includeCsp: portable artifacts & screenshots get the Safe CSP; the live-reload
 // preview page omits it so its infra script can run on localhost
-function buildSafeDocument(
+export function buildSafeDocument(
   bodyHtml: string,
   tokens: string,
   frameworkCss: string,

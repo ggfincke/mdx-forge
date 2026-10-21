@@ -32,6 +32,7 @@ import {
 } from './registry.js'
 import { startPreviewServer, stopPreviewServer } from './preview-server.js'
 import { VIEWPORT_PRESET_NAMES } from './viewports.js'
+import { registerFileViewer } from './file-viewer.js'
 
 const THEMES = ['light', 'dark'] as const
 
@@ -39,6 +40,8 @@ const server = new McpServer({
   name: 'mdx-forge-render',
   version: '0.2.0',
 })
+
+registerFileViewer(server)
 
 // --- render_mdx --------------------------------------------------------------
 
